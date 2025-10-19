@@ -20,19 +20,41 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### 3️⃣ Setup Database (1 menit)
+### 3️⃣ Setup Database (2 menit)
 
 1. Buka Supabase Dashboard > SQL Editor
-2. Copy isi file `supabase/schema.sql`
-3. Paste & Run
+2. **First:** Copy isi file `supabase/schema.sql`, Paste & Run
+3. **Second:** Copy isi file `supabase/auth-setup.sql`, Paste & Run
 4. ✅ Database ready dengan sample data!
+
+### 3.5️⃣ Setup Sample Users (1 menit)
+
+1. Di Supabase Dashboard, klik **Authentication** > **Users**
+2. Klik **Add User** dan buat 3 users:
+   - Email: `admin@trainingcenter.com`, Password: `admin123`, Auto Confirm: ON
+   - Email: `manager@trainingcenter.com`, Password: `manager123`, Auto Confirm: ON  
+   - Email: `user@trainingcenter.com`, Password: `user123`, Auto Confirm: ON
+3. Update roles via SQL Editor:
+```sql
+UPDATE user_profiles SET role = 'admin', full_name = 'Admin User' WHERE email = 'admin@trainingcenter.com';
+UPDATE user_profiles SET role = 'manager', full_name = 'Manager User' WHERE email = 'manager@trainingcenter.com';
+```
+4. ✅ Users ready!
 
 ### 4️⃣ Run App (30 detik)
 ```bash
 npm run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000) 🎉
+Buka [http://localhost:3000](http://localhost:3000)
+
+### 5️⃣ Login! (10 detik)
+
+1. Anda akan diarahkan ke halaman Login
+2. **Quick Login:** Klik salah satu sample account
+3. Atau masukkan email: `admin@trainingcenter.com`, password: `admin123`
+4. Klik Login
+5. 🎉 Selamat! Anda sudah masuk ke Dashboard!
 
 ## ✅ Checklist Setup
 
@@ -40,12 +62,27 @@ Buka [http://localhost:3000](http://localhost:3000) 🎉
 - [ ] npm install completed
 - [ ] Supabase account created
 - [ ] `.env.local` file created with credentials
-- [ ] Database schema executed
+- [ ] Database schema executed (`schema.sql`)
+- [ ] Auth schema executed (`auth-setup.sql`)
+- [ ] Sample users created (admin, manager, user)
+- [ ] User roles updated
 - [ ] App running on localhost:3000
+- [ ] Successfully login dengan admin account
 
 ## 🎯 Apa yang Bisa Dicoba?
 
-### Dengan Sample Data yang Sudah Ada:
+### 🔐 Test Authentication:
+
+1. **Login** dengan different accounts:
+   - Admin (`admin@trainingcenter.com` / `admin123`)
+   - Manager (`manager@trainingcenter.com` / `manager123`)
+   - User (`user@trainingcenter.com` / `user123`)
+
+2. **Logout** - Klik profile di header, pilih Logout
+
+3. **Register** - Buat user baru via halaman register
+
+### 📊 Dengan Sample Data yang Sudah Ada:
 
 1. **Dashboard** - Lihat statistik overview
    - 3 trainer sudah terdaftar
@@ -65,7 +102,7 @@ Buka [http://localhost:3000](http://localhost:3000) 🎉
 
 4. **Statistics** - Lihat charts & analytics
 
-### Coba Tambah Data Baru:
+### ➕ Coba Tambah Data Baru:
 
 1. ➕ Tambah Trainer Baru
 2. ➕ Tambah Program Baru
@@ -127,14 +164,27 @@ PORT=3001 npm run dev
 
 ## 💡 Tips
 
+- **Authentication** - Semua routes protected, harus login dulu
+- **Sample accounts** - Klik di login page untuk quick fill
+- **Logout** - Klik profile di pojok kanan atas
 - **Sample data** sudah include untuk testing
 - **Search feature** available di semua list pages
 - **Form validation** built-in
 - **Responsive design** - coba di mobile!
 
+## 🔐 Sample Login Credentials
+
+```
+Admin: admin@trainingcenter.com / admin123
+Manager: manager@trainingcenter.com / manager123
+User: user@trainingcenter.com / user123
+```
+
 ## 🆘 Need Help?
 
-- Check [SETUP.md](./SETUP.md) untuk troubleshooting detail
+- **Auth Issues?** Check [AUTH_SETUP.md](./AUTH_SETUP.md)
+- **Setup Problems?** Check [SETUP.md](./SETUP.md)
+- **Feature Guide:** Check [FEATURES.md](./FEATURES.md)
 - Review [Supabase Docs](https://supabase.com/docs)
 - Check [Next.js Docs](https://nextjs.org/docs)
 

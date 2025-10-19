@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: GraduationCap, label: 'Program', href: '/programs' },
   { icon: Users, label: 'Peserta', href: '/participants' },
   { icon: UserCog, label: 'Trainer', href: '/trainers' },
@@ -31,8 +31,8 @@ export function Sidebar() {
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Training Center</h1>
-            <p className="text-xs text-gray-500">Management System</p>
+            <h1 className="text-lg font-bold text-gray-900">Garuda Academy</h1>
+            <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
           </div>
         </div>
       </div>

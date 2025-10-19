@@ -1,31 +1,35 @@
-# 🎓 Training Center Management System
+# 🎓 Garuda Academy - GARUDA-21 Training Center
 
-> Aplikasi modern dan scalable untuk manajemen training center dengan fitur lengkap untuk pendaftaran trainer, peserta, dan statistik kegiatan.
+> Program pelatihan eksklusif di bidang AI & teknologi untuk profesional Indonesia. Bergerak, hadirkan dampak nyata!
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3-38B2AC?style=flat-square&logo=tailwind-css)
 ![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase)
 
-## ✨ Fitur Utama
+## ✨ Benefit Program
 
-### 🎯 Manajemen Lengkap
-- 📚 **Manajemen Trainer** - Pendaftaran dan pendataan trainer/instruktur
-- 👥 **Manajemen Peserta** - Pendaftaran dan pendataan peserta kegiatan
-- 🎓 **Manajemen Program** - Kelola berbagai program pelatihan
-- 📝 **Manajemen Pendaftaran** - Tracking enrollment dan pembayaran
+### 📚 Program Pelatihan
+- 🎓 **Self Learning Course** - Akses pelatihan 100% gratis dengan kurikulum berstandar industri global
+- 👥 **Offline Workshop Training** - Sesi tatap muka bersama para ahli
+- 💻 **Online Short Training** - Bimbingan langsung dari instruktur berpengalaman
+- 🏆 **Hackathon & Datathon** - Kompetisi dengan hadiah total puluhan juta rupiah
+- 🚀 **Innovation Expo** - Showcase karya di hadapan pemimpin industri
+- 🎁 **Rewards Eksklusif** - Gadget dan merchandise untuk top performers
 
-### 📊 Analytics & Reporting
-- 📈 **Dashboard Interaktif** - Real-time statistics dan overview
-- 📊 **Statistik Detail** - Analytics per program, kategori, dan trainer
-- 💰 **Revenue Tracking** - Monitoring pendapatan per program
-- 📉 **Trend Analysis** - Grafik tren pendaftaran bulanan
+### 🎯 Target Peserta
+- 👨‍💻 **Tech Professionals** - Developer, Data Scientist, DevOps Engineer
+- 👨‍🎓 **Akademisi** - Dosen, Peneliti, Mahasiswa S3
+- 👔 **Tech Leaders** - CTO, Tech Manager, Product Manager
+- 🚀 **Technopreneur** - Founder startup teknologi
+- 📊 **Konsultan IT** - Business Analyst, IT Consultant
 
-### 🎨 User Experience
-- 🌐 **Modern UI/UX** - Interface yang clean dan intuitif
-- 📱 **Fully Responsive** - Optimal di mobile, tablet, dan desktop
-- ⚡ **Fast & Scalable** - Built dengan Next.js 14 dan Supabase
-- 🔍 **Search & Filter** - Pencarian cepat di semua modul
+### 💡 Keunggulan
+- ✅ 100% Gratis dengan sertifikat kompetensi
+- ✅ Kurikulum berstandar global
+- ✅ Networking dengan profesional industri
+- ✅ Real-world project implementation
+- ✅ Kesempatan kolaborasi dan karir
 
 ## 🚀 Quick Start
 
@@ -39,7 +43,7 @@
 ```bash
 # 1. Clone repository
 git clone <your-repo-url>
-cd trainingcenter
+cd garuda-academy
 
 # 2. Install dependencies
 npm install
@@ -265,5 +269,7 @@ Jika ada pertanyaan atau butuh bantuan:
 
 ---
 
-**Built with ❤️ using Next.js and Supabase**
+**Built with ❤️ for Indonesian Tech Community**
+
+Terinspirasi dari [Microsoft Elevate Training Center](https://dicoding.elevaite.id/)
 

@@ -1,8 +1,59 @@
 'use client'
 
-import { Bell, Search, User } from 'lucide-react'
+import { Bell, Search, User, LogOut, ChevronDown } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getCurrentUser, getUserProfile, signOut } from '@/lib/auth'
+import type { UserProfile } from '@/lib/auth'
 
 export function Header() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadUser()
+  }, [])
+
+  async function loadUser() {
+    try {
+      const currentUser = await getCurrentUser()
+      if (currentUser) {
+        setUser(currentUser)
+        const userProfile = await getUserProfile(currentUser.id)
+        setProfile(userProfile)
+      }
+    } catch (error) {
+      console.error('Error loading user:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await signOut()
+      router.push('/login')
+      router.refresh()
+    } catch (error) {
+      console.error('Error signing out:', error)
+      alert('Gagal logout. Silakan coba lagi.')
+    }
+  }
+
+  const getRoleBadge = (role?: string) => {
+    const badges: Record<string, { text: string; class: string }> = {
+      admin: { text: 'Administrator', class: 'text-purple-600' },
+      manager: { text: 'Manager', class: 'text-blue-600' },
+      user: { text: 'User', class: 'text-gray-600' },
+    }
+    return badges[role || 'user'] || badges.user
+  }
+
+  const roleInfo = getRoleBadge(profile?.role)
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -23,17 +74,56 @@ export function Header() {
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
-          <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">Admin User</p>
-              <p className="text-xs text-gray-500">Administrator</p>
-            </div>
-            <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
+          <div className="relative pl-4 border-l border-gray-200">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+            >
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">
+                  {loading ? 'Loading...' : profile?.full_name || user?.email || 'User'}
+                </p>
+                <p className={`text-xs ${roleInfo.class}`}>{roleInfo.text}</p>
+              </div>
+              <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-medium text-gray-900">
+                    {profile?.full_name || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
+                  <span className={`inline-block mt-2 text-xs px-2 py-1 rounded-full bg-gray-100 ${roleInfo.class}`}>
+                    {roleInfo.text}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center space-x-3 px-4 py-3 hover:bg-red-50 text-red-600 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Click outside to close dropdown */}
+      {showDropdown && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowDropdown(false)}
+        />
+      )}
     </header>
   )
 }
