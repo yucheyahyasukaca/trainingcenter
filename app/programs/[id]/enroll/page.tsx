@@ -8,11 +8,13 @@ import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
+import { useNotification } from '@/components/ui/Notification'
 import { ProgramWithClasses, ClassWithTrainers } from '@/types'
 
 export default function EnrollProgramPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { profile } = useAuth()
+  const { addNotification } = useNotification()
   const [program, setProgram] = useState<ProgramWithClasses | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -94,12 +96,38 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         participantId = existingParticipant.id
       }
 
+      // Check if user already enrolled in this program
+      const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
+        .from('enrollments')
+        .select('id, status')
+        .eq('participant_id', participantId)
+        .eq('program_id', program.id)
+        .single()
+
+      if (enrollmentCheckError && enrollmentCheckError.code !== 'PGRST116') {
+        throw enrollmentCheckError
+      }
+
+      if (existingEnrollment) {
+        const statusText = existingEnrollment.status === 'pending' ? 'menunggu persetujuan' : 
+                          existingEnrollment.status === 'approved' ? 'sudah disetujui' : 
+                          'ditolak'
+        
+        addNotification({
+          type: 'warning',
+          title: 'Sudah Terdaftar',
+          message: `Anda sudah terdaftar di program ini dengan status ${statusText}. Silakan cek halaman "Pendaftaran Saya".`,
+          duration: 8000
+        })
+        return
+      }
+
       // Upload payment proof if needed
       let proofUrl = ''
       if (program.price > 0 && paymentProof) {
         const fileExt = paymentProof.name.split('.').pop()
         const fileName = `${profile.id}_${program.id}_${Date.now()}.${fileExt}`
-        const filePath = `payment-proofs/${fileName}`
+        const filePath = `${profile.id}/${fileName}`
 
         const { error: uploadError } = await supabase.storage
           .from('payment-proofs')
@@ -126,17 +154,46 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         notes: `Pendaftaran program ${program.title}${selectedClass ? ` - Kelas ${program.classes?.find(c => c.id === selectedClass)?.name}` : ''}`
       }
 
-      const { error: enrollError } = await supabase
+      console.log('Creating enrollment with data:', enrollmentData)
+
+      const { data: enrollmentResult, error: enrollError } = await supabase
         .from('enrollments')
         .insert([enrollmentData])
+        .select()
 
-      if (enrollError) throw enrollError
+      if (enrollError) {
+        console.error('Enrollment error:', enrollError)
+        throw enrollError
+      }
 
-      alert(program.price === 0 ? 'Pendaftaran berhasil! Anda sudah terdaftar di program ini.' : 'Pendaftaran berhasil! Silakan tunggu konfirmasi dari admin.')
-      router.push('/my-enrollments')
+      console.log('Enrollment created successfully:', enrollmentResult)
+
+      // Show success notification
+      addNotification({
+        type: 'success',
+        title: 'Pendaftaran Berhasil!',
+        message: program.price === 0 
+          ? 'Anda sudah terdaftar di program ini dan dapat langsung mengakses kelas.' 
+          : 'Pendaftaran berhasil! Silakan tunggu konfirmasi dari admin untuk mengakses kelas.',
+        duration: 6000
+      })
+
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push('/my-enrollments')
+      }, 2000)
     } catch (error: any) {
       console.error('Error enrolling:', error)
-      setError('Gagal mendaftar: ' + error.message)
+      const errorMessage = 'Gagal mendaftar: ' + error.message
+      setError(errorMessage)
+      
+      // Show error notification
+      addNotification({
+        type: 'error',
+        title: 'Gagal Mendaftar',
+        message: errorMessage,
+        duration: 8000
+      })
     } finally {
       setSubmitting(false)
     }
@@ -148,18 +205,40 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
       if (!allowedTypes.includes(file.type)) {
-        setError('File harus berupa gambar (JPG, PNG) atau PDF')
+        const errorMsg = 'File harus berupa gambar (JPG, PNG) atau PDF'
+        setError(errorMsg)
+        addNotification({
+          type: 'error',
+          title: 'Format File Tidak Valid',
+          message: errorMsg,
+          duration: 5000
+        })
         return
       }
       
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setError('Ukuran file maksimal 5MB')
+        const errorMsg = 'Ukuran file maksimal 5MB'
+        setError(errorMsg)
+        addNotification({
+          type: 'error',
+          title: 'File Terlalu Besar',
+          message: errorMsg,
+          duration: 5000
+        })
         return
       }
 
       setPaymentProof(file)
       setError('')
+      
+      // Show success notification for file selection
+      addNotification({
+        type: 'success',
+        title: 'File Terpilih',
+        message: `File "${file.name}" berhasil dipilih`,
+        duration: 3000
+      })
     }
   }
 

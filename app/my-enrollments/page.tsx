@@ -20,6 +20,30 @@ export default function MyEnrollmentsPage() {
 
   async function fetchEnrollments() {
     try {
+      console.log('Fetching enrollments for user:', profile?.id)
+      
+      // First, get the participant record for this user
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', profile?.id)
+        .single()
+
+      if (participantError) {
+        console.error('Error fetching participant:', participantError)
+        setEnrollments([])
+        return
+      }
+
+      if (!participant) {
+        console.log('No participant record found for user')
+        setEnrollments([])
+        return
+      }
+
+      console.log('Found participant:', participant)
+
+      // Then fetch enrollments for this participant
       const { data, error } = await supabase
         .from('enrollments')
         .select(`
@@ -42,10 +66,15 @@ export default function MyEnrollmentsPage() {
             location
           )
         `)
-        .eq('participant_id', profile?.id)
+        .eq('participant_id', participant.id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching enrollments:', error)
+        throw error
+      }
+
+      console.log('Fetched enrollments:', data)
       setEnrollments(data || [])
     } catch (error) {
       console.error('Error fetching enrollments:', error)
