@@ -37,15 +37,15 @@ export default function EditParticipantPage({ params }: { params: { id: string }
       if (error) throw error
 
       setFormData({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        company: data.company || '',
-        position: data.position || '',
-        address: data.address || '',
-        date_of_birth: data.date_of_birth || '',
-        gender: data.gender,
-        status: data.status,
+        name: (data as any).name,
+        email: (data as any).email,
+        phone: (data as any).phone,
+        company: (data as any).company || '',
+        position: (data as any).position || '',
+        address: (data as any).address || '',
+        date_of_birth: (data as any).date_of_birth || '',
+        gender: (data as any).gender,
+        status: (data as any).status,
       })
     } catch (error) {
       console.error('Error fetching participant:', error)
@@ -60,7 +60,7 @@ export default function EditParticipantPage({ params }: { params: { id: string }
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('participants')
         .update(formData)
         .eq('id', params.id)

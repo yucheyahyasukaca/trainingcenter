@@ -61,7 +61,7 @@ export default function NewEnrollmentPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('enrollments')
         .insert([formData])
 

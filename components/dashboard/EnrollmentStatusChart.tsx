@@ -19,7 +19,7 @@ export function EnrollmentStatusChart() {
 
         if (error) throw error
 
-        const statusCounts = enrollments?.reduce((acc: any, enrollment) => {
+        const statusCounts = enrollments?.reduce((acc: any, enrollment: any) => {
           acc[enrollment.status] = (acc[enrollment.status] || 0) + 1
           return acc
         }, {})

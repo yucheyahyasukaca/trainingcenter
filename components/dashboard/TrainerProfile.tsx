@@ -51,7 +51,7 @@ export function TrainerProfile() {
     }
   }
 
-  const levelInfo = getLevelInfo(profile?.trainer_level || 'user')
+  const levelInfo = getLevelInfo((profile as any)?.trainer_level || 'user')
   const Icon = levelInfo.icon
 
   const trainerStats = [
@@ -75,7 +75,7 @@ export function TrainerProfile() {
     },
     {
       title: 'Pengalaman',
-      value: `${profile?.trainer_experience_years || 0} tahun`,
+      value: `${(profile as any)?.trainer_experience_years || 0} tahun`,
       icon: Calendar,
       color: 'purple'
     }
@@ -178,11 +178,11 @@ export function TrainerProfile() {
       </div>
 
       {/* Specializations */}
-      {profile?.trainer_specializations && profile.trainer_specializations.length > 0 && (
+      {(profile as any)?.trainer_specializations && (profile as any).trainer_specializations.length > 0 && (
         <div className="mb-6">
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Spesialisasi</h4>
           <div className="flex flex-wrap gap-2">
-            {profile.trainer_specializations.map((spec, index) => (
+            {(profile as any).trainer_specializations.map((spec: any, index: number) => (
               <span key={index} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
                 {spec}
               </span>

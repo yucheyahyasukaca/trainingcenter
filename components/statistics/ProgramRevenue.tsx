@@ -24,7 +24,7 @@ export function ProgramRevenue() {
 
         if (error) throw error
 
-        const programsWithRevenue = data?.map((program) => ({
+        const programsWithRevenue = data?.map((program: any) => ({
           title: program.title,
           price: program.price,
           revenue: program.enrollments?.reduce((sum: number, e: any) => sum + (e.amount_paid || 0), 0) || 0,

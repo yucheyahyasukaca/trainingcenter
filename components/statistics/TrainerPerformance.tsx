@@ -23,7 +23,7 @@ export function TrainerPerformance() {
 
         // Group by trainer
         const trainerStats: Record<string, any> = {}
-        programs?.forEach((program) => {
+        programs?.forEach((program: any) => {
           if (program.trainer) {
             const trainerId = program.trainer.id
             if (!trainerStats[trainerId]) {

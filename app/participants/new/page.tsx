@@ -26,7 +26,7 @@ export default function NewParticipantPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('participants')
         .insert([formData])
 

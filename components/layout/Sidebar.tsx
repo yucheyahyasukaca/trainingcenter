@@ -11,7 +11,9 @@ import {
   GraduationCap,
   X,
   Settings,
-  HelpCircle
+  HelpCircle,
+  UserCheck,
+  Award
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -73,7 +75,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const { profile } = useAuth()
   
-  const menuItems = getMenuItems(profile?.role || 'user', profile?.trainer_level)
+  const menuItems = getMenuItems(profile?.role || 'user', (profile as any)?.trainer_level)
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full relative z-50">
@@ -112,11 +114,11 @@ export function Sidebar({ onClose }: SidebarProps) {
               {profile.role === 'admin' ? 'Administrator' :
                profile.role === 'manager' ? 'Manager' : 'User'}
             </span>
-            {profile.trainer_level && profile.trainer_level !== 'user' && (
+                   {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
-                {profile.trainer_level === 'master_trainer' ? 'Master' :
-                 profile.trainer_level === 'trainer_l2' ? 'L2' :
-                 profile.trainer_level === 'trainer_l1' ? 'L1' : 'Trainer'}
+                {(profile as any).trainer_level === 'master_trainer' ? 'Master' :
+                 (profile as any).trainer_level === 'trainer_l2' ? 'L2' :
+                 (profile as any).trainer_level === 'trainer_l1' ? 'L1' : 'Trainer'}
               </span>
             )}
           </div>

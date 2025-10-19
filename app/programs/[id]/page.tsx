@@ -56,16 +56,16 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
       if (error) throw error
 
       setFormData({
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        duration_days: data.duration_days,
-        max_participants: data.max_participants,
-        price: data.price,
-        status: data.status,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        trainer_id: data.trainer_id || '',
+        title: (data as any).title,
+        description: (data as any).description,
+        category: (data as any).category,
+        duration_days: (data as any).duration_days,
+        max_participants: (data as any).max_participants,
+        price: (data as any).price,
+        status: (data as any).status,
+        start_date: (data as any).start_date,
+        end_date: (data as any).end_date,
+        trainer_id: (data as any).trainer_id || '',
       })
     } catch (error) {
       console.error('Error fetching program:', error)
@@ -85,7 +85,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         trainer_id: formData.trainer_id || null,
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('programs')
         .update(dataToUpdate)
         .eq('id', params.id)

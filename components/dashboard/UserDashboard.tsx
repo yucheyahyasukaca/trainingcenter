@@ -55,7 +55,7 @@ export function UserDashboard() {
     }
   }
 
-  const levelInfo = getTrainerLevelInfo(profile?.trainer_level || 'user')
+  const levelInfo = getTrainerLevelInfo((profile as any)?.trainer_level || 'user')
   const Icon = levelInfo.icon
 
   const userStats = [
@@ -166,11 +166,11 @@ export function UserDashboard() {
               </span>
             </div>
             <p className="text-gray-600 mt-1">{levelInfo.description}</p>
-            {profile?.trainer_specializations && profile.trainer_specializations.length > 0 && (
+            {(profile as any)?.trainer_specializations && (profile as any).trainer_specializations.length > 0 && (
               <div className="mt-3">
                 <p className="text-sm font-medium text-gray-700 mb-2">Spesialisasi:</p>
                 <div className="flex flex-wrap gap-2">
-                  {profile.trainer_specializations.map((spec, index) => (
+                  {(profile as any).trainer_specializations.map((spec: any, index: number) => (
                     <span key={index} className="px-2 py-1 bg-white rounded-md text-sm text-gray-700">
                       {spec}
                     </span>
@@ -256,7 +256,7 @@ export function UserDashboard() {
       </div>
 
       {/* Trainer Profile & Certificates */}
-      {(profile?.trainer_level && profile.trainer_level !== 'user') && (
+      {((profile as any)?.trainer_level && (profile as any).trainer_level !== 'user') && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TrainerProfile />
           <MyCertificates />

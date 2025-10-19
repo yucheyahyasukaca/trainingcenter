@@ -17,7 +17,7 @@ export function ProgramsChart() {
 
         if (error) throw error
 
-        const categoryCounts = programs?.reduce((acc: any, program) => {
+        const categoryCounts = programs?.reduce((acc: any, program: any) => {
           acc[program.category] = (acc[program.category] || 0) + 1
           return acc
         }, {})

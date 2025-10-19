@@ -20,7 +20,7 @@ export function MonthlyEnrollmentsChart() {
 
         // Group by month
         const monthCounts: Record<string, number> = {}
-        enrollments?.forEach((enrollment) => {
+        enrollments?.forEach((enrollment: any) => {
           const date = new Date(enrollment.enrollment_date)
           const monthKey = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short' })
           monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1

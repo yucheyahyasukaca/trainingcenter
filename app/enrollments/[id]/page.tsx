@@ -66,14 +66,16 @@ export default function EditEnrollmentPage({ params }: { params: { id: string } 
 
       if (error) throw error
 
-      setFormData({
-        program_id: data.program_id,
-        participant_id: data.participant_id,
-        status: data.status,
-        payment_status: data.payment_status,
-        amount_paid: data.amount_paid,
-        notes: data.notes || '',
-      })
+      if (data) {
+        setFormData({
+          program_id: (data as any).program_id || '',
+          participant_id: (data as any).participant_id || '',
+          status: (data as any).status || 'pending',
+          payment_status: (data as any).payment_status || 'unpaid',
+          amount_paid: (data as any).amount_paid || 0,
+          notes: (data as any).notes || '',
+        })
+      }
     } catch (error) {
       console.error('Error fetching enrollment:', error)
       alert('Gagal memuat data pendaftaran')
@@ -87,7 +89,7 @@ export default function EditEnrollmentPage({ params }: { params: { id: string } 
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('enrollments')
         .update(formData)
         .eq('id', params.id)

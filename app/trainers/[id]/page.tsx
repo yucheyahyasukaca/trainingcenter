@@ -37,14 +37,14 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
       if (error) throw error
 
       setFormData({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        specialization: data.specialization,
-        bio: data.bio || '',
-        experience_years: data.experience_years,
-        certification: data.certification || '',
-        status: data.status,
+        name: (data as any).name,
+        email: (data as any).email,
+        phone: (data as any).phone,
+        specialization: (data as any).specialization,
+        bio: (data as any).bio || '',
+        experience_years: (data as any).experience_years,
+        certification: (data as any).certification || '',
+        status: (data as any).status,
       })
     } catch (error) {
       console.error('Error fetching trainer:', error)
@@ -59,7 +59,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('trainers')
         .update(formData)
         .eq('id', params.id)

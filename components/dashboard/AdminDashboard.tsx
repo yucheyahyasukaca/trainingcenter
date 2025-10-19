@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { DashboardStats } from './DashboardStats'
 import { RecentEnrollments } from './RecentEnrollments'
@@ -7,6 +8,7 @@ import { ProgramsChart } from './ProgramsChart'
 import { EnrollmentStatusChart } from './EnrollmentStatusChart'
 import { UsersChart } from './UsersChart'
 import { SystemOverview } from './SystemOverview'
+import { ManagerManagement } from './ManagerManagement'
 import { 
   Users, 
   GraduationCap, 
@@ -14,11 +16,14 @@ import {
   TrendingUp,
   Shield,
   Settings,
-  BarChart3
+  BarChart3,
+  LayoutDashboard,
+  UserCog
 } from 'lucide-react'
 
 export function AdminDashboard() {
   const { profile } = useAuth()
+  const [activeTab, setActiveTab] = useState('overview')
 
   const adminStats = [
     {
@@ -62,6 +67,13 @@ export function AdminDashboard() {
     { title: 'Revenue Report', icon: TrendingUp, href: '/revenue', color: 'green' }
   ]
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'managers', label: 'Manager Management', icon: UserCog },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -78,84 +90,132 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Admin Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {adminStats.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                  <p className={`text-sm mt-1 ${
-                    stat.changeType === 'positive' ? 'text-green-600' : 
-                    stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {stat.change}
-                  </p>
-                </div>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  stat.color === 'blue' ? 'bg-blue-100' :
-                  stat.color === 'green' ? 'bg-green-100' :
-                  stat.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
-                }`}>
-                  <Icon className={`w-6 h-6 ${
-                    stat.color === 'blue' ? 'text-blue-600' :
-                    stat.color === 'green' ? 'text-green-600' :
-                    stat.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                  }`} />
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
+        <div className="flex space-x-1 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon
             return (
-              <a
-                key={index}
-                href={action.href}
-                className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                  activeTab === tab.id
+                    ? 'bg-primary-100 text-primary-700'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
-                  action.color === 'blue' ? 'bg-blue-100 group-hover:bg-blue-200' :
-                  action.color === 'green' ? 'bg-green-100 group-hover:bg-green-200' :
-                  action.color === 'purple' ? 'bg-purple-100 group-hover:bg-purple-200' :
-                  'bg-gray-100 group-hover:bg-gray-200'
-                }`}>
-                  <Icon className={`w-5 h-5 ${
-                    action.color === 'blue' ? 'text-blue-600' :
-                    action.color === 'green' ? 'text-green-600' :
-                    action.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                  }`} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
-                  {action.title}
-                </span>
-              </a>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="truncate">{tab.label}</span>
+              </button>
             )
           })}
         </div>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ProgramsChart />
-        <EnrollmentStatusChart />
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Admin Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {adminStats.map((stat, index) => {
+              const Icon = stat.icon
+              return (
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                      <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className={`text-sm mt-1 ${
+                    stat.changeType === 'positive' ? 'text-green-600' : 'text-gray-600'
+                  }`}>
+                        {stat.change}
+                      </p>
+                    </div>
+                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                      stat.color === 'blue' ? 'bg-blue-100' :
+                      stat.color === 'green' ? 'bg-green-100' :
+                      stat.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
+                    }`}>
+                      <Icon className={`w-6 h-6 ${
+                        stat.color === 'blue' ? 'text-blue-600' :
+                        stat.color === 'green' ? 'text-green-600' :
+                        stat.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
 
-      {/* System Overview & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SystemOverview />
-        <RecentEnrollments />
-      </div>
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {quickActions.map((action, index) => {
+                const Icon = action.icon
+                return (
+                  <a
+                    key={index}
+                    href={action.href}
+                    className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
+                      action.color === 'blue' ? 'bg-blue-100 group-hover:bg-blue-200' :
+                      action.color === 'green' ? 'bg-green-100 group-hover:bg-green-200' :
+                      action.color === 'purple' ? 'bg-purple-100 group-hover:bg-purple-200' :
+                      'bg-gray-100 group-hover:bg-gray-200'
+                    }`}>
+                      <Icon className={`w-5 h-5 ${
+                        action.color === 'blue' ? 'text-blue-600' :
+                        action.color === 'green' ? 'text-green-600' :
+                        action.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                      {action.title}
+                    </span>
+                  </a>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProgramsChart />
+            <EnrollmentStatusChart />
+          </div>
+
+          {/* System Overview & Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SystemOverview />
+            <RecentEnrollments />
+          </div>
+        </>
+      )}
+
+      {activeTab === 'managers' && (
+        <ManagerManagement />
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <UsersChart />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Analytics Coming Soon</h3>
+            <p className="text-gray-600">Advanced analytics features will be available soon.</p>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
+          <p className="text-gray-600">System settings will be available soon.</p>
+        </div>
+      )}
     </div>
   )
 }

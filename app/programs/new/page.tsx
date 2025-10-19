@@ -53,7 +53,7 @@ export default function NewProgramPage() {
         trainer_id: formData.trainer_id || null,
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('programs')
         .insert([dataToInsert])
 

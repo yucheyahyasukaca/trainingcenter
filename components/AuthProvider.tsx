@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: currentUser.email || '',
             full_name: currentUser.user_metadata?.full_name || currentUser.email || 'User',
             role: 'admin' as const,
-            avatar_url: null,
+            avatar_url: undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
