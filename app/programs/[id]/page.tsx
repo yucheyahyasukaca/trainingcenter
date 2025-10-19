@@ -56,15 +56,15 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
       if (error) throw error
 
       setFormData({
-        title: (data as any).title,
-        description: (data as any).description,
-        category: (data as any).category,
-        duration_days: (data as any).duration_days,
-        max_participants: (data as any).max_participants,
-        price: (data as any).price,
-        status: (data as any).status,
-        start_date: (data as any).start_date,
-        end_date: (data as any).end_date,
+        title: (data as any).title || '',
+        description: (data as any).description || '',
+        category: (data as any).category || '',
+        duration_days: (data as any).duration_days || 1,
+        max_participants: (data as any).max_participants || 20,
+        price: (data as any).price || 0,
+        status: (data as any).status || 'draft',
+        start_date: (data as any).start_date || '',
+        end_date: (data as any).end_date || '',
         trainer_id: (data as any).trainer_id || '',
       })
     } catch (error) {
@@ -81,8 +81,16 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
 
     try {
       const dataToUpdate = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        max_participants: formData.max_participants,
+        price: formData.price,
+        status: formData.status,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
         trainer_id: formData.trainer_id || null,
+        // duration_days: formData.duration_days, // Temporarily disabled due to schema issue
       }
 
       const { error } = await (supabase as any)

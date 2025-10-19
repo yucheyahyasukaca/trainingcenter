@@ -29,6 +29,36 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
   async function fetchProgram() {
     try {
+      console.log('🔄 Fetching program with ID:', params.id)
+      
+      // First try simple query to check if program exists
+      const { data: simpleData, error: simpleError } = await supabase
+        .from('programs')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+
+      console.log('📊 Simple query result:', { simpleData, simpleError })
+
+      if (simpleError) {
+        console.error('❌ Simple query error:', simpleError)
+        throw simpleError
+      }
+
+      if (!simpleData) {
+        console.log('⚠️ No program found with ID:', params.id)
+        setError('Program tidak ditemukan')
+        return
+      }
+
+      // Check if program is published
+      if (simpleData.status !== 'published') {
+        console.log('⚠️ Program exists but not published:', simpleData.status)
+        setError('Program tidak tersedia untuk pendaftaran')
+        return
+      }
+
+      // Now try the full query with classes
       const { data, error } = await supabase
         .from('programs')
         .select(`
@@ -42,13 +72,30 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           )
         `)
         .eq('id', params.id)
-        .eq('status', 'published')
         .single()
 
-      if (error) throw error
+      console.log('📊 Full query result:', { data, error })
+
+      if (error) {
+        console.error('❌ Full query error:', error)
+        // If full query fails, use simple data
+        console.log('⚠️ Using simple data due to full query error')
+        setProgram(simpleData)
+        return
+      }
+      
+      if (!data) {
+        console.log('⚠️ No data from full query, using simple data')
+        setProgram(simpleData)
+        return
+      }
+
+      console.log('✅ Program found with classes:', data.title)
+      console.log('📚 Classes data:', data.classes)
+      console.log('📊 Classes count:', data.classes?.length || 0)
       setProgram(data)
     } catch (error) {
-      console.error('Error fetching program:', error)
+      console.error('❌ Error fetching program:', error)
       setError('Program tidak ditemukan atau tidak tersedia')
     } finally {
       setLoading(false)
@@ -84,8 +131,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
             user_id: profile.id,
             name: profile.full_name || 'User',
             email: profile.email,
-            phone: '',
-            status: 'active'
+            phone: ''
+            // status will use default value 'active' from schema
           }])
           .select('id')
           .single()
@@ -268,11 +315,24 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         <div className="text-center py-12">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Program Tidak Ditemukan</h1>
-          <p className="text-gray-600 mb-6">Program yang Anda cari tidak tersedia atau sudah tidak aktif.</p>
-          <Link href="/enrollments" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali ke Daftar Program
-          </Link>
+          <p className="text-gray-600 mb-4">Program yang Anda cari tidak tersedia atau sudah tidak aktif.</p>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
+              <p className="text-sm text-red-600">Error: {error}</p>
+            </div>
+          )}
+          <div className="space-x-4">
+            <Link href="/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Kembali ke Daftar Program
+            </Link>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
         </div>
       </div>
     )

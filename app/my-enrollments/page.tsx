@@ -176,7 +176,7 @@ export default function MyEnrollmentsPage() {
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">Belum ada pendaftaran program</p>
             <Link 
-              href="/enrollments" 
+              href="/programs" 
               className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors mt-4"
             >
               Lihat Program Tersedia

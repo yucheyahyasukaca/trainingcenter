@@ -54,6 +54,8 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         .order('start_date', { ascending: true })
 
       if (error) throw error
+      console.log('🔍 Classes fetched for program', programId, ':', data?.length || 0, 'classes')
+      console.log('📋 Classes data:', data)
       setClasses(data || [])
     } catch (error) {
       console.error('Error fetching classes:', error)

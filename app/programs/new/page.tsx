@@ -49,8 +49,16 @@ export default function NewProgramPage() {
 
     try {
       const dataToInsert = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        max_participants: formData.max_participants,
+        price: formData.price,
+        status: formData.status,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
         trainer_id: formData.trainer_id || null,
+        // duration_days: formData.duration_days, // Temporarily disabled due to schema issue
       }
 
       const { error } = await (supabase as any)
@@ -74,7 +82,7 @@ export default function NewProgramPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: ['duration_days', 'max_participants', 'price'].includes(name) 
-        ? parseFloat(value) || 0 
+        ? (name === 'duration_days' ? parseInt(value) || 1 : parseFloat(value) || 0)
         : value,
     }))
   }

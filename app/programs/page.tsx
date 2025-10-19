@@ -28,25 +28,29 @@ export default function ProgramsPage() {
 
   async function fetchPrograms() {
     try {
+      console.log('🔄 Fetching programs...')
       const { data, error } = await supabase
         .from('programs')
         .select(`
           *,
-          trainer:trainers(name),
-          classes:classes(
-            *,
-            trainers:class_trainers(
-              *,
-              trainer:trainers(*)
-            )
-          )
+          classes:classes(*)
         `)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error fetching programs:', error)
+        throw error
+      }
+      
+      console.log('✅ Programs fetched:', data?.length || 0)
+      console.log('📊 Programs with classes:', data?.map(p => ({ 
+        title: p.title, 
+        classCount: p.classes?.length || 0 
+      })))
       setPrograms(data || [])
     } catch (error) {
-      console.error('Error fetching programs:', error)
+      console.error('❌ Error fetching programs:', error)
+      setPrograms([])
     } finally {
       setLoading(false)
     }
@@ -249,7 +253,7 @@ export default function ProgramsPage() {
                         } else {
                           return (
                             <Link
-                              href={`/enrollments/new?program_id=${program.id}`}
+                              href={`/programs/${program.id}/enroll`}
                               className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                             >
                               Daftar
@@ -287,7 +291,7 @@ export default function ProgramsPage() {
                     </span>
                   </div>
                   
-                  {program.classes && program.classes.length > 0 && (
+                  {program.classes && program.classes.length > 0 ? (
                     <div className="mb-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Kelas Tersedia</span>
@@ -297,6 +301,15 @@ export default function ProgramsPage() {
                       </div>
                       <div className="mt-1 text-xs text-gray-500">
                         Total kuota: {program.classes.reduce((sum, cls) => sum + cls.max_participants, 0)} peserta
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Kelas Tersedia</span>
+                        <span className="text-sm font-medium text-gray-500">
+                          Belum ada kelas
+                        </span>
                       </div>
                     </div>
                   )}

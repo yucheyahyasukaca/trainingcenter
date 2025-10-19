@@ -34,24 +34,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (currentUser) {
         console.log('📋 Loading user profile...')
-        const userProfile = await getUserProfile(currentUser.id)
-        console.log('👤 User profile:', userProfile)
-        
-        // If profile not found, create a default one
-        if (!userProfile) {
-          console.log('⚠️ Profile not found, creating default...')
+        try {
+          const userProfile = await getUserProfile(currentUser.id)
+          console.log('👤 User profile:', userProfile)
+          
+          if (userProfile) {
+            setProfile(userProfile)
+          } else {
+            console.log('⚠️ Profile not found, creating default...')
+            const defaultProfile = {
+              id: currentUser.id,
+              email: currentUser.email || '',
+              full_name: currentUser.user_metadata?.full_name || currentUser.email || 'User',
+              role: 'user' as const,
+              avatar_url: undefined,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+            setProfile(defaultProfile)
+          }
+        } catch (profileError) {
+          console.error('❌ Error fetching user profile:', profileError)
+          // Create default profile on error
           const defaultProfile = {
             id: currentUser.id,
             email: currentUser.email || '',
             full_name: currentUser.user_metadata?.full_name || currentUser.email || 'User',
-            role: 'admin' as const,
+            role: 'user' as const,
             avatar_url: undefined,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
           setProfile(defaultProfile)
-        } else {
-          setProfile(userProfile)
         }
       } else {
         console.log('❌ No current user')

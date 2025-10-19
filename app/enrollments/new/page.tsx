@@ -7,10 +7,12 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ProgramWithClasses, Participant, ClassWithTrainers } from '@/types'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function NewEnrollmentPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { profile, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -25,10 +27,21 @@ export default function NewEnrollmentPage() {
     notes: '',
   })
 
+  // Check if user has admin or manager role
+  const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
+
   useEffect(() => {
-    fetchPrograms()
-    fetchParticipants()
-  }, [])
+    // Redirect user role to programs page
+    if (!authLoading && profile && !isAdminOrManager) {
+      router.push('/programs')
+      return
+    }
+    
+    if (isAdminOrManager) {
+      fetchPrograms()
+      fetchParticipants()
+    }
+  }, [profile, authLoading, isAdminOrManager, router])
 
   useEffect(() => {
     // Check if program_id is provided in URL
@@ -115,6 +128,37 @@ export default function NewEnrollmentPage() {
       setSelectedProgram(program || null)
       setFormData(prev => ({ ...prev, class_id: '' })) // Reset class selection
     }
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show access denied for non-admin/manager users
+  if (!isAdminOrManager) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ArrowLeft className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
+          <p className="text-gray-600 mb-6">Halaman ini hanya dapat diakses oleh Admin atau Manager.</p>
+          <Link href="/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Kembali ke Daftar Program
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -23,21 +23,35 @@ export function DashboardStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [programs, participants, trainers, enrollments] = await Promise.all([
+        console.log('🔄 Fetching dashboard stats...')
+        
+        const [programs, participants, enrollments] = await Promise.all([
           supabase.from('programs').select('id', { count: 'exact', head: true }),
           supabase.from('participants').select('id', { count: 'exact', head: true }),
-          supabase.from('trainers').select('id', { count: 'exact', head: true }),
           supabase.from('enrollments').select('id', { count: 'exact', head: true }),
         ])
+
+        console.log('📊 Stats fetched:', {
+          programs: programs.count,
+          participants: participants.count,
+          enrollments: enrollments.count
+        })
 
         setStats({
           totalPrograms: programs.count || 0,
           totalParticipants: participants.count || 0,
-          totalTrainers: trainers.count || 0,
+          totalTrainers: 0, // Remove trainers for now
           totalEnrollments: enrollments.count || 0,
         })
       } catch (error) {
-        console.error('Error fetching stats:', error)
+        console.error('❌ Error fetching stats:', error)
+        // Set default values on error
+        setStats({
+          totalPrograms: 0,
+          totalParticipants: 0,
+          totalTrainers: 0,
+          totalEnrollments: 0,
+        })
       } finally {
         setLoading(false)
       }
