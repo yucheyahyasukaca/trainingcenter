@@ -81,7 +81,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const menuItems = getMenuItems(profile?.role || 'user', (profile as any)?.trainer_level)
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full relative z-50">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full relative z-[9999] lg:z-auto">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">

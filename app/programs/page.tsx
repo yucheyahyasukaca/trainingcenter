@@ -185,10 +185,9 @@ export default function ProgramsPage() {
                     ) : (
                       <Link
                         href={`/enrollments/new?program_id=${program.id}`}
-                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                        title="Daftar Program"
+                        className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
                       >
-                        <UserPlus className="w-4 h-4" />
+                        Daftar
                       </Link>
                     )}
                   </div>

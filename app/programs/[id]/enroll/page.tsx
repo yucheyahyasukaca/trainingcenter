@@ -61,6 +61,39 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
     setError('')
 
     try {
+      // First, check if user has a participant record, create if not
+      let participantId = profile.id
+      
+      const { data: existingParticipant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', profile.id)
+        .single()
+
+      if (participantError && participantError.code !== 'PGRST116') {
+        throw participantError
+      }
+
+      if (!existingParticipant) {
+        // Create participant record
+        const { data: newParticipant, error: createParticipantError } = await supabase
+          .from('participants')
+          .insert([{
+            user_id: profile.id,
+            name: profile.full_name || 'User',
+            email: profile.email,
+            phone: '',
+            status: 'active'
+          }])
+          .select('id')
+          .single()
+
+        if (createParticipantError) throw createParticipantError
+        participantId = newParticipant.id
+      } else {
+        participantId = existingParticipant.id
+      }
+
       // Upload payment proof if needed
       let proofUrl = ''
       if (program.price > 0 && paymentProof) {
@@ -85,7 +118,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       const enrollmentData = {
         program_id: program.id,
         class_id: selectedClass || null,
-        participant_id: profile.id,
+        participant_id: participantId,
         status: program.price === 0 ? 'approved' : 'pending',
         payment_status: program.price === 0 ? 'paid' : 'unpaid',
         amount_paid: program.price === 0 ? program.price : 0,
@@ -100,7 +133,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       if (enrollError) throw enrollError
 
       alert(program.price === 0 ? 'Pendaftaran berhasil! Anda sudah terdaftar di program ini.' : 'Pendaftaran berhasil! Silakan tunggu konfirmasi dari admin.')
-      router.push('/enrollments')
+      router.push('/my-enrollments')
     } catch (error: any) {
       console.error('Error enrolling:', error)
       setError('Gagal mendaftar: ' + error.message)
