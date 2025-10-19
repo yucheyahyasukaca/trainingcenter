@@ -15,12 +15,16 @@ export default function ProgramsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
+  const [userEnrollments, setUserEnrollments] = useState<any[]>([])
   
   const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
   useEffect(() => {
     fetchPrograms()
-  }, [])
+    if (profile?.role === 'user') {
+      fetchUserEnrollments()
+    }
+  }, [profile])
 
   async function fetchPrograms() {
     try {
@@ -48,6 +52,40 @@ export default function ProgramsPage() {
     }
   }
 
+  async function fetchUserEnrollments() {
+    try {
+      if (!profile?.id) return
+
+      // First, get the participant record for this user
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', profile.id)
+        .single()
+
+      if (participantError || !participant) {
+        console.log('No participant record found for user')
+        setUserEnrollments([])
+        return
+      }
+
+      // Then fetch enrollments for this participant
+      const { data, error } = await supabase
+        .from('enrollments')
+        .select('program_id, status')
+        .eq('participant_id', participant.id)
+
+      if (error) {
+        console.error('Error fetching user enrollments:', error)
+        return
+      }
+
+      setUserEnrollments(data || [])
+    } catch (error) {
+      console.error('Error fetching user enrollments:', error)
+    }
+  }
+
   async function deleteProgram(id: string) {
     if (!confirm('Apakah Anda yakin ingin menghapus program ini?')) return
 
@@ -63,6 +101,11 @@ export default function ProgramsPage() {
       console.error('Error deleting program:', error)
       alert('Gagal menghapus program')
     }
+  }
+
+  const getUserEnrollmentStatus = (programId: string) => {
+    const enrollment = userEnrollments.find(e => e.program_id === programId)
+    return enrollment ? enrollment.status : null
   }
 
   const filteredPrograms = programs.filter((program) =>
@@ -183,12 +226,37 @@ export default function ProgramsPage() {
                         </button>
                       </>
                     ) : (
-                      <Link
-                        href={`/enrollments/new?program_id=${program.id}`}
-                        className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                      >
-                        Daftar
-                      </Link>
+                      (() => {
+                        const enrollmentStatus = getUserEnrollmentStatus(program.id)
+                        if (enrollmentStatus === 'pending') {
+                          return (
+                            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg text-center">
+                              Menunggu Persetujuan
+                            </div>
+                          )
+                        } else if (enrollmentStatus === 'approved') {
+                          return (
+                            <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg text-center">
+                              Sudah Terdaftar
+                            </div>
+                          )
+                        } else if (enrollmentStatus === 'rejected') {
+                          return (
+                            <div className="px-4 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center">
+                              Daftar Ulang
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <Link
+                              href={`/enrollments/new?program_id=${program.id}`}
+                              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                            >
+                              Daftar
+                            </Link>
+                          )
+                        }
+                      })()
                     )}
                   </div>
                 </div>

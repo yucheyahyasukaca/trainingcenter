@@ -54,15 +54,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   )
 }
 
-function NotificationContainer({ 
-  notifications, 
-  onRemove 
-}: { 
+function NotificationContainer({
+  notifications,
+  onRemove
+}: {
   notifications: NotificationProps[]
-  onRemove: (id: string) => void 
+  onRemove: (id: string) => void
 }) {
   return (
-    <div className="fixed top-4 right-4 left-4 sm:left-auto z-[9999] space-y-2 max-w-sm sm:max-w-md">
+    <div className="fixed top-4 right-4 left-4 sm:left-auto z-[9999] space-y-2 w-full sm:w-96 max-w-sm sm:max-w-none">
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
@@ -127,23 +127,23 @@ function NotificationItem({
         ${getStyles()}
       `}
     >
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-0.5">
           {getIcon()}
         </div>
-        <div className="ml-3 w-0 flex-1 min-w-0">
-          <p className="text-sm font-medium break-words">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 leading-5">
             {notification.title}
           </p>
           {notification.message && (
-            <p className="mt-1 text-sm opacity-90 break-words">
+            <p className="mt-1 text-sm text-gray-700 leading-5">
               {notification.message}
             </p>
           )}
         </div>
-        <div className="ml-4 flex-shrink-0 flex">
+        <div className="flex-shrink-0">
           <button
-            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors"
+            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors p-1"
             onClick={onClose}
           >
             <X className="w-4 h-4" />

@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { Search, CheckCircle, XCircle, Eye, Download, Clock } from 'lucide-react'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { useNotification } from '@/components/ui/Notification'
 import Link from 'next/link'
 
 export default function PaymentsPage() {
   const { profile } = useAuth()
+  const { addNotification } = useNotification()
   const [payments, setPayments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -52,10 +54,20 @@ export default function PaymentsPage() {
 
       if (error) throw error
       fetchPayments()
-      alert('Pembayaran disetujui! User sekarang dapat mengakses kelas.')
+      addNotification({
+        type: 'success',
+        title: 'Pembayaran Disetujui!',
+        message: 'User sekarang dapat mengakses kelas.',
+        duration: 5000
+      })
     } catch (error) {
       console.error('Error approving payment:', error)
-      alert('Gagal menyetujui pembayaran')
+      addNotification({
+        type: 'error',
+        title: 'Gagal Menyetujui',
+        message: 'Gagal menyetujui pembayaran',
+        duration: 5000
+      })
     }
   }
 
@@ -74,10 +86,60 @@ export default function PaymentsPage() {
 
       if (error) throw error
       fetchPayments()
-      alert('Pembayaran ditolak.')
+      addNotification({
+        type: 'warning',
+        title: 'Pembayaran Ditolak',
+        message: `Pembayaran ditolak dengan alasan: ${reason}`,
+        duration: 6000
+      })
     } catch (error) {
       console.error('Error rejecting payment:', error)
-      alert('Gagal menolak pembayaran')
+      addNotification({
+        type: 'error',
+        title: 'Gagal Menolak',
+        message: 'Gagal menolak pembayaran',
+        duration: 5000
+      })
+    }
+  }
+
+  async function viewPaymentProof(proofUrl: string) {
+    try {
+      // Extract file path from URL
+      const url = new URL(proofUrl)
+      const pathParts = url.pathname.split('/')
+      const bucketName = pathParts[2] // 'payment-proofs'
+      const filePath = pathParts.slice(3).join('/') // everything after bucket name
+      
+      console.log('Viewing payment proof:', { bucketName, filePath })
+      
+      // Get signed URL for viewing
+      const { data, error } = await supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(filePath, 3600) // 1 hour expiry
+      
+      if (error) {
+        console.error('Error creating signed URL:', error)
+        addNotification({
+          type: 'error',
+          title: 'Gagal Membuka File',
+          message: 'Tidak dapat mengakses bukti pembayaran. Pastikan file masih ada.',
+          duration: 5000
+        })
+        return
+      }
+      
+      // Open in new tab
+      window.open(data.signedUrl, '_blank')
+      
+    } catch (error) {
+      console.error('Error viewing payment proof:', error)
+      addNotification({
+        type: 'error',
+        title: 'Gagal Membuka File',
+        message: 'Tidak dapat mengakses bukti pembayaran. Coba lagi nanti.',
+        duration: 5000
+      })
     }
   }
 
@@ -126,13 +188,15 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Manajemen Pembayaran</h1>
-        <p className="text-gray-600 mt-1">Kelola pembayaran dan aktivasi kelas peserta</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manajemen Pembayaran</h1>
+          <p className="text-gray-600 mt-1">Kelola pembayaran dan aktivasi kelas peserta</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
-        <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -220,15 +284,13 @@ export default function PaymentsPage() {
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-2">
                         {payment.payment_proof_url && (
-                          <a
-                            href={payment.payment_proof_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => viewPaymentProof(payment.payment_proof_url)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Lihat Bukti Pembayaran"
                           >
                             <Eye className="w-4 h-4" />
-                          </a>
+                          </button>
                         )}
                         {payment.status === 'pending' && (
                           <>
