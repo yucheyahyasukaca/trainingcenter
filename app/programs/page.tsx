@@ -60,11 +60,11 @@ export default function ProgramsPage() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
-      draft: 'badge badge-warning',
-      published: 'badge badge-success',
-      archived: 'badge badge-danger',
+      draft: 'px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full',
+      published: 'px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full',
+      archived: 'px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full',
     }
-    return badges[status] || 'badge'
+    return badges[status] || 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'
   }
 
   return (
@@ -74,13 +74,13 @@ export default function ProgramsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Manajemen Program</h1>
           <p className="text-gray-600 mt-1">Kelola program dan kegiatan training</p>
         </div>
-        <Link href="/programs/new" className="btn-primary flex items-center space-x-2">
-          <Plus className="w-5 h-5" />
+        <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <Plus className="w-5 h-5 mr-2" />
           <span>Tambah Program</span>
         </Link>
       </div>
 
-      <div className="card">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center space-x-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -89,7 +89,7 @@ export default function ProgramsPage() {
               placeholder="Cari program..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 input"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             />
           </div>
         </div>
@@ -104,14 +104,14 @@ export default function ProgramsPage() {
           <div className="text-center py-12">
             <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">Belum ada program tersedia</p>
-            <Link href="/programs/new" className="btn-primary mt-4 inline-block">
+            <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors mt-4">
               Tambah Program Pertama
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrograms.map((program) => (
-              <div key={program.id} className="card hover:shadow-lg transition-shadow">
+              <div key={program.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <span className={getStatusBadge(program.status)}>
                     {program.status}

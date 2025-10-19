@@ -60,18 +60,11 @@ export function AdminDashboard() {
     }
   ]
 
-  const quickActions = [
-    { title: 'Kelola Pengguna', icon: Users, href: '/users', color: 'blue' },
-    { title: 'Pengaturan Sistem', icon: Settings, href: '/settings', color: 'gray' },
-    { title: 'Analisis', icon: BarChart3, href: '/analytics', color: 'purple' },
-    { title: 'Laporan Pendapatan', icon: TrendingUp, href: '/revenue', color: 'green' }
-  ]
 
   const tabs = [
     { id: 'overview', label: 'Ringkasan', icon: LayoutDashboard },
     { id: 'managers', label: 'Manajemen Manager', icon: UserCog },
-    { id: 'analytics', label: 'Analisis', icon: BarChart3 },
-    { id: 'settings', label: 'Pengaturan', icon: Settings }
+    { id: 'analytics', label: 'Analisis', icon: BarChart3 }
   ]
 
   return (
@@ -149,38 +142,6 @@ export function AdminDashboard() {
             })}
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon
-                return (
-                  <a
-                    key={index}
-                    href={action.href}
-                    className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
-                      action.color === 'blue' ? 'bg-blue-100 group-hover:bg-blue-200' :
-                      action.color === 'green' ? 'bg-green-100 group-hover:bg-green-200' :
-                      action.color === 'purple' ? 'bg-purple-100 group-hover:bg-purple-200' :
-                      'bg-gray-100 group-hover:bg-gray-200'
-                    }`}>
-                      <Icon className={`w-5 h-5 ${
-                        action.color === 'blue' ? 'text-blue-600' :
-                        action.color === 'green' ? 'text-green-600' :
-                        action.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                      }`} />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
-                      {action.title}
-                    </span>
-                  </a>
-                )
-              })}
-            </div>
-          </div>
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -210,12 +171,6 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {activeTab === 'settings' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Pengaturan Sistem</h3>
-          <p className="text-gray-600">Pengaturan sistem akan segera tersedia.</p>
-        </div>
-      )}
     </div>
   )
 }
