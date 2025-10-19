@@ -19,11 +19,21 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
+    // Debug logging
+    console.log('🔍 Login attempt started')
+    console.log('📧 Email:', formData.email)
+    console.log('🔑 Password:', formData.password)
+    console.log('🌐 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('🔑 Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
     try {
+      console.log('🚀 Calling signIn function...')
       await signIn(formData.email, formData.password)
+      console.log('✅ Login successful!')
       router.push('/dashboard')
       router.refresh()
     } catch (err: any) {
+      console.error('❌ Login error:', err)
       setError(err.message || 'Login gagal. Periksa email dan password Anda.')
     } finally {
       setLoading(false)
@@ -37,16 +47,6 @@ export default function LoginPage() {
     }))
   }
 
-  // Sample credentials untuk testing
-  const sampleAccounts = [
-    { email: 'admin@garuda21.com', password: 'admin123', role: 'Admin' },
-    { email: 'manager@garuda21.com', password: 'manager123', role: 'Manager' },
-    { email: 'user@garuda21.com', password: 'user123', role: 'User' },
-  ]
-
-  function fillSampleCredentials(email: string, password: string) {
-    setFormData({ email, password })
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-red-50 flex items-center justify-center p-4">
@@ -116,39 +116,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Sample Accounts Info */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-3">
-              💡 Sample Accounts untuk Testing:
-            </p>
-            <div className="space-y-2">
-              {sampleAccounts.map((account, index) => (
-                <button
-                  key={index}
-                  onClick={() => fillSampleCredentials(account.email, account.password)}
-                  className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{account.role}</p>
-                      <p className="text-xs text-gray-600">{account.email}</p>
-                    </div>
-                    <span className="text-xs text-gray-500">Klik untuk isi</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Klik salah satu untuk mengisi form login secara otomatis
-            </p>
-            
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800">
-                <strong>⚠️ Setup Required:</strong> Pastikan Supabase sudah dikonfigurasi. 
-                Lihat file <code>SETUP_SUPABASE.md</code> untuk panduan lengkap.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Footer Info */}
