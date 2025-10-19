@@ -23,6 +23,23 @@ export interface ProgramWithTrainer extends Program {
 export interface EnrollmentWithDetails extends Enrollment {
   program?: Program
   participant?: Participant
+  class?: Class
+}
+
+export type Class = Database['public']['Tables']['classes']['Row']
+export type ClassInsert = Database['public']['Tables']['classes']['Insert']
+export type ClassUpdate = Database['public']['Tables']['classes']['Update']
+
+export type ClassTrainer = Database['public']['Tables']['class_trainers']['Row']
+export type ClassTrainerInsert = Database['public']['Tables']['class_trainers']['Insert']
+export type ClassTrainerUpdate = Database['public']['Tables']['class_trainers']['Update']
+
+export interface ClassWithTrainers extends Class {
+  trainers?: (ClassTrainer & { trainer?: Trainer })[]
+}
+
+export interface ProgramWithClasses extends Program {
+  classes?: ClassWithTrainers[]
 }
 
 export interface Statistics {

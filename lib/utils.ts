@@ -26,3 +26,10 @@ export function formatDateTime(dateString: string): string {
   }).format(date)
 }
 
+export function formatTime(timeString: string): string {
+  // Handle both "HH:MM:SS" and "HH:MM" formats
+  const time = timeString.includes(':') ? timeString : `${timeString}:00`
+  const [hours, minutes] = time.split(':')
+  return `${hours}:${minutes}`
+}
+

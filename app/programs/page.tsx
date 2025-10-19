@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ProgramWithTrainer } from '@/types'
-import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users } from 'lucide-react'
+import { ProgramWithClasses } from '@/types'
+import { ClassManagement } from '@/components/programs/ClassManagement'
+import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
 
 export default function ProgramsPage() {
-  const [programs, setPrograms] = useState<ProgramWithTrainer[]>([])
+  const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
 
   useEffect(() => {
     fetchPrograms()
@@ -22,7 +24,14 @@ export default function ProgramsPage() {
         .from('programs')
         .select(`
           *,
-          trainer:trainers(name)
+          trainer:trainers(name),
+          classes:classes(
+            *,
+            trainers:class_trainers(
+              *,
+              trainer:trainers(*)
+            )
+          )
         `)
         .order('created_at', { ascending: false })
 
@@ -65,6 +74,28 @@ export default function ProgramsPage() {
       archived: 'px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full',
     }
     return badges[status] || 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'
+  }
+
+  if (selectedProgram) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSelectedProgram(null)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Manajemen Kelas</h1>
+              <p className="text-gray-600 mt-1">Program: {selectedProgram.title}</p>
+            </div>
+          </div>
+        </div>
+        <ClassManagement programId={selectedProgram.id} programTitle={selectedProgram.title} />
+      </div>
+    )
   }
 
   return (
@@ -117,15 +148,24 @@ export default function ProgramsPage() {
                     {program.status}
                   </span>
                   <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setSelectedProgram(program)}
+                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Kelola Kelas"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                    </button>
                     <Link
                       href={`/programs/${program.id}`}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit Program"
                     >
                       <Edit className="w-4 h-4" />
                     </Link>
                     <button
                       onClick={() => deleteProgram(program.id)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Hapus Program"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -151,12 +191,27 @@ export default function ProgramsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600">Harga</span>
                     <span className="text-lg font-bold text-primary-600">
                       {formatCurrency(program.price)}
                     </span>
                   </div>
+                  
+                  {program.classes && program.classes.length > 0 && (
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Kelas Tersedia</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {program.classes.length} kelas
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        Total kuota: {program.classes.reduce((sum, cls) => sum + cls.max_participants, 0)} peserta
+                      </div>
+                    </div>
+                  )}
+
                   {program.trainer && (
                     <div className="mt-2">
                       <span className="text-xs text-gray-500">Trainer: {program.trainer.name}</span>

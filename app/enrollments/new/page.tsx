@@ -5,15 +5,17 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { Program, Participant } from '@/types'
+import { ProgramWithClasses, Participant, ClassWithTrainers } from '@/types'
 
 export default function NewEnrollmentPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [programs, setPrograms] = useState<Program[]>([])
+  const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
+  const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
   const [formData, setFormData] = useState({
     program_id: '',
+    class_id: '',
     participant_id: '',
     status: 'pending' as 'pending' | 'approved' | 'rejected' | 'completed',
     payment_status: 'unpaid' as 'unpaid' | 'partial' | 'paid',
@@ -30,7 +32,16 @@ export default function NewEnrollmentPage() {
     try {
       const { data, error } = await supabase
         .from('programs')
-        .select('*')
+        .select(`
+          *,
+          classes:classes(
+            *,
+            trainers:class_trainers(
+              *,
+              trainer:trainers(*)
+            )
+          )
+        `)
         .eq('status', 'published')
         .order('title')
 
@@ -83,6 +94,13 @@ export default function NewEnrollmentPage() {
       ...prev,
       [name]: name === 'amount_paid' ? parseFloat(value) || 0 : value,
     }))
+
+    // Handle program selection
+    if (name === 'program_id') {
+      const program = programs.find(p => p.id === value)
+      setSelectedProgram(program || null)
+      setFormData(prev => ({ ...prev, class_id: '' })) // Reset class selection
+    }
   }
 
   return (
@@ -112,10 +130,34 @@ export default function NewEnrollmentPage() {
                 {programs.map((program) => (
                   <option key={program.id} value={program.id}>
                     {program.title} - Rp {program.price.toLocaleString('id-ID')}
+                    {program.classes && program.classes.length > 0 && ` (${program.classes.length} kelas)`}
                   </option>
                 ))}
               </select>
             </div>
+
+            {selectedProgram && selectedProgram.classes && selectedProgram.classes.length > 0 && (
+              <div>
+                <label className="label">Kelas *</label>
+                <select
+                  name="class_id"
+                  value={formData.class_id}
+                  onChange={handleChange}
+                  required
+                  className="input"
+                >
+                  <option value="">Pilih Kelas</option>
+                  {selectedProgram.classes.map((classItem) => (
+                    <option key={classItem.id} value={classItem.id}>
+                      {classItem.name} - {classItem.start_date} ({classItem.current_participants}/{classItem.max_participants} peserta)
+                    </option>
+                  ))}
+                </select>
+                {selectedProgram.classes.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">Program ini belum memiliki kelas</p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="label">Peserta *</label>
