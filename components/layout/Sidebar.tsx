@@ -13,7 +13,8 @@ import {
   Settings,
   HelpCircle,
   UserCheck,
-  Award
+  Award,
+  CreditCard
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -30,6 +31,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
+      { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
@@ -42,6 +44,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['manager'] },
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['manager'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['manager'] },
+      { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['manager'] },
       { icon: BarChart3, label: 'Laporan', href: '/reports', roles: ['manager'] },
     ]
   }

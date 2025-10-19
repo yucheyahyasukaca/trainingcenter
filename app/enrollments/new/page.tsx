@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ProgramWithClasses, Participant, ClassWithTrainers } from '@/types'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 
 export default function NewEnrollmentPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -27,6 +29,18 @@ export default function NewEnrollmentPage() {
     fetchPrograms()
     fetchParticipants()
   }, [])
+
+  useEffect(() => {
+    // Check if program_id is provided in URL
+    const programId = searchParams.get('program_id')
+    if (programId && programs.length > 0) {
+      const program = programs.find(p => p.id === programId)
+      if (program) {
+        setFormData(prev => ({ ...prev, program_id: programId }))
+        setSelectedProgram(program)
+      }
+    }
+  }, [searchParams, programs])
 
   async function fetchPrograms() {
     try {
@@ -106,141 +120,141 @@ export default function NewEnrollmentPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4">
+        <Link href="/enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Daftar Pendaftaran</span>
+          <span className="hidden sm:inline">Kembali ke Daftar Pendaftaran</span>
+          <span className="sm:hidden">Kembali</span>
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Tambah Pendaftaran Baru</h1>
-        <p className="text-gray-600 mt-1">Daftarkan peserta ke program training</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Tambah Pendaftaran Baru</h1>
+        <p className="text-gray-600 mt-1 text-sm md:text-base">Daftarkan peserta ke program training</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="card max-w-3xl">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 max-w-3xl">
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <div>
-              <label className="label">Program *</label>
-              <select
-                name="program_id"
-                value={formData.program_id}
-                onChange={handleChange}
+              <SearchableSelect
+                label="Program"
                 required
-                className="input"
-              >
-                <option value="">Pilih Program</option>
-                {programs.map((program) => (
-                  <option key={program.id} value={program.id}>
-                    {program.title} - Rp {program.price.toLocaleString('id-ID')}
-                    {program.classes && program.classes.length > 0 && ` (${program.classes.length} kelas)`}
-                  </option>
-                ))}
-              </select>
+                value={formData.program_id}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, program_id: value }))
+                  const program = programs.find(p => p.id === value)
+                  setSelectedProgram(program || null)
+                  setFormData(prev => ({ ...prev, class_id: '' }))
+                }}
+                placeholder="Pilih Program"
+                searchPlaceholder="Cari program..."
+                options={programs.map(program => ({
+                  value: program.id,
+                  label: `${program.title} - Rp ${program.price.toLocaleString('id-ID')}${program.classes && program.classes.length > 0 ? ` (${program.classes.length} kelas)` : ''}`
+                }))}
+              />
             </div>
 
             {selectedProgram && selectedProgram.classes && selectedProgram.classes.length > 0 && (
               <div>
-                <label className="label">Kelas *</label>
-                <select
-                  name="class_id"
-                  value={formData.class_id}
-                  onChange={handleChange}
+                <SearchableSelect
+                  label="Kelas"
                   required
-                  className="input"
-                >
-                  <option value="">Pilih Kelas</option>
-                  {selectedProgram.classes.map((classItem) => (
-                    <option key={classItem.id} value={classItem.id}>
-                      {classItem.name} - {classItem.start_date} ({classItem.current_participants}/{classItem.max_participants} peserta)
-                    </option>
-                  ))}
-                </select>
-                {selectedProgram.classes.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">Program ini belum memiliki kelas</p>
-                )}
+                  value={formData.class_id}
+                  onChange={(value) => setFormData(prev => ({ ...prev, class_id: value }))}
+                  placeholder="Pilih Kelas"
+                  searchPlaceholder="Cari kelas..."
+                  options={selectedProgram.classes.map(classItem => ({
+                    value: classItem.id,
+                    label: `${classItem.name} - ${classItem.start_date} (${classItem.current_participants}/${classItem.max_participants} peserta)`
+                  }))}
+                />
               </div>
             )}
 
             <div>
-              <label className="label">Peserta *</label>
-              <select
-                name="participant_id"
-                value={formData.participant_id}
-                onChange={handleChange}
+              <SearchableSelect
+                label="Peserta"
                 required
-                className="input"
-              >
-                <option value="">Pilih Peserta</option>
-                {participants.map((participant) => (
-                  <option key={participant.id} value={participant.id}>
-                    {participant.name} - {participant.email}
-                  </option>
-                ))}
-              </select>
+                value={formData.participant_id}
+                onChange={(value) => setFormData(prev => ({ ...prev, participant_id: value }))}
+                placeholder="Pilih Peserta"
+                searchPlaceholder="Cari peserta..."
+                options={participants.map(participant => ({
+                  value: participant.id,
+                  label: `${participant.name} - ${participant.email}`
+                }))}
+              />
             </div>
 
             <div>
-              <label className="label">Status Pendaftaran *</label>
-              <select
-                name="status"
+              <SearchableSelect
+                label="Status Pendaftaran"
+                required
                 value={formData.status}
-                onChange={handleChange}
-                className="input"
-              >
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="completed">Completed</option>
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                placeholder="Pilih Status"
+                searchPlaceholder="Cari status..."
+                options={[
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'approved', label: 'Approved' },
+                  { value: 'rejected', label: 'Rejected' },
+                  { value: 'completed', label: 'Completed' }
+                ]}
+              />
             </div>
 
             <div>
-              <label className="label">Status Pembayaran *</label>
-              <select
-                name="payment_status"
+              <SearchableSelect
+                label="Status Pembayaran"
+                required
                 value={formData.payment_status}
-                onChange={handleChange}
-                className="input"
-              >
-                <option value="unpaid">Unpaid</option>
-                <option value="partial">Partial</option>
-                <option value="paid">Paid</option>
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, payment_status: value as any }))}
+                placeholder="Pilih Status Pembayaran"
+                searchPlaceholder="Cari status..."
+                options={[
+                  { value: 'unpaid', label: 'Unpaid' },
+                  { value: 'partial', label: 'Partial' },
+                  { value: 'paid', label: 'Paid' }
+                ]}
+              />
             </div>
 
             <div>
-              <label className="label">Jumlah Dibayar (IDR)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah Dibayar (IDR)</label>
               <input
                 type="number"
                 name="amount_paid"
                 value={formData.amount_paid}
                 onChange={handleChange}
                 min="0"
-                className="input"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                 placeholder="0"
               />
             </div>
           </div>
 
           <div>
-            <label className="label">Catatan</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
               rows={3}
-              className="input"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
               placeholder="Catatan tambahan..."
             />
           </div>
 
-          <div className="flex items-center space-x-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary disabled:opacity-50"
+              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 text-sm font-medium"
             >
               {loading ? 'Menyimpan...' : 'Simpan Pendaftaran'}
             </button>
-            <Link href="/enrollments" className="btn-secondary">
+            <Link 
+              href="/enrollments" 
+              className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium text-center"
+            >
               Batal
             </Link>
           </div>

@@ -4,15 +4,19 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
 import { ClassManagement } from '@/components/programs/ClassManagement'
-import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { useAuth } from '@/components/AuthProvider'
 
 export default function ProgramsPage() {
+  const { profile } = useAuth()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
+  
+  const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
   useEffect(() => {
     fetchPrograms()
@@ -102,13 +106,19 @@ export default function ProgramsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Program</h1>
-          <p className="text-gray-600 mt-1">Kelola program dan kegiatan training</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isAdminOrManager ? 'Manajemen Program' : 'Daftar Program'}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {isAdminOrManager ? 'Kelola program dan kegiatan training' : 'Lihat dan daftar program training yang tersedia'}
+          </p>
         </div>
-        <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-          <Plus className="w-5 h-5 mr-2" />
-          <span>Tambah Program</span>
-        </Link>
+        {isAdminOrManager && (
+          <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+            <Plus className="w-5 h-5 mr-2" />
+            <span>Tambah Program</span>
+          </Link>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -148,27 +158,39 @@ export default function ProgramsPage() {
                     {program.status}
                   </span>
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setSelectedProgram(program)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Kelola Kelas"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                    </button>
-                    <Link
-                      href={`/programs/${program.id}`}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Program"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => deleteProgram(program.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus Program"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isAdminOrManager ? (
+                      <>
+                        <button
+                          onClick={() => setSelectedProgram(program)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Kelola Kelas"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                        </button>
+                        <Link
+                          href={`/programs/${program.id}`}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Program"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => deleteProgram(program.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Hapus Program"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        href={`/enrollments/new?program_id=${program.id}`}
+                        className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        title="Daftar Program"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </Link>
+                    )}
                   </div>
                 </div>
 
