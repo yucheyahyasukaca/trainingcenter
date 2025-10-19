@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Search, User, LogOut, ChevronDown, Menu } from 'lucide-react'
+import { Bell, Search, User, LogOut, ChevronDown, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
@@ -14,6 +14,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
   const { user, profile, loading } = useAuth()
   const [showDropdown, setShowDropdown] = useState(false)
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
 
   async function handleLogout() {
     try {
@@ -40,27 +41,51 @@ export function Header({ onMenuClick }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Mobile Menu Button */}
-        <button
-          onClick={onMenuClick}
-          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <Menu className="w-6 h-6 text-gray-600" />
-        </button>
+        {/* Mobile Menu Button - Hidden when search is open */}
+        {!isMobileSearchOpen && (
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Menu className="w-6 h-6 text-gray-600" />
+          </button>
+        )}
 
         {/* Search Bar */}
-        <div className="flex-1 max-w-xl mx-4">
+        <div className={`flex-1 max-w-xl mx-4 ${isMobileSearchOpen ? 'block' : 'hidden lg:block'}`}>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Cari program, peserta, atau trainer..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              autoFocus={isMobileSearchOpen}
             />
+            {/* Close button for mobile search */}
+            {isMobileSearchOpen && (
+              <button
+                onClick={() => setIsMobileSearchOpen(false)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-400" />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 ml-6">
+        {/* Mobile Search Button - Only visible on mobile when search is closed */}
+        {!isMobileSearchOpen && (
+          <button
+            onClick={() => setIsMobileSearchOpen(true)}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <Search className="w-6 h-6 text-gray-600" />
+          </button>
+        )}
+
+        {/* Right side buttons - Hidden when mobile search is open */}
+        {!isMobileSearchOpen && (
+          <div className="flex items-center space-x-4 ml-6">
           <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -107,6 +132,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Click outside to close dropdown */}

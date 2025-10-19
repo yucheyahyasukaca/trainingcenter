@@ -165,23 +165,15 @@ export function Sidebar({ onClose }: SidebarProps) {
             <div className="flex-1">
               <p className="text-sm font-semibold text-primary-900">Butuh Bantuan?</p>
               <p className="text-xs text-primary-700 mt-1">
-                Hubungi support kami untuk bantuan
+                Hubungi dukungan kami untuk bantuan
               </p>
               <button className="mt-3 w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
-                Hubungi Support
+                Hubungi Dukungan
               </button>
             </div>
           </div>
         </div>
 
-        {/* Settings */}
-        <Link
-          href="/settings"
-          className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-          <span className="font-medium">Pengaturan</span>
-        </Link>
       </div>
     </aside>
   )

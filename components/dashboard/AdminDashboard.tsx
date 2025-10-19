@@ -61,17 +61,17 @@ export function AdminDashboard() {
   ]
 
   const quickActions = [
-    { title: 'Manage Users', icon: Users, href: '/users', color: 'blue' },
-    { title: 'System Settings', icon: Settings, href: '/settings', color: 'gray' },
-    { title: 'Analytics', icon: BarChart3, href: '/analytics', color: 'purple' },
-    { title: 'Revenue Report', icon: TrendingUp, href: '/revenue', color: 'green' }
+    { title: 'Kelola Pengguna', icon: Users, href: '/users', color: 'blue' },
+    { title: 'Pengaturan Sistem', icon: Settings, href: '/settings', color: 'gray' },
+    { title: 'Analisis', icon: BarChart3, href: '/analytics', color: 'purple' },
+    { title: 'Laporan Pendapatan', icon: TrendingUp, href: '/revenue', color: 'green' }
   ]
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'managers', label: 'Manager Management', icon: UserCog },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: 'overview', label: 'Ringkasan', icon: LayoutDashboard },
+    { id: 'managers', label: 'Manajemen Manager', icon: UserCog },
+    { id: 'analytics', label: 'Analisis', icon: BarChart3 },
+    { id: 'settings', label: 'Pengaturan', icon: Settings }
   ]
 
   return (
@@ -204,16 +204,16 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <UsersChart />
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Analytics Coming Soon</h3>
-            <p className="text-gray-600">Advanced analytics features will be available soon.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Segera Hadir</h3>
+            <p className="text-gray-600">Fitur analisis lanjutan akan segera tersedia.</p>
           </div>
         </div>
       )}
 
       {activeTab === 'settings' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h3>
-          <p className="text-gray-600">System settings will be available soon.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Pengaturan Sistem</h3>
+          <p className="text-gray-600">Pengaturan sistem akan segera tersedia.</p>
         </div>
       )}
     </div>
