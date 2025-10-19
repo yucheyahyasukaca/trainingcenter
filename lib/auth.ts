@@ -12,29 +12,51 @@ export interface UserProfile {
 
 // Get current user session
 export async function getCurrentUser() {
-  const { data: { session }, error } = await supabase.auth.getSession()
+  console.log('🔍 Getting current user session...')
   
-  if (error || !session) {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      console.error('❌ Error getting session:', error)
+      return null
+    }
+    
+    if (!session) {
+      console.log('❌ No active session')
+      return null
+    }
+    
+    console.log('✅ Session found:', session.user?.email)
+    return session.user
+  } catch (err) {
+    console.error('❌ Exception in getCurrentUser:', err)
     return null
   }
-  
-  return session.user
 }
 
 // Get user profile
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
+  console.log('🔍 Getting user profile for ID:', userId)
   
-  if (error) {
-    console.error('Error fetching user profile:', error)
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    if (error) {
+      console.error('❌ Error fetching user profile:', error)
+      return null
+    }
+    
+    console.log('✅ User profile found:', data)
+    return data
+  } catch (err) {
+    console.error('❌ Exception in getUserProfile:', err)
     return null
   }
-  
-  return data
 }
 
 // Sign in with email and password

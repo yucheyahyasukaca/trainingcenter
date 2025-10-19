@@ -1,0 +1,161 @@
+'use client'
+
+import { useAuth } from '@/components/AuthProvider'
+import { DashboardStats } from './DashboardStats'
+import { RecentEnrollments } from './RecentEnrollments'
+import { ProgramsChart } from './ProgramsChart'
+import { EnrollmentStatusChart } from './EnrollmentStatusChart'
+import { UsersChart } from './UsersChart'
+import { SystemOverview } from './SystemOverview'
+import { 
+  Users, 
+  GraduationCap, 
+  DollarSign, 
+  TrendingUp,
+  Shield,
+  Settings,
+  BarChart3
+} from 'lucide-react'
+
+export function AdminDashboard() {
+  const { profile } = useAuth()
+
+  const adminStats = [
+    {
+      title: 'Total Users',
+      value: '1,234',
+      change: '+12%',
+      changeType: 'positive' as const,
+      icon: Users,
+      color: 'blue'
+    },
+    {
+      title: 'Active Programs',
+      value: '15',
+      change: '+3',
+      changeType: 'positive' as const,
+      icon: GraduationCap,
+      color: 'green'
+    },
+    {
+      title: 'Total Revenue',
+      value: 'Rp 2.5B',
+      change: '+18%',
+      changeType: 'positive' as const,
+      icon: DollarSign,
+      color: 'purple'
+    },
+    {
+      title: 'System Health',
+      value: '99.9%',
+      change: 'Stable',
+      changeType: 'neutral' as const,
+      icon: Shield,
+      color: 'green'
+    }
+  ]
+
+  const quickActions = [
+    { title: 'Manage Users', icon: Users, href: '/users', color: 'blue' },
+    { title: 'System Settings', icon: Settings, href: '/settings', color: 'gray' },
+    { title: 'Analytics', icon: BarChart3, href: '/analytics', color: 'purple' },
+    { title: 'Revenue Report', icon: TrendingUp, href: '/revenue', color: 'green' }
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            Selamat datang, {profile?.full_name}! Kelola seluruh sistem GARUDA-21
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          <span className="text-sm text-gray-600">System Online</span>
+        </div>
+      </div>
+
+      {/* Admin Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {adminStats.map((stat, index) => {
+          const Icon = stat.icon
+          return (
+            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                  <p className={`text-sm mt-1 ${
+                    stat.changeType === 'positive' ? 'text-green-600' : 
+                    stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
+                  }`}>
+                    {stat.change}
+                  </p>
+                </div>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  stat.color === 'blue' ? 'bg-blue-100' :
+                  stat.color === 'green' ? 'bg-green-100' :
+                  stat.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
+                }`}>
+                  <Icon className={`w-6 h-6 ${
+                    stat.color === 'blue' ? 'text-blue-600' :
+                    stat.color === 'green' ? 'text-green-600' :
+                    stat.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                  }`} />
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {quickActions.map((action, index) => {
+            const Icon = action.icon
+            return (
+              <a
+                key={index}
+                href={action.href}
+                className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
+                  action.color === 'blue' ? 'bg-blue-100 group-hover:bg-blue-200' :
+                  action.color === 'green' ? 'bg-green-100 group-hover:bg-green-200' :
+                  action.color === 'purple' ? 'bg-purple-100 group-hover:bg-purple-200' :
+                  'bg-gray-100 group-hover:bg-gray-200'
+                }`}>
+                  <Icon className={`w-5 h-5 ${
+                    action.color === 'blue' ? 'text-blue-600' :
+                    action.color === 'green' ? 'text-green-600' :
+                    action.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
+                  }`} />
+                </div>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                  {action.title}
+                </span>
+              </a>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ProgramsChart />
+        <EnrollmentStatusChart />
+      </div>
+
+      {/* System Overview & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SystemOverview />
+        <RecentEnrollments />
+      </div>
+    </div>
+  )
+}

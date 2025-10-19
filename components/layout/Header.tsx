@@ -1,36 +1,19 @@
 'use client'
 
-import { Bell, Search, User, LogOut, ChevronDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Bell, Search, User, LogOut, ChevronDown, Menu } from 'lucide-react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, getUserProfile, signOut } from '@/lib/auth'
-import type { UserProfile } from '@/lib/auth'
+import { useAuth } from '@/components/AuthProvider'
+import { signOut } from '@/lib/auth'
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick?: () => void
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const { user, profile, loading } = useAuth()
   const [showDropdown, setShowDropdown] = useState(false)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadUser()
-  }, [])
-
-  async function loadUser() {
-    try {
-      const currentUser = await getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-        const userProfile = await getUserProfile(currentUser.id)
-        setProfile(userProfile)
-      }
-    } catch (error) {
-      console.error('Error loading user:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleLogout() {
     try {
@@ -55,9 +38,18 @@ export function Header() {
   const roleInfo = getRoleBadge(profile?.role)
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
       <div className="flex items-center justify-between">
-        <div className="flex-1 max-w-xl">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Menu className="w-6 h-6 text-gray-600" />
+        </button>
+
+        {/* Search Bar */}
+        <div className="flex-1 max-w-xl mx-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input

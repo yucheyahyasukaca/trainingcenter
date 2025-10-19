@@ -28,10 +28,15 @@ export default function LoginPage() {
 
     try {
       console.log('🚀 Calling signIn function...')
-      await signIn(formData.email, formData.password)
-      console.log('✅ Login successful!')
-      router.push('/dashboard')
-      router.refresh()
+      const result = await signIn(formData.email, formData.password)
+      console.log('✅ Login successful!', result)
+      
+      // Wait a bit for auth state to update
+      setTimeout(() => {
+        console.log('🔄 Redirecting to dashboard...')
+        router.push('/dashboard')
+        router.refresh()
+      }, 1000)
     } catch (err: any) {
       console.error('❌ Login error:', err)
       setError(err.message || 'Login gagal. Periksa email dan password Anda.')
@@ -119,13 +124,22 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-3">
           <p className="text-sm text-gray-600">
             Belum punya akun?{' '}
             <a href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
               Daftar di sini
             </a>
           </p>
+          
+          <div className="pt-3 border-t border-gray-200">
+            <a 
+              href="/" 
+              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              ← Kembali ke Beranda
+            </a>
+          </div>
         </div>
       </div>
     </div>

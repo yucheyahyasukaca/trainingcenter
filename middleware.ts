@@ -36,6 +36,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // Redirect /dashboard to /dashboard (same route, but ensure it uses the layout)
+  if (pathname === '/dashboard') {
+    return NextResponse.next()
+  }
+
   // Redirect to home if accessing public route with auth
   if (isPublicRoute && authToken && pathname !== '/register') {
     return NextResponse.redirect(new URL('/', request.url))
@@ -46,13 +51,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Temporarily disable middleware for testing
+    // '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }
 

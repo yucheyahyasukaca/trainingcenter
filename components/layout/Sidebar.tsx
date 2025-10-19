@@ -8,36 +8,123 @@ import {
   UserCog, 
   Calendar, 
   BarChart3,
-  GraduationCap
+  GraduationCap,
+  X,
+  Settings,
+  HelpCircle
 } from 'lucide-react'
 
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: GraduationCap, label: 'Program', href: '/programs' },
-  { icon: Users, label: 'Peserta', href: '/participants' },
-  { icon: UserCog, label: 'Trainer', href: '/trainers' },
-  { icon: Calendar, label: 'Pendaftaran', href: '/enrollments' },
-  { icon: BarChart3, label: 'Statistik', href: '/statistics' },
-]
+import { useAuth } from '@/components/AuthProvider'
 
-export function Sidebar() {
+const getMenuItems = (role: string, trainerLevel?: string) => {
+  const baseItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['admin', 'manager', 'user'] },
+  ]
+
+  if (role === 'admin') {
+    return [
+      ...baseItems,
+      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['admin'] },
+      { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
+      { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
+      { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
+      { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
+      { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
+    ]
+  }
+
+  if (role === 'manager') {
+    return [
+      ...baseItems,
+      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['manager'] },
+      { icon: Users, label: 'Peserta', href: '/participants', roles: ['manager'] },
+      { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['manager'] },
+      { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['manager'] },
+      { icon: BarChart3, label: 'Laporan', href: '/reports', roles: ['manager'] },
+    ]
+  }
+
+  if (role === 'user') {
+    const userItems = [
+      ...baseItems,
+      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['user'] },
+      { icon: Calendar, label: 'Pendaftaran Saya', href: '/my-enrollments', roles: ['user'] },
+    ]
+
+    // Add trainer-specific items if user is a trainer
+    if (trainerLevel && trainerLevel !== 'user') {
+      userItems.push(
+        { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['user'] },
+        { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['user'] }
+      )
+    }
+
+    return userItems
+  }
+
+  return baseItems
+}
+
+interface SidebarProps {
+  onClose?: () => void
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { profile } = useAuth()
+  
+  const menuItems = getMenuItems(profile?.role || 'user', profile?.trainer_level)
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full relative z-50">
+      {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">Garuda Academy</h1>
+              <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Garuda Academy</h1>
-            <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
-          </div>
+          
+          {/* Close button for mobile */}
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      {/* User Role Badge */}
+      {profile && (
+        <div className="px-6 py-3 border-b border-gray-200">
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${
+              profile.role === 'admin' ? 'bg-red-500' :
+              profile.role === 'manager' ? 'bg-blue-500' : 'bg-green-500'
+            }`}></div>
+            <span className="text-sm font-medium text-gray-700 capitalize">
+              {profile.role === 'admin' ? 'Administrator' :
+               profile.role === 'manager' ? 'Manager' : 'User'}
+            </span>
+            {profile.trainer_level && profile.trainer_level !== 'user' && (
+              <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
+                {profile.trainer_level === 'master_trainer' ? 'Master' :
+                 profile.trainer_level === 'trainer_l2' ? 'L2' :
+                 profile.trainer_level === 'trainer_l1' ? 'L1' : 'Trainer'}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -46,31 +133,53 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={`
-                flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
+                group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200
                 ${isActive 
-                  ? 'bg-primary-50 text-primary-700 font-medium' 
-                  : 'text-gray-700 hover:bg-gray-50'
+                  ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 font-semibold shadow-sm border border-primary-200' 
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }
               `}
             >
-              <Icon className="w-5 h-5" />
-              <span>{item.label}</span>
+              <Icon className={`w-5 h-5 transition-colors ${isActive ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-700'}`} />
+              <span className="font-medium">{item.label}</span>
+              {isActive && (
+                <div className="ml-auto w-2 h-2 bg-primary-600 rounded-full"></div>
+              )}
             </Link>
           )
         })}
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="card bg-primary-50 border-primary-200">
-          <p className="text-sm text-primary-900 font-medium">Butuh Bantuan?</p>
-          <p className="text-xs text-primary-700 mt-1">
-            Hubungi support kami untuk bantuan
-          </p>
-          <button className="mt-3 w-full btn-primary text-sm py-2">
-            Hubungi Support
-          </button>
+      {/* Footer */}
+      <div className="p-4 border-t border-gray-200 space-y-3">
+        {/* Support Card */}
+        <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-4">
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <HelpCircle className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-primary-900">Butuh Bantuan?</p>
+              <p className="text-xs text-primary-700 mt-1">
+                Hubungi support kami untuk bantuan
+              </p>
+              <button className="mt-3 w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
+                Hubungi Support
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Settings */}
+        <Link
+          href="/settings"
+          className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+        >
+          <Settings className="w-5 h-5" />
+          <span className="font-medium">Pengaturan</span>
+        </Link>
       </div>
     </aside>
   )
