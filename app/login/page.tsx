@@ -39,9 +39,9 @@ export default function LoginPage() {
 
   // Sample credentials untuk testing
   const sampleAccounts = [
-    { email: 'admin@trainingcenter.com', password: 'admin123', role: 'Admin' },
-    { email: 'manager@trainingcenter.com', password: 'manager123', role: 'Manager' },
-    { email: 'user@trainingcenter.com', password: 'user123', role: 'User' },
+    { email: 'admin@garuda21.com', password: 'admin123', role: 'Admin' },
+    { email: 'manager@garuda21.com', password: 'manager123', role: 'Manager' },
+    { email: 'user@garuda21.com', password: 'user123', role: 'User' },
   ]
 
   function fillSampleCredentials(email: string, password: string) {
@@ -84,7 +84,7 @@ export default function LoginPage() {
                   onChange={handleChange}
                   required
                   className="input pl-10"
-                  placeholder="admin@trainingcenter.com"
+                  placeholder="admin@garuda21.com"
                   autoComplete="email"
                 />
               </div>
@@ -141,6 +141,13 @@ export default function LoginPage() {
             <p className="text-xs text-gray-500 mt-3">
               Klik salah satu untuk mengisi form login secara otomatis
             </p>
+            
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                <strong>⚠️ Setup Required:</strong> Pastikan Supabase sudah dikonfigurasi. 
+                Lihat file <code>SETUP_SUPABASE.md</code> untuk panduan lengkap.
+              </p>
+            </div>
           </div>
         </div>
 
