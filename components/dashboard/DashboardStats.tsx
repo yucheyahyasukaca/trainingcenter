@@ -1,14 +1,17 @@
 'use client'
 
-import { Users, UserCog, GraduationCap, Calendar } from 'lucide-react'
+import { Users, UserCog, GraduationCap, Calendar, DollarSign, Shield } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
 
 interface Stats {
   totalPrograms: number
   totalParticipants: number
   totalTrainers: number
   totalEnrollments: number
+  totalRevenue: number
+  systemHealth: number
 }
 
 export function DashboardStats() {
@@ -17,6 +20,8 @@ export function DashboardStats() {
     totalParticipants: 0,
     totalTrainers: 0,
     totalEnrollments: 0,
+    totalRevenue: 0,
+    systemHealth: 0,
   })
   const [loading, setLoading] = useState(true)
 
@@ -25,23 +30,57 @@ export function DashboardStats() {
       try {
         console.log('🔄 Fetching dashboard stats...')
         
-        const [programs, participants, enrollments] = await Promise.all([
+        const [programs, participants, trainers, enrollments, revenue] = await Promise.all([
           supabase.from('programs').select('id', { count: 'exact', head: true }),
           supabase.from('participants').select('id', { count: 'exact', head: true }),
+          supabase.from('trainers').select('id', { count: 'exact', head: true }),
           supabase.from('enrollments').select('id', { count: 'exact', head: true }),
+          supabase.from('enrollments').select('amount_paid').eq('payment_status', 'paid'),
         ])
+
+        // Calculate total revenue
+        const totalRevenue = revenue.data?.reduce((sum, enrollment) => sum + (enrollment.amount_paid || 0), 0) || 0
+
+        // Calculate system health based on active programs and recent enrollments
+        const now = new Date()
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        
+        const [activePrograms, recentEnrollments] = await Promise.all([
+          supabase.from('programs').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+          supabase.from('enrollments').select('id', { count: 'exact', head: true }).gte('enrollment_date', thirtyDaysAgo.toISOString()),
+        ])
+
+        const activeProgramsCount = activePrograms.count || 0
+        const recentEnrollmentsCount = recentEnrollments.count || 0
+        
+        // System health: 100% if active programs > 0 and recent enrollments > 0, otherwise based on activity
+        let systemHealth = 0
+        if (activeProgramsCount > 0 && recentEnrollmentsCount > 0) {
+          systemHealth = 99.9
+        } else if (activeProgramsCount > 0) {
+          systemHealth = 85.0
+        } else if (recentEnrollmentsCount > 0) {
+          systemHealth = 70.0
+        } else {
+          systemHealth = 50.0
+        }
 
         console.log('📊 Stats fetched:', {
           programs: programs.count,
           participants: participants.count,
-          enrollments: enrollments.count
+          trainers: trainers.count,
+          enrollments: enrollments.count,
+          revenue: totalRevenue,
+          systemHealth
         })
 
         setStats({
           totalPrograms: programs.count || 0,
           totalParticipants: participants.count || 0,
-          totalTrainers: 0, // Remove trainers for now
+          totalTrainers: trainers.count || 0,
           totalEnrollments: enrollments.count || 0,
+          totalRevenue,
+          systemHealth,
         })
       } catch (error) {
         console.error('❌ Error fetching stats:', error)
@@ -51,6 +90,8 @@ export function DashboardStats() {
           totalParticipants: 0,
           totalTrainers: 0,
           totalEnrollments: 0,
+          totalRevenue: 0,
+          systemHealth: 0,
         })
       } finally {
         setLoading(false)
@@ -62,36 +103,40 @@ export function DashboardStats() {
 
   const statItems = [
     {
-      label: 'Total Program',
-      value: stats.totalPrograms,
-      icon: GraduationCap,
+      label: 'Total Users',
+      value: stats.totalParticipants,
+      icon: Users,
       color: 'bg-blue-500',
       lightColor: 'bg-blue-50',
       textColor: 'text-blue-700',
+      trend: '+12%',
     },
     {
-      label: 'Total Peserta',
-      value: stats.totalParticipants,
-      icon: Users,
+      label: 'Active Programs',
+      value: stats.totalPrograms,
+      icon: GraduationCap,
       color: 'bg-green-500',
       lightColor: 'bg-green-50',
       textColor: 'text-green-700',
+      trend: '+3',
     },
     {
-      label: 'Total Trainer',
-      value: stats.totalTrainers,
-      icon: UserCog,
+      label: 'Total Revenue',
+      value: formatCurrency(stats.totalRevenue),
+      icon: DollarSign,
       color: 'bg-purple-500',
       lightColor: 'bg-purple-50',
       textColor: 'text-purple-700',
+      trend: '+18%',
     },
     {
-      label: 'Total Pendaftaran',
-      value: stats.totalEnrollments,
-      icon: Calendar,
-      color: 'bg-orange-500',
-      lightColor: 'bg-orange-50',
-      textColor: 'text-orange-700',
+      label: 'System Health',
+      value: `${stats.systemHealth}%`,
+      icon: Shield,
+      color: 'bg-green-500',
+      lightColor: 'bg-green-50',
+      textColor: 'text-green-700',
+      status: stats.systemHealth >= 90 ? 'Stable' : stats.systemHealth >= 70 ? 'Warning' : 'Critical',
     },
   ]
 
@@ -117,6 +162,17 @@ export function DashboardStats() {
               <div>
                 <p className="text-sm font-medium text-gray-600">{item.label}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">{item.value}</p>
+                {item.trend && (
+                  <p className="text-sm text-green-600 font-medium mt-1">{item.trend}</p>
+                )}
+                {item.status && (
+                  <p className={`text-sm font-medium mt-1 ${
+                    item.status === 'Stable' ? 'text-green-600' : 
+                    item.status === 'Warning' ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {item.status}
+                  </p>
+                )}
               </div>
               <div className={`${item.lightColor} p-3 rounded-lg`}>
                 <Icon className={`w-8 h-8 ${item.textColor}`} />

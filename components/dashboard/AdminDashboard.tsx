@@ -10,12 +10,6 @@ import { UsersChart } from './UsersChart'
 import { SystemOverview } from './SystemOverview'
 import { ManagerManagement } from './ManagerManagement'
 import { 
-  Users, 
-  GraduationCap, 
-  DollarSign, 
-  TrendingUp,
-  Shield,
-  Settings,
   BarChart3,
   LayoutDashboard,
   UserCog
@@ -25,40 +19,7 @@ export function AdminDashboard() {
   const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
 
-  const adminStats = [
-    {
-      title: 'Total Users',
-      value: '1,234',
-      change: '+12%',
-      changeType: 'positive' as const,
-      icon: Users,
-      color: 'blue'
-    },
-    {
-      title: 'Active Programs',
-      value: '15',
-      change: '+3',
-      changeType: 'positive' as const,
-      icon: GraduationCap,
-      color: 'green'
-    },
-    {
-      title: 'Total Revenue',
-      value: 'Rp 2.5B',
-      change: '+18%',
-      changeType: 'positive' as const,
-      icon: DollarSign,
-      color: 'purple'
-    },
-    {
-      title: 'System Health',
-      value: '99.9%',
-      change: 'Stable',
-      changeType: 'neutral' as const,
-      icon: Shield,
-      color: 'green'
-    }
-  ]
+  // Admin stats will be handled by DashboardStats component
 
 
   const tabs = [
@@ -109,38 +70,8 @@ export function AdminDashboard() {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <>
-          {/* Admin Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {adminStats.map((stat, index) => {
-              const Icon = stat.icon
-              return (
-                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                  <p className={`text-sm mt-1 ${
-                    stat.changeType === 'positive' ? 'text-green-600' : 'text-gray-600'
-                  }`}>
-                        {stat.change}
-                      </p>
-                    </div>
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      stat.color === 'blue' ? 'bg-blue-100' :
-                      stat.color === 'green' ? 'bg-green-100' :
-                      stat.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${
-                        stat.color === 'blue' ? 'text-blue-600' :
-                        stat.color === 'green' ? 'text-green-600' :
-                        stat.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                      }`} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          {/* Admin Stats - Now using real data from database */}
+          <DashboardStats />
 
 
           {/* Charts Grid */}

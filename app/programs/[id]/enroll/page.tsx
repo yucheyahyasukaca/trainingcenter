@@ -182,14 +182,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
         if (uploadError) throw uploadError
 
-        // Get signed URL for the uploaded file
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('payment-proofs')
-          .createSignedUrl(filePath, 60 * 60 * 24 * 365) // 1 year expiry
-
-        if (signedUrlError) throw signedUrlError
-
-        proofUrl = signedUrlData.signedUrl
+        // Use public URL directly (no signed URL needed)
+        proofUrl = `https://supabase.garuda-21.com/storage/v1/object/public/payment-proofs/${filePath}`
       }
 
       // Create enrollment

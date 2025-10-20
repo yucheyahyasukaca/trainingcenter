@@ -105,32 +105,27 @@ export default function PaymentsPage() {
 
   async function viewPaymentProof(proofUrl: string) {
     try {
-      // Extract file path from URL
-      const url = new URL(proofUrl)
-      const pathParts = url.pathname.split('/')
-      const bucketName = pathParts[2] // 'payment-proofs'
-      const filePath = pathParts.slice(3).join('/') // everything after bucket name
+      console.log('Viewing payment proof:', proofUrl)
       
-      console.log('Viewing payment proof:', { bucketName, filePath })
-      
-      // Get signed URL for viewing
-      const { data, error } = await supabase.storage
-        .from('payment-proofs')
-        .createSignedUrl(filePath, 3600) // 1 hour expiry
-      
-      if (error) {
-        console.error('Error creating signed URL:', error)
-        addNotification({
-          type: 'error',
-          title: 'Gagal Membuka File',
-          message: 'Tidak dapat mengakses bukti pembayaran. Pastikan file masih ada.',
-          duration: 5000
-        })
+      // If it's already a complete public URL, use it directly
+      if (proofUrl.includes('supabase.garuda-21.com/storage/v1/object/public/payment-proofs/')) {
+        window.open(proofUrl, '_blank')
         return
       }
       
+      // If it's a relative path or just filename, construct the full URL
+      let publicUrl = proofUrl
+      
+      if (proofUrl.startsWith('payment-proofs/')) {
+        publicUrl = `https://supabase.garuda-21.com/storage/v1/object/public/${proofUrl}`
+      } else if (!proofUrl.startsWith('http')) {
+        publicUrl = `https://supabase.garuda-21.com/storage/v1/object/public/payment-proofs/${proofUrl}`
+      }
+      
+      console.log('Opening URL:', publicUrl)
+      
       // Open in new tab
-      window.open(data.signedUrl, '_blank')
+      window.open(publicUrl, '_blank')
       
     } catch (error) {
       console.error('Error viewing payment proof:', error)

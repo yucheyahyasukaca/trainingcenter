@@ -11,19 +11,38 @@ export function MonthlyEnrollmentsChart() {
   useEffect(() => {
     async function fetchMonthlyEnrollments() {
       try {
+        // Get enrollments from the last 12 months
+        const twelveMonthsAgo = new Date()
+        twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+
         const { data: enrollments, error } = await supabase
           .from('enrollments')
           .select('enrollment_date')
+          .gte('enrollment_date', twelveMonthsAgo.toISOString())
           .order('enrollment_date')
 
         if (error) throw error
 
         // Group by month
         const monthCounts: Record<string, number> = {}
-        enrollments?.forEach((enrollment: any) => {
-          const date = new Date(enrollment.enrollment_date)
+        
+        // Initialize last 12 months with 0
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date()
+          date.setMonth(date.getMonth() - i)
           const monthKey = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short' })
-          monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1
+          monthCounts[monthKey] = 0
+        }
+
+        // Count actual enrollments
+        enrollments?.forEach((enrollment: any) => {
+          if (enrollment.enrollment_date) {
+            const date = new Date(enrollment.enrollment_date)
+            const monthKey = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'short' })
+            if (monthCounts.hasOwnProperty(monthKey)) {
+              monthCounts[monthKey] += 1
+            }
+          }
         })
 
         const chartData = Object.entries(monthCounts).map(([month, count]) => ({
@@ -34,6 +53,8 @@ export function MonthlyEnrollmentsChart() {
         setData(chartData)
       } catch (error) {
         console.error('Error fetching monthly enrollments:', error)
+        // Set empty data on error
+        setData([])
       } finally {
         setLoading(false)
       }

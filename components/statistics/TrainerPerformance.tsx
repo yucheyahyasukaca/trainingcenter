@@ -11,34 +11,39 @@ export function TrainerPerformance() {
   useEffect(() => {
     async function fetchTrainerPerformance() {
       try {
-        const { data: programs, error } = await supabase
-          .from('programs')
+        // Get all trainers with their programs and enrollments
+        const { data: trainers, error: trainersError } = await supabase
+          .from('trainers')
           .select(`
-            *,
-            trainer:trainers(id, name),
-            enrollments(count)
+            id,
+            name,
+            programs(
+              id,
+              enrollments(count)
+            )
           `)
 
-        if (error) throw error
+        if (trainersError) throw trainersError
 
-        // Group by trainer
-        const trainerStats: Record<string, any> = {}
-        programs?.forEach((program: any) => {
-          if (program.trainer) {
-            const trainerId = program.trainer.id
-            if (!trainerStats[trainerId]) {
-              trainerStats[trainerId] = {
-                name: program.trainer.name,
-                totalPrograms: 0,
-                totalEnrollments: 0,
-              }
-            }
-            trainerStats[trainerId].totalPrograms += 1
+        // Calculate stats for each trainer
+        const trainerStats = trainers?.map((trainer: any) => {
+          const totalPrograms = trainer.programs?.length || 0
+          const totalEnrollments = trainer.programs?.reduce((sum: number, program: any) => {
+            return sum + (program.enrollments?.[0]?.count || 0)
+          }, 0) || 0
+
+          return {
+            id: trainer.id,
+            name: trainer.name,
+            totalPrograms,
+            totalEnrollments,
           }
-        })
+        }).filter((trainer: any) => trainer.totalPrograms > 0) // Only show trainers with programs
 
-        const trainerList = Object.values(trainerStats)
-        setTrainers(trainerList)
+        // Sort by total enrollments descending
+        trainerStats?.sort((a: any, b: any) => b.totalEnrollments - a.totalEnrollments)
+        
+        setTrainers(trainerStats || [])
       } catch (error) {
         console.error('Error fetching trainer performance:', error)
       } finally {
@@ -84,6 +89,10 @@ export function TrainerPerformance() {
                 <div className="text-center">
                   <p className="text-xs text-gray-500">Program</p>
                   <p className="text-lg font-bold text-gray-900">{trainer.totalPrograms}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">Peserta</p>
+                  <p className="text-lg font-bold text-blue-600">{trainer.totalEnrollments}</p>
                 </div>
               </div>
             </div>

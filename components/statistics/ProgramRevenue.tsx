@@ -18,23 +18,59 @@ export function ProgramRevenue() {
             id,
             title,
             price,
-            enrollments(amount_paid)
+            enrollments!inner(
+              amount_paid,
+              payment_status
+            )
           `)
-          .limit(5)
+          .eq('enrollments.payment_status', 'paid')
 
         if (error) throw error
 
-        const programsWithRevenue = data?.map((program: any) => ({
-          title: program.title,
-          price: program.price,
-          revenue: program.enrollments?.reduce((sum: number, e: any) => sum + (e.amount_paid || 0), 0) || 0,
-          enrollments: program.enrollments?.length || 0,
-        }))
+        // Group by program and calculate revenue
+        const programMap: Record<string, any> = {}
+        
+        data?.forEach((program: any) => {
+          if (!programMap[program.id]) {
+            programMap[program.id] = {
+              title: program.title,
+              price: program.price,
+              revenue: 0,
+              enrollments: 0,
+            }
+          }
+          
+          program.enrollments?.forEach((enrollment: any) => {
+            programMap[program.id].revenue += enrollment.amount_paid || 0
+            programMap[program.id].enrollments += 1
+          })
+        })
 
-        programsWithRevenue?.sort((a, b) => b.revenue - a.revenue)
-        setPrograms(programsWithRevenue || [])
+        const programsWithRevenue = Object.values(programMap)
+          .sort((a: any, b: any) => b.revenue - a.revenue)
+          .slice(0, 5) // Top 5 programs
+
+        setPrograms(programsWithRevenue)
       } catch (error) {
         console.error('Error fetching program revenue:', error)
+        // Fallback: get programs without revenue data
+        try {
+          const { data: programsData, error: programsError } = await supabase
+            .from('programs')
+            .select('id, title, price')
+            .limit(5)
+
+          if (!programsError && programsData) {
+            setPrograms(programsData.map((program: any) => ({
+              title: program.title,
+              price: program.price,
+              revenue: 0,
+              enrollments: 0,
+            })))
+          }
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError)
+        }
       } finally {
         setLoading(false)
       }
