@@ -107,7 +107,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
       console.log('🔄 Adding new class:', newClass)
       
       // Insert class
-      const { data: classData, error: classError } = await supabase
+      const { data: classData, error: classError } = await (supabase as any)
         .from('classes')
         .insert([newClass])
         .select()
@@ -134,7 +134,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
 
         console.log('🔄 Class trainers data:', classTrainers)
 
-        const { error: trainersError } = await supabase
+        const { error: trainersError } = await (supabase as any)
           .from('class_trainers')
           .insert(classTrainers)
 
@@ -190,7 +190,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
 
     try {
       // Update class
-      const { error: classError } = await supabase
+      const { error: classError } = await (supabase as any)
         .from('classes')
         .update({
           name: editingClass.name,
@@ -224,7 +224,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
           is_primary: trainerId === primaryTrainer
         }))
 
-        const { error: trainersError } = await supabase
+        const { error: trainersError } = await (supabase as any)
           .from('class_trainers')
           .insert(classTrainers)
 
@@ -351,7 +351,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Clock className="w-4 h-4 mr-2" />
-                  <span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span>
+                  <span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span>
                 </div>
                 {classItem.location && (
                   <div className="flex items-center text-sm text-gray-600">
@@ -438,7 +438,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   rows={3}
-                  value={newClass.description}
+                  value={newClass.description || ''}
                   onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
                 />
               </div>
@@ -472,7 +472,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="time"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.start_time}
+                    value={newClass.start_time || ''}
                     onChange={(e) => setNewClass({ ...newClass, start_time: e.target.value })}
                     required
                   />
@@ -482,7 +482,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="time"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.end_time}
+                    value={newClass.end_time || ''}
                     onChange={(e) => setNewClass({ ...newClass, end_time: e.target.value })}
                     required
                   />
@@ -495,7 +495,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.location}
+                    value={newClass.location || ''}
                     onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
                   />
                 </div>
@@ -504,7 +504,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.room}
+                    value={newClass.room || ''}
                     onChange={(e) => setNewClass({ ...newClass, room: e.target.value })}
                   />
                 </div>
@@ -600,7 +600,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                   rows={3}
-                  value={editingClass.description}
+                  value={editingClass.description || ''}
                   onChange={(e) => setEditingClass({ ...editingClass, description: e.target.value })}
                 />
               </div>
@@ -634,7 +634,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="time"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.start_time}
+                    value={editingClass.start_time || ''}
                     onChange={(e) => setEditingClass({ ...editingClass, start_time: e.target.value })}
                     required
                   />
@@ -644,7 +644,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="time"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.end_time}
+                    value={editingClass.end_time || ''}
                     onChange={(e) => setEditingClass({ ...editingClass, end_time: e.target.value })}
                     required
                   />
@@ -657,7 +657,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.location}
+                    value={editingClass.location || ''}
                     onChange={(e) => setEditingClass({ ...editingClass, location: e.target.value })}
                   />
                 </div>
@@ -666,7 +666,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.room}
+                    value={editingClass.room || ''}
                     onChange={(e) => setEditingClass({ ...editingClass, room: e.target.value })}
                   />
                 </div>

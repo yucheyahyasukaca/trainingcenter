@@ -82,7 +82,7 @@ export default function EnrollmentsPage() {
           program:programs(*),
           class:classes(*)
         `)
-        .eq('participant_id', profile?.id)
+        .eq('participant_id', profile?.id || '')
         .order('created_at', { ascending: false })
 
       if (error) throw error

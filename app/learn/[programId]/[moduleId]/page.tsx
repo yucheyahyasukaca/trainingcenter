@@ -26,6 +26,33 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     readingWidth: 'full'
   })
 
+  // Theme color configurations
+  const themeColors = {
+    light: {
+      mainBg: '#ffffff',
+      contentBg: '#ffffff',
+      text: '#000000',
+      headerBg: '#ffffff',
+      borderColor: '#e5e7eb'
+    },
+    warm: {
+      mainBg: '#F5E6D3',
+      contentBg: '#FFF8E7',
+      text: '#4A3520',
+      headerBg: '#E8D5B7',
+      borderColor: '#D4C5A9'
+    },
+    dark: {
+      mainBg: '#1a1a1a',
+      contentBg: '#242424',
+      text: '#ffffff',
+      headerBg: '#0f0f0f',
+      borderColor: '#333333'
+    }
+  }
+
+  const currentTheme = themeColors[readingSettings.theme as keyof typeof themeColors] || themeColors.light
+
   useEffect(() => {
     // Fetch modules and current module data
     if (params.programId && params.moduleId) {
@@ -40,7 +67,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           
           if (modulesData) {
             setModules(modulesData)
-            const currentIndex = modulesData.findIndex(m => m.id === params.moduleId)
+            const currentIndex = modulesData.findIndex((m: any) => m.id === params.moduleId)
             setCurrentModuleIndex(currentIndex >= 0 ? currentIndex : 0)
           }
 
@@ -51,7 +78,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             .eq('id', params.moduleId)
             .maybeSingle()
           
-          if (currentModule?.name) setModuleTitle(currentModule.name)
+          if ((currentModule as any)?.name) setModuleTitle((currentModule as any).name)
         } catch {}
       })()
     }
@@ -113,37 +140,61 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         @import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
       `}</style>
       
-      <div className="min-h-screen bg-white flex flex-col content-area">
+      <div className="min-h-screen flex flex-col content-area" style={{
+        backgroundColor: currentTheme.mainBg,
+        color: currentTheme.text,
+        transition: 'all 0.3s ease'
+      }}>
       {/* Focused minimal header */}
-      <div className="sticky top-0 z-30 bg-white/95 border-b border-gray-200 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <div className="sticky top-0 z-30 backdrop-blur border-b" style={{
+        backgroundColor: `${currentTheme.headerBg}f2`,
+        borderColor: currentTheme.borderColor,
+        transition: 'all 0.3s ease'
+      }}>
         {/* Desktop Header */}
         <div className="hidden md:block">
           <div className="w-full px-3 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4 min-w-0 flex-1">
-              <Link href={`/programs`} className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm whitespace-nowrap">
+              <Link href={`/programs`} className="inline-flex items-center text-sm whitespace-nowrap transition-colors" style={{ color: currentTheme.text, opacity: 0.7 }}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Kembali
               </Link>
-              <span className="font-semibold text-gray-900 truncate text-lg">{moduleTitle || 'Belajar Modul'}</span>
+              <span className="font-semibold truncate text-lg" style={{ color: currentTheme.text }}>{moduleTitle || 'Belajar Modul'}</span>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center relative">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3" />
-                <input className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64" placeholder="Cari modul/konten" />
+                <Search className="w-4 h-4 absolute left-3" style={{ color: currentTheme.text, opacity: 0.5 }} />
+                <input 
+                  className="pl-10 pr-4 py-2 text-sm rounded-lg border focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64 transition-colors" 
+                  placeholder="Cari modul/konten"
+                  style={{
+                    backgroundColor: currentTheme.contentBg,
+                    borderColor: currentTheme.borderColor,
+                    color: currentTheme.text
+                  }}
+                />
               </div>
               <button 
                 onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors" 
+                className="p-2 rounded-lg border transition-colors" 
                 aria-label="Pengaturan"
+                style={{
+                  borderColor: currentTheme.borderColor,
+                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                }}
               >
-                <Settings className="w-5 h-5 text-gray-600" />
+                <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
               </button>
               <button 
                 onClick={() => setDrawerOpen(true)} 
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors" 
+                className="p-2 rounded-lg border transition-colors" 
                 aria-label="Menu"
+                style={{
+                  borderColor: currentTheme.borderColor,
+                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                }}
               >
-                <Menu className="w-5 h-5 text-gray-600" />
+                <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
               </button>
             </div>
           </div>
@@ -151,22 +202,31 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
         {/* Mobile Header */}
         <div className="md:hidden w-full px-4 py-3 flex items-center justify-between">
-          <Link href={`/programs`} className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          <Link href={`/programs`} className="p-2 rounded-lg transition-colors" style={{
+            backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+          }}>
+            <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
           </Link>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors" aria-label="Cari">
-              <Search className="w-5 h-5 text-gray-600" />
+            <button className="p-2 rounded-lg transition-colors" aria-label="Cari" style={{
+              backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+            }}>
+              <Search className="w-5 h-5" style={{ color: currentTheme.text }} />
             </button>
             <button 
               onClick={() => setDrawerOpen(true)} 
-              className="p-2 rounded-lg hover:bg-gray-50 transition-colors" 
+              className="p-2 rounded-lg transition-colors" 
               aria-label="Menu"
+              style={{
+                backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+              }}
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
             </button>
-            <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors" aria-label="Menu Tambahan">
-              <MoreVertical className="w-5 h-5 text-gray-600" />
+            <button className="p-2 rounded-lg transition-colors" aria-label="Menu Tambahan" style={{
+              backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+            }}>
+              <MoreVertical className="w-5 h-5" style={{ color: currentTheme.text }} />
             </button>
           </div>
         </div>
@@ -174,9 +234,9 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
       {/* Content layout */}
       <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-20">
-        <div className="bg-white reading-content" style={{
-          backgroundColor: readingSettings.theme === 'warm' ? '#8B4513' : readingSettings.theme === 'dark' ? '#1a1a1a' : '#ffffff',
-          color: readingSettings.theme === 'warm' ? '#F5DEB3' : readingSettings.theme === 'dark' ? '#ffffff' : '#000000',
+        <div className="reading-content" style={{
+          backgroundColor: currentTheme.contentBg,
+          color: currentTheme.text,
           fontFamily: readingSettings.fontType === 'serif' ? 'Georgia, "Times New Roman", serif' : 
                      readingSettings.fontType === 'dyslexic' ? 'OpenDyslexic, Arial, sans-serif' : 
                      'Inter, system-ui, sans-serif',
@@ -189,7 +249,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           transition: 'all 0.3s ease'
         }}>
           <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center" style={{
-            color: readingSettings.theme === 'warm' ? '#F5DEB3' : readingSettings.theme === 'dark' ? '#ffffff' : '#000000'
+            color: currentTheme.text
           }}>Aturan</h1>
           
           <div className="max-w-4xl mx-auto space-y-6 text-lg leading-relaxed text-left">
@@ -271,10 +331,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                       <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
                     )}
                     <div className="text-center">
-                      <div className="w-full h-8 bg-amber-50 border border-gray-200 rounded mb-2 flex items-center justify-center">
-                        <span className="text-gray-800 text-sm font-medium">Belajar dengan Garuda Academy</span>
+                      <div className="w-full h-8 border border-gray-200 rounded mb-2 flex items-center justify-center" style={{
+                        backgroundColor: '#FFF8E7'
+                      }}>
+                        <span className="text-sm font-medium" style={{ color: '#4A3520' }}>Belajar dengan Garuda Academy</span>
                       </div>
-                      <span className="text-xs text-gray-600">Hangat</span>
+                      <span className="text-xs text-gray-600">Hangat (Nyaman untuk Mata)</span>
                     </div>
                   </button>
                   
@@ -526,31 +588,41 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       )}
 
       {/* Bottom navigation persistent (header/footer style khusus belajar) */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 border-t border-gray-200">
+      <div className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur border-t" style={{
+        backgroundColor: `${currentTheme.headerBg}f2`,
+        borderColor: currentTheme.borderColor,
+        transition: 'all 0.3s ease'
+      }}>
         {/* Desktop Footer */}
         <div className="hidden md:block">
           <div className="w-full px-3 py-4 grid grid-cols-3 gap-4">
             <button 
               onClick={() => navigateToModule('prev')}
               disabled={currentModuleIndex === 0}
-              className={`text-left hover:bg-gray-50 rounded-lg p-3 transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`text-left rounded-lg p-3 transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              style={{
+                backgroundColor: currentModuleIndex === 0 ? 'transparent' : (readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg)
+              }}
             >
-              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Sebelumnya</div>
-              <div className="text-sm text-gray-700 truncate">
+              <div className="text-xs mb-1 font-medium" style={{ color: currentTheme.text, opacity: 0.7 }}>Materi Sebelumnya</div>
+              <div className="text-sm truncate" style={{ color: currentTheme.text }}>
                 {currentModuleIndex > 0 ? modules[currentModuleIndex - 1]?.name || 'Materi Sebelumnya' : 'Tidak ada materi sebelumnya'}
               </div>
             </button>
             <div className="text-center flex flex-col justify-center">
-              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Saat Ini</div>
-              <div className="text-sm text-gray-900 font-semibold truncate">{moduleTitle || 'Kuis Mengupas Tuntas Analitik End-to-End de...'}</div>
+              <div className="text-xs mb-1 font-medium" style={{ color: currentTheme.text, opacity: 0.7 }}>Materi Saat Ini</div>
+              <div className="text-sm font-semibold truncate" style={{ color: currentTheme.text }}>{moduleTitle || 'Kuis Mengupas Tuntas Analitik End-to-End de...'}</div>
             </div>
             <button 
               onClick={() => navigateToModule('next')}
               disabled={currentModuleIndex === modules.length - 1}
-              className={`text-right hover:bg-gray-50 rounded-lg p-3 transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              className={`text-right rounded-lg p-3 transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              style={{
+                backgroundColor: currentModuleIndex === modules.length - 1 ? 'transparent' : (readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg)
+              }}
             >
-              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Selanjutnya</div>
-              <div className="text-sm text-gray-700 truncate">
+              <div className="text-xs mb-1 font-medium" style={{ color: currentTheme.text, opacity: 0.7 }}>Materi Selanjutnya</div>
+              <div className="text-sm truncate" style={{ color: currentTheme.text }}>
                 {currentModuleIndex < modules.length - 1 ? modules[currentModuleIndex + 1]?.name || 'Materi Selanjutnya' : 'Tidak ada materi selanjutnya'}
               </div>
             </button>
@@ -563,19 +635,25 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             <button 
               onClick={() => navigateToModule('prev')}
               disabled={currentModuleIndex === 0}
-              className={`p-2 rounded-lg transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}
+              className={`p-2 rounded-lg transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              style={{
+                backgroundColor: currentModuleIndex === 0 ? 'transparent' : (readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg)
+              }}
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
             </button>
             <div className="text-center flex-1 px-4">
-              <div className="text-sm text-gray-900 font-medium truncate">{moduleTitle || 'Kuis Mengupas Tuntas Analitik En...'}</div>
+              <div className="text-sm font-medium truncate" style={{ color: currentTheme.text }}>{moduleTitle || 'Kuis Mengupas Tuntas Analitik En...'}</div>
             </div>
             <button 
               onClick={() => navigateToModule('next')}
               disabled={currentModuleIndex === modules.length - 1}
-              className={`p-2 rounded-lg transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer'}`}
+              className={`p-2 rounded-lg transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              style={{
+                backgroundColor: currentModuleIndex === modules.length - 1 ? 'transparent' : (readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg)
+              }}
             >
-              <ArrowRight className="w-5 h-5 text-gray-600" />
+              <ArrowRight className="w-5 h-5" style={{ color: currentTheme.text }} />
             </button>
           </div>
         </div>

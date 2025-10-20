@@ -39,7 +39,7 @@ export function DashboardStats() {
         ])
 
         // Calculate total revenue
-        const totalRevenue = revenue.data?.reduce((sum, enrollment) => sum + (enrollment.amount_paid || 0), 0) || 0
+        const totalRevenue = (revenue.data as any)?.reduce((sum: number, enrollment: any) => sum + (enrollment.amount_paid || 0), 0) || 0
 
         // Calculate system health based on active programs and recent enrollments
         const now = new Date()

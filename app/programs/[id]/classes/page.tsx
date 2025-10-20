@@ -51,7 +51,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       const { data: participant, error: participantError } = await supabase
         .from('participants')
         .select('id')
-        .eq('user_id', profile?.id)
+        .eq('user_id', profile?.id || '')
         .single()
 
       if (participantError) throw participantError
@@ -63,7 +63,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           class:classes(*)
         `)
         .eq('program_id', params.id)
-        .eq('participant_id', participant.id)
+        .eq('participant_id', (participant as any).id)
         .eq('status', 'approved')
         .maybeSingle()
 
@@ -170,7 +170,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               <div key={classItem.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${classItem.status === 'active' ? 'bg-green-100 text-green-800' : classItem.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{classItem.status === 'active' ? 'Aktif' : classItem.status === 'upcoming' ? 'Akan Datang' : 'Selesai'}</span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${classItem.status === 'ongoing' ? 'bg-green-100 text-green-800' : classItem.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{classItem.status === 'ongoing' ? 'Aktif' : classItem.status === 'scheduled' ? 'Akan Datang' : 'Selesai'}</span>
                 </div>
 
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
@@ -199,7 +199,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
                   <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" /><span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span></div>
-                  <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span></div>
+                  <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span></div>
                 </div>
 
                 <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">

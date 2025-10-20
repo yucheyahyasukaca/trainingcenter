@@ -57,14 +57,14 @@ export default function ProgramsPage() {
           .select('id')
           .eq('user_id', userId)
           .single()
-        if (!participant?.id) {
+        if (!(participant as any)?.id) {
           setEnrollmentsLoading(false)
           return
         }
         const { data } = await supabase
           .from('enrollments')
           .select('program_id, status')
-          .eq('participant_id', participant.id)
+          .eq('participant_id', (participant as any).id)
         const list = data || []
         const map: Record<string, string> = {}
         list.forEach((e: any) => { if (e?.program_id) map[e.program_id] = e.status })
@@ -146,9 +146,9 @@ export default function ProgramsPage() {
       }
       
       console.log('✅ Programs fetched:', data?.length || 0)
-      console.log('📊 Programs with classes:', data?.map(p => ({ 
-        title: p.title, 
-        classCount: p.classes?.length || 0 
+      console.log('📊 Programs with classes:', (data as any)?.map((p: any) => ({
+        title: p.title,
+        classCount: p.classes?.length || 0
       })))
       setPrograms(data || [])
     } catch (error) {
@@ -178,15 +178,15 @@ export default function ProgramsPage() {
         return
       }
 
-      if (participant?.id && participant?.id !== participantId) {
-        setParticipantId(participant.id)
+      if ((participant as any)?.id && (participant as any)?.id !== participantId) {
+        setParticipantId((participant as any).id)
       }
 
       // Then fetch enrollments for this participant
       const { data, error } = await supabase
         .from('enrollments')
         .select('program_id, status')
-        .eq('participant_id', participant.id)
+        .eq('participant_id', (participant as any).id)
 
       if (error) {
         console.error('Error fetching user enrollments:', error)

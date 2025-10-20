@@ -26,7 +26,7 @@ export default function MyEnrollmentsPage() {
       const { data: participant, error: participantError } = await supabase
         .from('participants')
         .select('id')
-        .eq('user_id', profile?.id)
+        .eq('user_id', profile?.id || '')
         .single()
 
       if (participantError) {
@@ -66,7 +66,7 @@ export default function MyEnrollmentsPage() {
             location
           )
         `)
-        .eq('participant_id', participant.id)
+        .eq('participant_id', (participant as any).id)
         .order('created_at', { ascending: false })
 
       if (error) {

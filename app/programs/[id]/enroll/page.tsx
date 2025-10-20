@@ -52,8 +52,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       // Check if program is published
-      if (simpleData.status !== 'published') {
-        console.log('⚠️ Program exists but not published:', simpleData.status)
+      if ((simpleData as any).status !== 'published') {
+        console.log('⚠️ Program exists but not published:', (simpleData as any).status)
         setError('Program tidak tersedia untuk pendaftaran')
         return
       }
@@ -90,9 +90,9 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         return
       }
 
-      console.log('✅ Program found with classes:', data.title)
-      console.log('📚 Classes data:', data.classes)
-      console.log('📊 Classes count:', data.classes?.length || 0)
+      console.log('✅ Program found with classes:', (data as any).title)
+      console.log('📚 Classes data:', (data as any).classes)
+      console.log('📊 Classes count:', (data as any).classes?.length || 0)
       setProgram(data)
     } catch (error) {
       console.error('❌ Error fetching program:', error)
@@ -125,7 +125,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       if (!existingParticipant) {
         // Create participant record
-        const { data: newParticipant, error: createParticipantError } = await supabase
+        const { data: newParticipant, error: createParticipantError } = await (supabase as any)
           .from('participants')
           .insert([{
             user_id: profile.id,
@@ -138,9 +138,9 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           .single()
 
         if (createParticipantError) throw createParticipantError
-        participantId = newParticipant.id
+        participantId = (newParticipant as any).id
       } else {
-        participantId = existingParticipant.id
+        participantId = (existingParticipant as any).id
       }
 
       // Check if user already enrolled in this program
@@ -156,8 +156,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       if (existingEnrollment) {
-        const statusText = existingEnrollment.status === 'pending' ? 'menunggu persetujuan' : 
-                          existingEnrollment.status === 'approved' ? 'sudah disetujui' : 
+        const statusText = (existingEnrollment as any).status === 'pending' ? 'menunggu persetujuan' :
+                          (existingEnrollment as any).status === 'approved' ? 'sudah disetujui' :
                           'ditolak'
         
         addNotification({
@@ -200,7 +200,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       console.log('Creating enrollment with data:', enrollmentData)
 
-      const { data: enrollmentResult, error: enrollError } = await supabase
+      const { data: enrollmentResult, error: enrollError } = await (supabase as any)
         .from('enrollments')
         .insert([enrollmentData])
         .select()

@@ -44,7 +44,7 @@ export default function PaymentsPage() {
 
   async function approvePayment(id: string) {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('enrollments')
         .update({ 
           status: 'approved',
@@ -76,9 +76,9 @@ export default function PaymentsPage() {
     if (!reason) return
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('enrollments')
-        .update({ 
+        .update({
           status: 'rejected',
           notes: `Pembayaran ditolak: ${reason}`
         })

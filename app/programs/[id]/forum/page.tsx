@@ -65,14 +65,14 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
       const { data: threadsData, error: threadsError } = await supabase
         .from('forum_threads')
         .select('*')
-        .in('category_id', categoriesData?.map(c => c.id) || [])
+        .in('category_id', (categoriesData as any)?.map((c: any) => c.id) || [])
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (threadsError) throw threadsError
 
       // Fetch user profiles for all thread authors
-      const authorIds = [...new Set(threadsData?.map(thread => thread.author_id) || [])]
+      const authorIds = Array.from(new Set((threadsData as any)?.map((thread: any) => thread.author_id) || []))
       let userProfilesData: Record<string, any> = {}
       
       if (authorIds.length > 0) {
@@ -82,7 +82,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
           .in('id', authorIds)
 
         if (!profilesError && profilesData) {
-          userProfilesData = profilesData.reduce((acc, profile) => {
+          userProfilesData = (profilesData as any).reduce((acc: any, profile: any) => {
             acc[profile.id] = profile
             return acc
           }, {} as Record<string, any>)
@@ -96,7 +96,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
     } catch (error) {
       console.error('Error fetching data:', error)
       // Don't redirect on error, just show the error
-      alert(`Error loading forum: ${error.message || 'Unknown error'}`)
+      alert(`Error loading forum: ${(error as any).message || 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -161,7 +161,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
         }
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('forum_threads')
         .insert([{
           category_id: categoryId,
@@ -187,7 +187,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
       fetchData()
     } catch (error) {
       console.error('Error creating thread:', error)
-      alert(`Gagal membuat thread: ${error.message || 'Unknown error'}`)
+      alert(`Gagal membuat thread: ${(error as any).message || 'Unknown error'}`)
     } finally {
       setSubmitting(false)
     }
@@ -195,7 +195,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
   async function incrementViewCount(threadId: string) {
     try {
-      await supabase.rpc('increment_thread_view', { thread_id: threadId })
+      await (supabase as any).rpc('increment_thread_view', { thread_id: threadId })
     } catch (error) {
       console.error('Error incrementing view count:', error)
     }
