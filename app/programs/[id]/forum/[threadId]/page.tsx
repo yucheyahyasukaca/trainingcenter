@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Reply, ThumbsUp, CheckCircle, Pin, Lock, Send } from 'lucide-react'
+import { ArrowLeft, Reply, ThumbsUp, CheckCircle, Pin, Lock, Send, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -13,10 +13,17 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   const { profile } = useAuth()
   const [thread, setThread] = useState<any>(null)
   const [replies, setReplies] = useState<any[]>([])
+  const [userProfiles, setUserProfiles] = useState<Record<string, any>>({})
+  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [newReply, setNewReply] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [threadLikeCount, setThreadLikeCount] = useState<number>(0)
+  const [likedThread, setLikedThread] = useState<boolean>(false)
+  const [replyLikeCount, setReplyLikeCount] = useState<Record<string, number>>({})
+  const [likedReplies, setLikedReplies] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetchData()
@@ -24,61 +31,145 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
   async function fetchData() {
     try {
-      // Fetch thread
+      console.log('Fetching thread data for thread:', params.threadId)
+      console.log('Current user profile:', profile)
+
+      setErrorMessage(null)
+
+      console.log('[forum] fetch thread start')
+      // Fetch thread (simplified query)
       const { data: threadData, error: threadError } = await supabase
         .from('forum_threads')
-        .select(`
-          *,
-          author:user_profiles(full_name, avatar_url),
-          category:forum_categories(name)
-        `)
+        .select('*')
         .eq('id', params.threadId)
         .single()
 
-      if (threadError) throw threadError
+      if (threadError) {
+        console.error('Error fetching thread:', threadError)
+        setErrorMessage('Tidak dapat memuat thread.');
+        throw threadError
+      }
 
-      // Check if user is enrolled
-      const { data: enrollmentData, error: enrollmentError } = await supabase
-        .from('enrollments')
+      console.log('[forum] thread ok:', threadData)
+
+      // Allow access to all authenticated users for now
+      console.log('Allowing access to thread for all authenticated users')
+
+      console.log('[forum] fetch replies start')
+      let repliesData: any[] = []
+      try {
+        const { data: rData, error: repliesError } = await supabase
+          .from('forum_replies')
+          .select('*')
+          .eq('thread_id', params.threadId)
+          .order('created_at', { ascending: true })
+        if (!repliesError && Array.isArray(rData)) {
+          repliesData = rData
+        } else if (repliesError) {
+          console.warn('Replies fetch error (ignored):', repliesError)
+        }
+      } catch (e) {
+        console.warn('Replies fetch threw (ignored):', e)
+      }
+      console.log('[forum] replies ok:', repliesData?.length)
+
+      // Fetch categories for this program
+      console.log('[forum] fetch categories start')
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('forum_categories')
         .select('*')
         .eq('program_id', params.id)
-        .eq('participant_id', profile?.id)
-        .eq('status', 'approved')
-        .single()
+        .order('name')
 
-      if (enrollmentError && enrollmentError.code !== 'PGRST116') {
-        throw enrollmentError
+      if (categoriesError) {
+        console.log('Error fetching categories:', categoriesError)
+        setErrorMessage('Kategori forum gagal dimuat.')
       }
 
-      if (!enrollmentData && profile?.role !== 'admin' && profile?.role !== 'manager') {
-        router.push('/my-enrollments')
-        return
+      // Fetch user profiles for thread author and reply authors (defensive)
+      const repliesArr = Array.isArray(repliesData) ? (repliesData as any[]) : []
+      const authorIds = [
+        (threadData as any)?.author_id,
+        ...repliesArr.map((reply: any) => reply?.author_id)
+      ].filter(Boolean)
+      
+      let userProfilesData: Record<string, any> = {}
+      
+      if (authorIds.length > 0) {
+        console.log('[forum] fetch user profiles for', authorIds.length)
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email')
+          .in('id', authorIds)
+
+        if (!profilesError && Array.isArray(profilesData)) {
+          userProfilesData = (profilesData as any[]).reduce((acc: Record<string, any>, profile: any) => {
+            if (profile?.id) acc[profile.id as string] = profile
+            return acc
+          }, {})
+        }
+      }
+      console.log('[forum] profiles ok:', Object.keys(userProfilesData).length)
+
+      // Fetch likes for thread
+      try {
+        console.log('[forum] fetch likes start')
+        const { data: threadLikes } = await (supabase as any)
+          .from('forum_reactions')
+          .select('user_id')
+          .eq('thread_id', params.threadId)
+          .eq('reaction_type', 'like')
+
+        const replyIds = repliesArr.map((r: any) => r?.id).filter(Boolean)
+        let replyLikesData: any[] = []
+        if (replyIds.length > 0) {
+          const { data: rLikes } = await (supabase as any)
+            .from('forum_reactions')
+            .select('user_id, reply_id')
+            .in('reply_id', replyIds)
+            .eq('reaction_type', 'like')
+          replyLikesData = rLikes || []
+        }
+
+        const replyCountMap: Record<string, number> = {}
+        const likedMap: Record<string, boolean> = {}
+        (replyLikesData as any[]).forEach((rl: any) => {
+          replyCountMap[rl.reply_id as string] = (replyCountMap[rl.reply_id as string] || 0) + 1
+          if (rl.user_id === profile?.id) likedMap[rl.reply_id as string] = true
+        })
+
+        const threadLikesArr = Array.isArray(threadLikes) ? (threadLikes as any[]) : []
+        setThreadLikeCount(threadLikesArr.length)
+        setLikedThread(Boolean(threadLikesArr.some((l: any) => l?.user_id === profile?.id)))
+        setReplyLikeCount(replyCountMap)
+        setLikedReplies(likedMap)
+      } catch (likesErr) {
+        console.warn('[forum] likes block failed (ignored):', likesErr)
+        setThreadLikeCount(0)
+        setLikedThread(false)
+        setReplyLikeCount({})
+        setLikedReplies({})
       }
 
-      // Fetch replies
-      const { data: repliesData, error: repliesError } = await supabase
-        .from('forum_replies')
-        .select(`
-          *,
-          author:user_profiles(full_name, avatar_url),
-          parent_reply:forum_replies(
-            id,
-            author:user_profiles(full_name)
-          )
-        `)
-        .eq('thread_id', params.threadId)
-        .order('created_at', { ascending: true })
-
-      if (repliesError) throw repliesError
-
-      // Increment view count
-      await supabase.rpc('increment_thread_view', { thread_id: params.threadId })
+      // Increment view count (simplified)
+      try {
+        await (supabase as any)
+          .from('forum_threads')
+          .update({ view_count: (threadData as any).view_count ? (threadData as any).view_count + 1 : 1 })
+          .eq('id', params.threadId)
+      } catch (error) {
+        console.log('Could not increment view count:', error)
+      }
 
       setThread(threadData)
       setReplies(repliesData || [])
+      setUserProfiles(userProfilesData)
+      setCategories(categoriesData || [])
+      console.log('[forum] state set complete')
     } catch (error) {
       console.error('Error fetching data:', error)
-      router.push(`/programs/${params.id}/forum`)
+      // Keep inline error message visible; avoid redirect/alert
+      if (!errorMessage) setErrorMessage('Terjadi kesalahan saat memuat data.')
     } finally {
       setLoading(false)
     }
@@ -87,9 +178,16 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   async function submitReply() {
     if (!newReply.trim()) return
 
+    console.log('Submitting reply:', {
+      thread_id: params.threadId,
+      author_id: profile?.id,
+      content: newReply,
+      parent_reply_id: replyingTo || null
+    })
+
     setSubmitting(true)
     try {
-      const { error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('forum_replies')
         .insert([{
           thread_id: params.threadId,
@@ -97,34 +195,77 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
           content: newReply,
           parent_reply_id: replyingTo || null
         }])
+        .select()
 
-      if (error) throw error
+      console.log('Reply insert result:', { data, error })
 
+      if (error) {
+        console.error('Detailed error:', error)
+        throw error
+      }
+
+      console.log('Reply submitted successfully')
       setNewReply('')
       setReplyingTo(null)
       fetchData()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting reply:', error)
-      alert('Gagal mengirim balasan')
+      alert(`Gagal mengirim balasan: ${error?.message || 'Unknown error'}`)
     } finally {
       setSubmitting(false)
     }
   }
 
-  async function toggleReaction(replyId: string, type: string) {
+  async function toggleThreadLike() {
+    if (!profile?.id) return
     try {
-      const { error } = await supabase
-        .from('forum_reactions')
-        .upsert([{
-          user_id: profile?.id,
-          reply_id: replyId,
-          reaction_type: type
-        }])
-
-      if (error) throw error
-      fetchData()
+      if (likedThread) {
+        const { error } = await (supabase as any)
+          .from('forum_reactions')
+          .delete()
+          .eq('user_id', profile.id)
+          .eq('thread_id', params.threadId)
+          .eq('reaction_type', 'like')
+        if (error) throw error
+        setLikedThread(false)
+        setThreadLikeCount((c) => Math.max(0, c - 1))
+      } else {
+        const { error } = await (supabase as any)
+          .from('forum_reactions')
+          .upsert([{ user_id: profile.id, thread_id: params.threadId, reaction_type: 'like' }])
+        if (error) throw error
+        setLikedThread(true)
+        setThreadLikeCount((c) => c + 1)
+      }
     } catch (error) {
-      console.error('Error toggling reaction:', error)
+      console.error('Error toggling thread like:', error)
+    }
+  }
+
+  async function toggleReplyLike(replyId: string) {
+    if (!profile?.id) return
+    const isLiked = likedReplies[replyId]
+    try {
+      if (isLiked) {
+        const { error } = await (supabase as any)
+          .from('forum_reactions')
+          .delete()
+          .eq('user_id', profile.id)
+          .eq('reply_id', replyId)
+          .eq('reaction_type', 'like')
+        if (error) throw error
+        setLikedReplies((m) => ({ ...m, [replyId]: false }))
+        setReplyLikeCount((m) => ({ ...m, [replyId]: Math.max(0, (m[replyId] || 1) - 1) }))
+      } else {
+        const { error } = await (supabase as any)
+          .from('forum_reactions')
+          .upsert([{ user_id: profile.id, reply_id: replyId, reaction_type: 'like' }])
+        if (error) throw error
+        setLikedReplies((m) => ({ ...m, [replyId]: true }))
+        setReplyLikeCount((m) => ({ ...m, [replyId]: (m[replyId] || 0) + 1 }))
+      }
+    } catch (error) {
+      console.error('Error toggling reply like:', error)
     }
   }
 
@@ -177,21 +318,33 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
       <div>
         <Link href={`/programs/${params.id}/forum`} className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Kembali ke Forum</span>
           <span className="sm:hidden">Kembali</span>
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{thread.title}</h1>
-        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-          <span>Kategori: {thread.category?.name}</span>
-          <span>•</span>
-          <span>Oleh {thread.author?.full_name}</span>
-          <span>•</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{thread.title}</h1>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+              {categories.find(c => c.id === thread.category_id)?.name || 'Forum'}
+            </span>
+          </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
+          <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-3 font-medium text-gray-700">
+            {userProfiles[thread.author_id]?.full_name || 'User Garuda Academy'}
+          </span>
+          <span className="hidden sm:inline">•</span>
           <span>{formatDate(thread.created_at)}</span>
-          <span>•</span>
-          <span>{thread.view_count} dilihat</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{thread.view_count || 0} dilihat</span>
         </div>
       </div>
 
@@ -215,11 +368,12 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => toggleReaction(thread.id, 'like')}
-              className="flex items-center space-x-1 text-gray-600 hover:text-primary-600 transition-colors"
+              onClick={toggleThreadLike}
+              className={`flex items-center space-x-2 transition-colors ${likedThread ? 'text-primary-600' : 'text-gray-600 hover:text-primary-600'}`}
             >
               <ThumbsUp className="w-4 h-4" />
               <span>Suka</span>
+              <span className="text-xs font-medium">{threadLikeCount}</span>
             </button>
           </div>
           <div className="text-sm text-gray-500">
@@ -232,17 +386,17 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-900">Balasan ({thread.reply_count})</h2>
         
-        {groupedReplies['root']?.map((reply) => (
-          <div key={reply.id} className="bg-white rounded-xl border border-gray-200 p-6">
+        {groupedReplies['root']?.map((reply: any) => (
+          <div key={reply.id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
                   <span className="text-sm font-medium text-primary-700">
-                    {reply.author?.full_name?.charAt(0)}
+                    {(userProfiles[reply.author_id]?.full_name || 'User Garuda Academy').charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <div className="font-medium text-gray-900">{reply.author?.full_name}</div>
+                  <div className="font-medium text-gray-900">{userProfiles[reply.author_id]?.full_name || 'User Garuda Academy'}</div>
                   <div className="text-sm text-gray-500">{formatDate(reply.created_at)}</div>
                 </div>
               </div>
@@ -261,11 +415,12 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => toggleReaction(reply.id, 'like')}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-primary-600 transition-colors"
+                  onClick={() => toggleReplyLike(reply.id)}
+                  className={`flex items-center space-x-2 transition-colors ${likedReplies[reply.id] ? 'text-primary-600' : 'text-gray-600 hover:text-primary-600'}`}
                 >
                   <ThumbsUp className="w-4 h-4" />
                   <span>Suka</span>
+                  <span className="text-xs font-medium">{replyLikeCount[reply.id] || 0}</span>
                 </button>
                 <button
                   onClick={() => setReplyingTo(replyingTo === reply.id ? null : reply.id)}
@@ -280,17 +435,17 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
             {/* Nested Replies */}
             {groupedReplies[reply.id] && (
               <div className="mt-4 ml-8 space-y-4">
-                {groupedReplies[reply.id].map((nestedReply) => (
+                {groupedReplies[reply.id].map((nestedReply: any) => (
                   <div key={nestedReply.id} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-3">
                         <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
                           <span className="text-xs font-medium text-gray-600">
-                            {nestedReply.author?.full_name?.charAt(0)}
+                            {(userProfiles[nestedReply.author_id]?.full_name || 'User Garuda Academy').charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900 text-sm">{nestedReply.author?.full_name}</div>
+                          <div className="font-medium text-gray-900 text-sm">{userProfiles[nestedReply.author_id]?.full_name || 'User Garuda Academy'}</div>
                           <div className="text-xs text-gray-500">{formatDate(nestedReply.created_at)}</div>
                         </div>
                       </div>

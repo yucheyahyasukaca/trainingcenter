@@ -14,6 +14,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
   const [program, setProgram] = useState<any>(null)
   const [categories, setCategories] = useState<any[]>([])
   const [threads, setThreads] = useState<any[]>([])
+  const [userProfiles, setUserProfiles] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showNewThread, setShowNewThread] = useState(false)
@@ -27,6 +28,9 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
   async function fetchData() {
     try {
+      console.log('Fetching forum data for program:', params.id)
+      console.log('Current user profile:', profile)
+
       // Fetch program
       const { data: programData, error: programError } = await supabase
         .from('programs')
@@ -34,25 +38,15 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
         .eq('id', params.id)
         .single()
 
-      if (programError) throw programError
-
-      // Check if user is enrolled
-      const { data: enrollmentData, error: enrollmentError } = await supabase
-        .from('enrollments')
-        .select('*')
-        .eq('program_id', params.id)
-        .eq('participant_id', profile?.id)
-        .eq('status', 'approved')
-        .single()
-
-      if (enrollmentError && enrollmentError.code !== 'PGRST116') {
-        throw enrollmentError
+      if (programError) {
+        console.error('Error fetching program:', programError)
+        throw programError
       }
 
-      if (!enrollmentData && profile?.role !== 'admin' && profile?.role !== 'manager') {
-        router.push('/my-enrollments')
-        return
-      }
+      console.log('Program data:', programData)
+
+      // Allow access to all authenticated users for now
+      console.log('Allowing access to forum for all authenticated users')
 
       // Fetch categories
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -63,27 +57,42 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
       if (categoriesError) throw categoriesError
 
-      // Fetch threads
+      // Fetch threads (simplified query)
       const { data: threadsData, error: threadsError } = await supabase
         .from('forum_threads')
-        .select(`
-          *,
-          author:user_profiles(full_name, avatar_url),
-          category:forum_categories(name)
-        `)
+        .select('*')
         .in('category_id', categoriesData?.map(c => c.id) || [])
         .order('is_pinned', { ascending: false })
-        .order('last_reply_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
 
       if (threadsError) throw threadsError
 
+      // Fetch user profiles for all thread authors
+      const authorIds = [...new Set(threadsData?.map(thread => thread.author_id) || [])]
+      let userProfilesData: Record<string, any> = {}
+      
+      if (authorIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, email')
+          .in('id', authorIds)
+
+        if (!profilesError && profilesData) {
+          userProfilesData = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile
+            return acc
+          }, {} as Record<string, any>)
+        }
+      }
+
       setProgram(programData)
       setCategories(categoriesData || [])
       setThreads(threadsData || [])
+      setUserProfiles(userProfilesData)
     } catch (error) {
       console.error('Error fetching data:', error)
-      router.push('/my-enrollments')
+      // Don't redirect on error, just show the error
+      alert(`Error loading forum: ${error.message || 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -92,11 +101,18 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
   async function createThread() {
     if (!newThreadTitle.trim() || !newThreadContent.trim()) return
 
+    const categoryId = selectedCategory === 'all' ? categories[0]?.id : selectedCategory
+
+    console.log('Creating thread:', {
+      category_id: categoryId,
+      author_id: profile?.id,
+      title: newThreadTitle,
+      content: newThreadContent
+    })
+
     setSubmitting(true)
     try {
-      const categoryId = selectedCategory === 'all' ? categories[0]?.id : selectedCategory
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('forum_threads')
         .insert([{
           category_id: categoryId,
@@ -104,16 +120,23 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
           title: newThreadTitle,
           content: newThreadContent
         }])
+        .select()
 
-      if (error) throw error
+      console.log('Thread insert result:', { data, error })
 
+      if (error) {
+        console.error('Detailed error:', error)
+        throw error
+      }
+
+      console.log('Thread created successfully')
       setNewThreadTitle('')
       setNewThreadContent('')
       setShowNewThread(false)
       fetchData()
     } catch (error) {
       console.error('Error creating thread:', error)
-      alert('Gagal membuat thread')
+      alert(`Gagal membuat thread: ${error.message || 'Unknown error'}`)
     } finally {
       setSubmitting(false)
     }
@@ -196,7 +219,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
         {/* Threads List */}
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
                 {selectedCategory === 'all' ? 'Semua Thread' : categories.find(c => c.id === selectedCategory)?.name}
@@ -265,7 +288,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
                 {filteredThreads.map((thread) => (
                   <div
                     key={thread.id}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="p-5 bg-white/70 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
                     onClick={() => {
                       incrementViewCount(thread.id)
                       router.push(`/programs/${params.id}/forum/${thread.id}`)
@@ -280,40 +303,42 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
                           {thread.is_locked && (
                             <Lock className="w-4 h-4 text-red-500" />
                           )}
-                          <h3 className="text-lg font-medium text-gray-900 truncate">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
                             {thread.title}
                           </h3>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
                           {thread.content}
                         </p>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <span>Oleh {thread.author?.full_name}</span>
-                          <span>•</span>
-                          <span>{formatDate(thread.created_at)}</span>
-                          <span>•</span>
-                          <span className="flex items-center">
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            {thread.reply_count} balasan
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
+                          <span className="inline-flex items-center gap-2">
+                            <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-3 font-medium text-gray-700">
+                              {userProfiles[thread.author_id]?.full_name || 'User Garuda Academy'}
+                            </span>
                           </span>
-                          <span>•</span>
-                          <span className="flex items-center">
+                          <span className="hidden sm:inline">•</span>
+                          <span>{formatDate(thread.created_at)}</span>
+                          <span className="hidden sm:inline">•</span>
+                          <span className="inline-flex items-center">
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            {thread.reply_count || 0} balasan
+                          </span>
+                          <span className="hidden sm:inline">•</span>
+                          <span className="inline-flex items-center">
                             <Eye className="w-4 h-4 mr-1" />
-                            {thread.view_count} dilihat
+                            {thread.view_count || 0} dilihat
                           </span>
                         </div>
                       </div>
-                      <div className="ml-4 flex-shrink-0">
-                        <div className="text-right text-sm text-gray-500">
-                          <div className="font-medium text-gray-900">
-                            {thread.category?.name}
-                          </div>
-                          {thread.last_reply_at && (
-                            <div>
-                              Terakhir: {formatDate(thread.last_reply_at)}
-                            </div>
-                          )}
+                      <div className="ml-4 flex-shrink-0 text-right">
+                        <div className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
+                          {categories.find(c => c.id === thread.category_id)?.name || 'Kategori'}
                         </div>
+                        {thread.last_reply_at && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Terakhir: {formatDate(thread.last_reply_at)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
