@@ -125,11 +125,11 @@ export function SearchableSelect({
         ref={dropdownRef}
         className="relative"
       >
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => !disabled && setIsOpen(!isOpen)}
           onKeyDown={handleKeyDown}
-          disabled={disabled}
           className={`
             w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm
             flex items-center justify-between
@@ -148,19 +148,26 @@ export function SearchableSelect({
           </span>
           <div className="flex items-center space-x-1 ml-2">
             {value && !disabled && (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={handleClear}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    handleClear(e as any)
+                  }
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
               >
                 <X className="w-3 h-3 text-gray-400" />
-              </button>
+              </div>
             )}
             <ChevronDown 
               className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
             />
           </div>
-        </button>
+        </div>
 
         {isOpen && (
           <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-hidden">
@@ -188,11 +195,17 @@ export function SearchableSelect({
                 </div>
               ) : (
                 filteredOptions.map((option, index) => (
-                  <button
+                  <div
                     key={option.value}
-                    type="button"
-                    onClick={() => handleSelect(option.value)}
-                    disabled={option.disabled}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => !option.disabled && handleSelect(option.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        if (!option.disabled) handleSelect(option.value)
+                      }
+                    }}
                     className={`
                       w-full px-3 py-2 text-left text-sm transition-colors
                       ${index === highlightedIndex 
@@ -207,7 +220,7 @@ export function SearchableSelect({
                     `}
                   >
                     <div className="truncate">{option.label}</div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

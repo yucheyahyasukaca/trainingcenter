@@ -18,6 +18,8 @@ export type EnrollmentUpdate = Database['public']['Tables']['enrollments']['Upda
 
 export interface ProgramWithTrainer extends Program {
   trainer?: Trainer | null
+  classes?: ClassWithTrainers[]
+  total_enrollments?: number
 }
 
 export interface EnrollmentWithDetails extends Enrollment {
@@ -34,12 +36,31 @@ export type ClassTrainer = Database['public']['Tables']['class_trainers']['Row']
 export type ClassTrainerInsert = Database['public']['Tables']['class_trainers']['Insert']
 export type ClassTrainerUpdate = Database['public']['Tables']['class_trainers']['Update']
 
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row']
+export type UserProfileInsert = Database['public']['Tables']['user_profiles']['Insert']
+export type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update']
+
 export interface ClassWithTrainers extends Class {
   trainers?: (ClassTrainer & { trainer?: Trainer })[]
+  program?: Program
+  enrolled_participants?: number
 }
 
 export interface ProgramWithClasses extends Program {
   classes?: ClassWithTrainers[]
+  trainer?: Trainer | null
+}
+
+export interface TrainerWithStats extends Trainer {
+  total_classes?: number
+  total_programs?: number
+  total_enrollments?: number
+  avg_hourly_rate?: number
+}
+
+export interface TrainerWithClasses extends Trainer {
+  classes?: ClassWithTrainers[]
+  programs?: Program[]
 }
 
 export interface Statistics {
@@ -47,9 +68,34 @@ export interface Statistics {
   totalParticipants: number
   totalTrainers: number
   totalEnrollments: number
+  totalClasses: number
   recentEnrollments: EnrollmentWithDetails[]
   programsByCategory: { category: string; count: number }[]
   enrollmentsByStatus: { status: string; count: number }[]
   monthlyEnrollments: { month: string; count: number }[]
+  trainerPerformance: { trainer_id: string; trainer_name: string; total_classes: number; total_enrollments: number }[]
+}
+
+export interface TrainerAvailability {
+  trainer_id: string
+  date: string
+  available_slots: string[]
+  is_available: boolean
+}
+
+export interface ClassSchedule {
+  class_id: string
+  class_name: string
+  program_title: string
+  trainer_name: string
+  start_date: string
+  end_date: string
+  start_time: string
+  end_time: string
+  location: string
+  room: string
+  status: string
+  enrolled_count: number
+  max_participants: number
 }
 

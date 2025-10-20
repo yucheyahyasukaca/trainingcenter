@@ -41,6 +41,21 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
 
   async function fetchClasses() {
     try {
+      console.log('🔍 Fetching classes for program:', programId)
+      
+      // First, let's check if classes table exists
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('classes')
+        .select('id')
+        .limit(1)
+
+      if (tableError) {
+        console.error('❌ Classes table error:', tableError)
+        throw tableError
+      }
+
+      console.log('✅ Classes table accessible')
+
       const { data, error } = await supabase
         .from('classes')
         .select(`
@@ -53,12 +68,17 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         .eq('program_id', programId)
         .order('start_date', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Classes fetch error:', error)
+        throw error
+      }
+      
       console.log('🔍 Classes fetched for program', programId, ':', data?.length || 0, 'classes')
       console.log('📋 Classes data:', data)
       setClasses(data || [])
     } catch (error) {
-      console.error('Error fetching classes:', error)
+      console.error('❌ Error fetching classes:', error)
+      setClasses([])
     } finally {
       setLoading(false)
     }
@@ -84,18 +104,27 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
     setLoading(true)
 
     try {
+      console.log('🔄 Adding new class:', newClass)
+      
       // Insert class
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .insert([newClass])
         .select()
 
-      if (classError) throw classError
+      if (classError) {
+        console.error('❌ Class insert error:', classError)
+        throw classError
+      }
+
+      console.log('✅ Class inserted successfully:', classData)
 
       const classId = classData[0].id
 
       // Insert class trainers
       if (selectedTrainers.length > 0) {
+        console.log('🔄 Adding trainers to class:', selectedTrainers)
+        
         const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
           class_id: classId,
           trainer_id: trainerId,
@@ -103,13 +132,21 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
           is_primary: trainerId === primaryTrainer
         }))
 
+        console.log('🔄 Class trainers data:', classTrainers)
+
         const { error: trainersError } = await supabase
           .from('class_trainers')
           .insert(classTrainers)
 
-        if (trainersError) throw trainersError
+        if (trainersError) {
+          console.error('❌ Class trainers insert error:', trainersError)
+          throw trainersError
+        }
+
+        console.log('✅ Class trainers inserted successfully')
       }
 
+      // Reset form
       setNewClass({
         program_id: programId,
         name: '',
@@ -126,10 +163,20 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
       setSelectedTrainers([])
       setPrimaryTrainer('')
       setShowAddModal(false)
+      
+      console.log('🔄 Refreshing classes list...')
       fetchClasses()
+      
     } catch (error) {
-      console.error('Error adding class:', error)
-      alert('Gagal menambahkan kelas')
+      console.error('❌ Error adding class:', error)
+      
+      // Show detailed error message
+      let errorMessage = 'Gagal menambahkan kelas'
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`
+      }
+      
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }
