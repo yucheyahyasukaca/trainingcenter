@@ -20,7 +20,10 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
   const [showNewThread, setShowNewThread] = useState(false)
   const [newThreadTitle, setNewThreadTitle] = useState('')
   const [newThreadContent, setNewThreadContent] = useState('')
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [openAttachment, setOpenAttachment] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -98,6 +101,33 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
     }
   }
 
+  // Compress image in browser before upload to save storage and bandwidth
+  async function compressImage(inputFile: File, opts?: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string }) {
+    const maxWidth = opts?.maxWidth ?? 1600
+    const maxHeight = opts?.maxHeight ?? 1200
+    const quality = opts?.quality ?? 0.8
+    const mimeType = opts?.mimeType ?? 'image/jpeg'
+
+    const imageBitmap = await createImageBitmap(inputFile)
+    let targetWidth = imageBitmap.width
+    let targetHeight = imageBitmap.height
+
+    // keep aspect ratio
+    const widthRatio = maxWidth / targetWidth
+    const heightRatio = maxHeight / targetHeight
+    const ratio = Math.min(1, widthRatio, heightRatio)
+    targetWidth = Math.round(targetWidth * ratio)
+    targetHeight = Math.round(targetHeight * ratio)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight)
+    const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), mimeType, quality))
+    return blob
+  }
+
   async function createThread() {
     if (!newThreadTitle.trim() || !newThreadContent.trim()) return
 
@@ -112,13 +142,31 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
     setSubmitting(true)
     try {
+      let finalContent = newThreadContent
+
+      // Upload image attachment if any, then append URL to content
+      if (attachment) {
+        const compressedBlob = await compressImage(attachment, { maxWidth: 1600, maxHeight: 1200, quality: 0.8, mimeType: 'image/jpeg' })
+        const filePath = `${profile?.id}/${Date.now()}.jpg`
+        const body = new FormData()
+        body.append('file', new File([compressedBlob], 'attachment.jpg', { type: 'image/jpeg' }))
+        body.append('path', filePath)
+        const res = await fetch('/api/forum/upload', { method: 'POST', body })
+        const json = await res.json()
+        if (res.ok && json?.url) {
+          finalContent = `${newThreadContent}\n\n![lampiran](${json.url})`
+        } else {
+          console.warn('Attachment upload failed:', json?.error)
+        }
+      }
+
       const { data, error } = await supabase
         .from('forum_threads')
         .insert([{
           category_id: categoryId,
           author_id: profile?.id,
           title: newThreadTitle,
-          content: newThreadContent
+          content: finalContent
         }])
         .select()
 
@@ -133,6 +181,8 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
       setNewThreadTitle('')
       setNewThreadContent('')
       setShowNewThread(false)
+      setAttachment(null)
+      setAttachmentPreview(null)
       fetchData()
     } catch (error) {
       console.error('Error creating thread:', error)
@@ -148,6 +198,38 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
     } catch (error) {
       console.error('Error incrementing view count:', error)
     }
+  }
+
+  // Extract markdown images from content and render a cleaner preview
+  function renderPreviewContent(text: string) {
+    const imageRegex = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
+    const images: string[] = []
+    let match
+    while ((match = imageRegex.exec(text)) !== null) {
+      images.push(match[1])
+    }
+    const cleaned = text.replace(imageRegex, '').trim()
+    return (
+      <>
+        {cleaned && (
+          <p className="text-sm text-gray-600 line-clamp-2 mb-2">{cleaned}</p>
+        )}
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {images.slice(0, 3).map((url, idx) => (
+              <button key={idx} onClick={(e) => { e.stopPropagation(); setOpenAttachment(url) }}>
+                <img src={url} alt={`Lampiran ${idx + 1}`} className="w-20 h-14 object-cover rounded-md border border-gray-200" />
+              </button>
+            ))}
+            {images.length > 3 && (
+              <div className="w-20 h-14 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center text-xs text-gray-600">
+                +{images.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    )
   }
 
   const filteredThreads = selectedCategory === 'all' 
@@ -258,6 +340,24 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
                       placeholder="Tulis pesan Anda..."
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Lampiran Gambar (opsional)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null
+                        setAttachment(file)
+                        setAttachmentPreview(file ? URL.createObjectURL(file) : null)
+                      }}
+                      className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    />
+                    {attachmentPreview && (
+                      <div className="mt-3">
+                        <img src={attachmentPreview} alt="Preview lampiran" className="rounded-lg border border-gray-200 max-h-48" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-end space-x-3">
                     <button
                       onClick={() => setShowNewThread(false)}
@@ -307,9 +407,9 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
                             {thread.title}
                           </h3>
                         </div>
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                          {thread.content}
-                        </p>
+                        <div className="mb-3">
+                          {renderPreviewContent(thread.content || '')}
+                        </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
                           <span className="inline-flex items-center gap-2">
                             <span className="inline-flex h-6 items-center rounded-full bg-gray-100 px-3 font-medium text-gray-700">
@@ -348,6 +448,19 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
           </div>
         </div>
       </div>
+      {/* Attachment Drawer */}
+      {openAttachment && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpenAttachment(null)} />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white shadow-xl p-4 sm:p-6 overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Lampiran Gambar</h3>
+              <button onClick={() => setOpenAttachment(null)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <img src={openAttachment} alt="Lampiran" className="w-full h-auto rounded-lg border border-gray-200" />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

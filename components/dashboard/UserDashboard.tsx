@@ -212,42 +212,7 @@ export function UserDashboard() {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon
-            return (
-              <a
-                key={index}
-                href={action.href}
-                className="flex flex-col p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors group"
-              >
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    action.color === 'blue' ? 'bg-blue-100 group-hover:bg-blue-200' :
-                    action.color === 'green' ? 'bg-green-100 group-hover:bg-green-200' :
-                    action.color === 'orange' ? 'bg-orange-100 group-hover:bg-orange-200' :
-                    action.color === 'purple' ? 'bg-purple-100 group-hover:bg-purple-200' : 'bg-gray-100'
-                  }`}>
-                    <Icon className={`w-5 h-5 ${
-                      action.color === 'blue' ? 'text-blue-600' :
-                      action.color === 'green' ? 'text-green-600' :
-                      action.color === 'orange' ? 'text-orange-600' :
-                      action.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                    }`} />
-                  </div>
-                  <h4 className="font-semibold text-gray-900 group-hover:text-primary-700">
-                    {action.title}
-                  </h4>
-                </div>
-                <p className="text-sm text-gray-600">{action.description}</p>
-              </a>
-            )
-          })}
-        </div>
-      </div>
+      {/* Quick Actions removed as requested */}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

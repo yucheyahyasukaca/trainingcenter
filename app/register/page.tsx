@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { signIn } from '@/lib/auth'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -20,6 +22,11 @@ export default function RegisterPage() {
       await signIn(email, password)
       // optionally redirect, but keep modal behavior for now
       setIsLoginOpen(false)
+      // Redirect to dashboard after a short delay for session propagation
+      setTimeout(() => {
+        router.push('/dashboard')
+        router.refresh()
+      }, 300)
     } catch (err: any) {
       setError(err.message || 'Login gagal')
     } finally {

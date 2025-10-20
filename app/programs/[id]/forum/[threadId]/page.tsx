@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Reply, ThumbsUp, CheckCircle, Pin, Lock, Send, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Reply, ThumbsUp, CheckCircle, Pin, Lock, Send, MessageCircle, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -24,6 +24,10 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   const [likedThread, setLikedThread] = useState<boolean>(false)
   const [replyLikeCount, setReplyLikeCount] = useState<Record<string, number>>({})
   const [likedReplies, setLikedReplies] = useState<Record<string, boolean>>({})
+  const [deleting, setDeleting] = useState(false)
+  const [openAttachment, setOpenAttachment] = useState<string | null>(null)
+  const [replyAttachment, setReplyAttachment] = useState<File | null>(null)
+  const [replyAttachmentPreview, setReplyAttachmentPreview] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -133,7 +137,8 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
         const replyCountMap: Record<string, number> = {}
         const likedMap: Record<string, boolean> = {}
-        (replyLikesData as any[]).forEach((rl: any) => {
+        const replyLikesArr2: any[] = Array.isArray(replyLikesData) ? (replyLikesData as any[]) : []
+        replyLikesArr2.forEach((rl: any) => {
           replyCountMap[rl.reply_id as string] = (replyCountMap[rl.reply_id as string] || 0) + 1
           if (rl.user_id === profile?.id) likedMap[rl.reply_id as string] = true
         })
@@ -174,6 +179,81 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       setLoading(false)
     }
   }
+  // Render content with inline attachments: detect markdown image and show thumbnails that open a drawer
+  function renderRichContent(text: string) {
+    const imageRegex = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g
+    const images: string[] = []
+    let match
+    while ((match = imageRegex.exec(text)) !== null) {
+      images.push(match[1])
+    }
+    const cleaned = text.replace(imageRegex, '').trim()
+    return (
+      <div>
+        {cleaned && (
+          <div className="whitespace-pre-wrap text-gray-900">{cleaned}</div>
+        )}
+        {images.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            {images.map((url, idx) => (
+              <button key={idx} onClick={() => setOpenAttachment(url)} className="group">
+                <img src={url} alt={`Lampiran ${idx + 1}`} className="w-28 h-20 object-cover rounded-lg border border-gray-200 group-hover:ring-2 group-hover:ring-primary-400" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+  // Compress image in browser to save storage and bandwidth
+  async function compressImage(inputFile: File, opts?: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string }) {
+    const maxWidth = opts?.maxWidth ?? 1600
+    const maxHeight = opts?.maxHeight ?? 1200
+    const quality = opts?.quality ?? 0.8
+    const mimeType = opts?.mimeType ?? 'image/jpeg'
+
+    const imageBitmap = await createImageBitmap(inputFile)
+    let targetWidth = imageBitmap.width
+    let targetHeight = imageBitmap.height
+
+    const widthRatio = maxWidth / targetWidth
+    const heightRatio = maxHeight / targetHeight
+    const ratio = Math.min(1, widthRatio, heightRatio)
+    targetWidth = Math.round(targetWidth * ratio)
+    targetHeight = Math.round(targetHeight * ratio)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight)
+    const blob: Blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b as Blob), mimeType, quality))
+    return blob
+  }
+
+  async function deleteThread() {
+    if (!thread) return
+    if (profile?.id !== thread.author_id) {
+      alert('Anda tidak memiliki izin untuk menghapus thread ini.')
+      return
+    }
+    if (!confirm('Hapus thread ini beserta semua balasan?')) return
+    try {
+      setDeleting(true)
+      // Delete replies first to avoid FK issues
+      await (supabase as any).from('forum_replies').delete().eq('thread_id', params.threadId)
+      // Delete reactions
+      await (supabase as any).from('forum_reactions').delete().eq('thread_id', params.threadId)
+      // Delete the thread
+      const { error } = await (supabase as any).from('forum_threads').delete().eq('id', params.threadId)
+      if (error) throw error
+      router.push(`/programs/${params.id}/forum`)
+    } catch (err: any) {
+      alert(err?.message || 'Gagal menghapus thread')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   async function submitReply() {
     if (!newReply.trim()) return
@@ -187,12 +267,27 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
     setSubmitting(true)
     try {
+      // Upload attachment if present
+      let finalReply = newReply
+      if (replyAttachment) {
+        const compressedBlob = await compressImage(replyAttachment, { maxWidth: 1600, maxHeight: 1200, quality: 0.8, mimeType: 'image/jpeg' })
+        const filePath = `${profile?.id}/replies/${Date.now()}.jpg`
+        const body = new FormData()
+        body.append('file', new File([compressedBlob], 'reply.jpg', { type: 'image/jpeg' }))
+        body.append('path', filePath)
+        const res = await fetch('/api/forum/upload', { method: 'POST', body })
+        const json = await res.json()
+        if (res.ok && json?.url) {
+          finalReply = `${newReply}\n\n![lampiran](${json.url})`
+        }
+      }
+
       const { data, error } = await (supabase as any)
         .from('forum_replies')
         .insert([{
           thread_id: params.threadId,
           author_id: profile?.id,
-          content: newReply,
+          content: finalReply,
           parent_reply_id: replyingTo || null
         }])
         .select()
@@ -206,6 +301,8 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
       console.log('Reply submitted successfully')
       setNewReply('')
+      setReplyAttachment(null)
+      setReplyAttachmentPreview(null)
       setReplyingTo(null)
       fetchData()
     } catch (error: any) {
@@ -335,6 +432,12 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
             <span className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700">
               {categories.find(c => c.id === thread.category_id)?.name || 'Forum'}
             </span>
+            {profile?.id === thread.author_id && (
+              <button onClick={deleteThread} disabled={deleting} className="inline-flex items-center text-sm text-red-600 hover:text-red-700 ml-2">
+                <Trash2 className="w-4 h-4 mr-1" />
+                {deleting ? 'Menghapus...' : 'Hapus Thread'}
+              </button>
+            )}
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
@@ -362,7 +465,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
         </div>
         
         <div className="prose max-w-none">
-          <div className="whitespace-pre-wrap text-gray-900">{thread.content}</div>
+          {renderRichContent(thread.content || '')}
         </div>
 
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
@@ -409,7 +512,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
             </div>
             
             <div className="prose max-w-none mb-4">
-              <div className="whitespace-pre-wrap text-gray-900">{reply.content}</div>
+              {renderRichContent(reply.content || '')}
             </div>
 
             <div className="flex items-center justify-between">
@@ -452,7 +555,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
                     </div>
                     
                     <div className="prose max-w-none">
-                      <div className="whitespace-pre-wrap text-gray-900 text-sm">{nestedReply.content}</div>
+                      {renderRichContent(nestedReply.content || '')}
                     </div>
                   </div>
                 ))}
@@ -471,6 +574,22 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                       placeholder="Tulis balasan Anda..."
                     />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Lampiran Gambar (opsional)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null
+                          setReplyAttachment(f)
+                          setReplyAttachmentPreview(f ? URL.createObjectURL(f) : null)
+                        }}
+                        className="block w-full text-xs text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                      />
+                      {replyAttachmentPreview && (
+                        <div className="mt-2"><img src={replyAttachmentPreview} alt="Preview" className="rounded-md border border-gray-200 max-h-40" /></div>
+                      )}
+                    </div>
                     <div className="flex justify-end space-x-2">
                       <button
                         onClick={() => setReplyingTo(null)}
@@ -513,6 +632,22 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               placeholder="Tulis balasan Anda..."
             />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Lampirkan Gambar (opsional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  setReplyAttachment(f)
+                  setReplyAttachmentPreview(f ? URL.createObjectURL(f) : null)
+                }}
+                className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+              />
+              {replyAttachmentPreview && (
+                <div className="mt-3"><img src={replyAttachmentPreview} alt="Preview lampiran" className="rounded-lg border border-gray-200 max-h-48" /></div>
+              )}
+            </div>
             <div className="flex justify-end">
               <button
                 onClick={submitReply}
@@ -523,6 +658,20 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
                 {submitting ? 'Mengirim...' : 'Kirim Balasan'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attachment Drawer */}
+      {openAttachment && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpenAttachment(null)} />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[520px] bg-white shadow-xl p-4 sm:p-6 overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Lampiran Gambar</h3>
+              <button onClick={() => setOpenAttachment(null)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <img src={openAttachment} alt="Lampiran" className="w-full h-auto rounded-lg border border-gray-200" />
           </div>
         </div>
       )}
