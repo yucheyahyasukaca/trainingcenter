@@ -6,25 +6,128 @@ import { ProgramWithClasses } from '@/types'
 import { ClassManagement } from '@/components/programs/ClassManagement'
 import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 
 export default function ProgramsPage() {
   const { profile } = useAuth()
+  const router = useRouter()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
   const [userEnrollments, setUserEnrollments] = useState<any[]>([])
+  const [participantId, setParticipantId] = useState<string | null>(null)
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState<boolean>(true)
+  const [enrollmentMap, setEnrollmentMap] = useState<Record<string, string>>({})
   
   const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
   useEffect(() => {
     fetchPrograms()
     if (profile?.role === 'user') {
+      // hydrate from cache first to avoid flicker to "Daftar"
+      try {
+        const cachedMap = sessionStorage.getItem('tc_enrollment_map')
+        if (cachedMap) {
+          setEnrollmentMap(JSON.parse(cachedMap))
+        }
+        const cached = localStorage.getItem('tc_user_enrollments')
+        if (cached) {
+          setUserEnrollments(JSON.parse(cached))
+          setEnrollmentsLoading(true) // still revalidate
+        }
+      } catch {}
       fetchUserEnrollments()
     }
   }, [profile])
+
+  // Fallback: fetch enrollments using auth user directly (in case profile not ready yet)
+  useEffect(() => {
+    (async () => {
+      if (profile?.role) return // primary effect will handle
+      try {
+        const { data: authData } = await supabase.auth.getUser()
+        const userId = authData?.user?.id
+        if (!userId) return
+        setEnrollmentsLoading(true)
+        const { data: participant } = await supabase
+          .from('participants')
+          .select('id')
+          .eq('user_id', userId)
+          .single()
+        if (!participant?.id) {
+          setEnrollmentsLoading(false)
+          return
+        }
+        const { data } = await supabase
+          .from('enrollments')
+          .select('program_id, status')
+          .eq('participant_id', participant.id)
+        const list = data || []
+        const map: Record<string, string> = {}
+        list.forEach((e: any) => { if (e?.program_id) map[e.program_id] = e.status })
+        setEnrollmentMap(map)
+        setUserEnrollments(list)
+        setEnrollmentsLoading(false)
+      } catch {
+        setEnrollmentsLoading(false)
+      }
+    })()
+  }, [])
+
+  // Refresh enrollment status when the user returns to this tab/page
+  useEffect(() => {
+    const onFocus = () => {
+      if (profile?.role === 'user') {
+        fetchUserEnrollments()
+      }
+      try { router.refresh() } catch {}
+    }
+    const onVisibility = () => {
+      if (!document.hidden && profile?.role === 'user') {
+        fetchUserEnrollments()
+      }
+      try { router.refresh() } catch {}
+    }
+    // Handle browser back/forward cache and history navigation
+    const onPageShow = () => {
+      if (profile?.role === 'user') {
+        fetchUserEnrollments()
+        // re-check shortly after in case transaction just committed
+        setTimeout(fetchUserEnrollments, 600)
+        setTimeout(fetchUserEnrollments, 1500)
+      }
+      try { router.refresh() } catch {}
+    }
+    window.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onPageShow)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pageshow', onPageShow)
+    }
+  }, [profile?.id])
+
+  // Realtime: listen for enrollment changes for this user
+  useEffect(() => {
+    if (!participantId) return
+    const channel = (supabase as any)
+      .channel('enrollments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'enrollments', filter: `participant_id=eq.${participantId}` },
+        () => {
+          fetchUserEnrollments()
+        }
+      )
+      .subscribe()
+    return () => {
+      try { (supabase as any).removeChannel(channel) } catch {}
+    }
+  }, [participantId])
 
   async function fetchPrograms() {
     try {
@@ -59,6 +162,7 @@ export default function ProgramsPage() {
   async function fetchUserEnrollments() {
     try {
       if (!profile?.id) return
+      setEnrollmentsLoading(true)
 
       // First, get the participant record for this user
       const { data: participant, error: participantError } = await supabase
@@ -70,7 +174,12 @@ export default function ProgramsPage() {
       if (participantError || !participant) {
         console.log('No participant record found for user')
         setUserEnrollments([])
+        setEnrollmentsLoading(false)
         return
+      }
+
+      if (participant?.id && participant?.id !== participantId) {
+        setParticipantId(participant.id)
       }
 
       // Then fetch enrollments for this participant
@@ -81,12 +190,25 @@ export default function ProgramsPage() {
 
       if (error) {
         console.error('Error fetching user enrollments:', error)
+        setEnrollmentsLoading(false)
         return
       }
 
-      setUserEnrollments(data || [])
+      const list = data || []
+      setUserEnrollments(list)
+      try { localStorage.setItem('tc_user_enrollments', JSON.stringify(list)) } catch {}
+      // Build in-memory map so UI renders from a single source of truth
+      const map: Record<string, string> = {}
+      list.forEach((e: any) => {
+        const key = String(e?.program_id || '').trim().toLowerCase()
+        if (key) map[key] = e.status
+      })
+      setEnrollmentMap(map)
+      try { sessionStorage.setItem('tc_enrollment_map', JSON.stringify(map)) } catch {}
+      setEnrollmentsLoading(false)
     } catch (error) {
       console.error('Error fetching user enrollments:', error)
+      setEnrollmentsLoading(false)
     }
   }
 
@@ -231,7 +353,7 @@ export default function ProgramsPage() {
                       </>
                     ) : (
                       (() => {
-                        const enrollmentStatus = getUserEnrollmentStatus(program.id)
+                        const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
                         if (enrollmentStatus === 'pending') {
                           return (
                             <div className="px-4 py-2 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg text-center">
@@ -248,6 +370,12 @@ export default function ProgramsPage() {
                           return (
                             <div className="px-4 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center">
                               Daftar Ulang
+                            </div>
+                          )
+                        } else if (enrollmentsLoading) {
+                          return (
+                            <div className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
+                              Memuat...
                             </div>
                           )
                         } else {

@@ -134,6 +134,20 @@ export default function MyEnrollmentsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Auto-redirect back if return param is provided */}
+      {typeof window !== 'undefined' && typeof URLSearchParams !== 'undefined' && (() => {
+        try {
+          const params = new URLSearchParams(window.location.search)
+          const returnUrl = params.get('return')
+          if (returnUrl) {
+            // After the page loads and enrollments fetched, navigate back
+            setTimeout(() => {
+              window.location.replace(returnUrl)
+            }, 800)
+          }
+        } catch {}
+        return null
+      })()}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Pendaftaran Saya</h1>

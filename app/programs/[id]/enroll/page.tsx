@@ -222,10 +222,12 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         duration: 6000
       })
 
-      // Redirect after a short delay
+      // Redirect via pendaftaran saya dulu untuk memastikan status konsisten,
+      // lalu otomatis kembali ke daftar program.
       setTimeout(() => {
-        router.push('/my-enrollments')
-      }, 2000)
+        const returnUrl = `/programs`
+        router.push(`/my-enrollments?return=${encodeURIComponent(returnUrl)}`)
+      }, 1200)
     } catch (error: any) {
       console.error('Error enrolling:', error)
       const errorMessage = 'Gagal mendaftar: ' + error.message
@@ -335,7 +337,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/my-enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>
@@ -482,7 +484,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               {/* Submit Button */}
               <div className="flex justify-end space-x-4 pt-4">
                 <Link
-                  href="/enrollments"
+                  href="/my-enrollments"
                   className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   Batal
