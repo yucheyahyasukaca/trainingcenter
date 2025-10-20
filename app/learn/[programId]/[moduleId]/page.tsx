@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, List, X, ChevronDown, ChevronUp, Menu, MoreVertical, ArrowLeft, ArrowRight } from 'lucide-react'
+import { ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, List, X, ChevronDown, ChevronUp, Menu, MoreVertical, ArrowLeft, ArrowRight, Check } from 'lucide-react'
 
 export default function LearnPage({ params }: { params: { programId: string; moduleId: string } }) {
   const router = useRouter()
@@ -17,6 +17,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
     'persiapan': true,
     'microsoft-fabric': true
+  })
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [readingSettings, setReadingSettings] = useState({
+    theme: 'light',
+    fontType: 'default',
+    fontSize: 'medium',
+    readingWidth: 'full'
   })
 
   useEffect(() => {
@@ -67,6 +74,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }))
   }
 
+  const updateReadingSettings = (key: string, value: string) => {
+    setReadingSettings(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
+
   // Sample data for drawer content
   const drawerContent = {
     persiapan: {
@@ -91,27 +105,47 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }
   }
 
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <>
+      {/* Add OpenDyslexic font */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
+      `}</style>
+      
+      <div className="min-h-screen bg-white flex flex-col content-area">
       {/* Focused minimal header */}
       <div className="sticky top-0 z-30 bg-white/95 border-b border-gray-200 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         {/* Desktop Header */}
-        <div className="hidden md:block w-full px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-          <Link href={`/programs`} className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm whitespace-nowrap">
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Kembali
-          </Link>
-            <span className="font-semibold text-gray-900 truncate">{moduleTitle || 'Belajar Modul'}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3" />
-              <input className="pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none" placeholder="Cari modul/konten" />
+        <div className="hidden md:block">
+          <div className="w-full px-3 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4 min-w-0 flex-1">
+              <Link href={`/programs`} className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm whitespace-nowrap">
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Kembali
+              </Link>
+              <span className="font-semibold text-gray-900 truncate text-lg">{moduleTitle || 'Belajar Modul'}</span>
             </div>
-            <button className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50" aria-label="Pengaturan">
-              <Settings className="w-4 h-4 text-gray-600" />
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3" />
+                <input className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64" placeholder="Cari modul/konten" />
+              </div>
+              <button 
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors" 
+                aria-label="Pengaturan"
+              >
+                <Settings className="w-5 h-5 text-gray-600" />
+              </button>
+              <button 
+                onClick={() => setDrawerOpen(true)} 
+                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors" 
+                aria-label="Menu"
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -140,10 +174,25 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
       {/* Content layout */}
       <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-20">
-        <div className="bg-white">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8 text-center">Aturan</h1>
+        <div className="bg-white reading-content" style={{
+          backgroundColor: readingSettings.theme === 'warm' ? '#8B4513' : readingSettings.theme === 'dark' ? '#1a1a1a' : '#ffffff',
+          color: readingSettings.theme === 'warm' ? '#F5DEB3' : readingSettings.theme === 'dark' ? '#ffffff' : '#000000',
+          fontFamily: readingSettings.fontType === 'serif' ? 'Georgia, "Times New Roman", serif' : 
+                     readingSettings.fontType === 'dyslexic' ? 'OpenDyslexic, Arial, sans-serif' : 
+                     'Inter, system-ui, sans-serif',
+          fontSize: readingSettings.fontSize === 'small' ? '14px' : 
+                   readingSettings.fontSize === 'large' ? '18px' : '16px',
+          maxWidth: readingSettings.readingWidth === 'medium' ? '800px' : '100%',
+          margin: readingSettings.readingWidth === 'medium' ? '0 auto' : '0',
+          padding: '2rem',
+          borderRadius: '8px',
+          transition: 'all 0.3s ease'
+        }}>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-8 text-center" style={{
+            color: readingSettings.theme === 'warm' ? '#F5DEB3' : readingSettings.theme === 'dark' ? '#ffffff' : '#000000'
+          }}>Aturan</h1>
           
-          <div className="max-w-4xl mx-auto space-y-6 text-lg text-gray-700 leading-relaxed text-left">
+          <div className="max-w-4xl mx-auto space-y-6 text-lg leading-relaxed text-left">
             <p>Kuis ini bertujuan untuk menguji pengetahuan Anda tentang materi Mengupas Tuntas Analitik End-to-End dengan Microsoft Fabric.</p>
             
             <p>Terdapat 4 pertanyaan yang harus dikerjakan dalam kuis ini. Beberapa ketentuannya sebagai berikut:</p>
@@ -168,10 +217,189 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         </div>
       </div>
 
-      {/* Floating toggle button for drawer - hidden on mobile */}
-      <button onClick={() => setDrawerOpen(true)} className="hidden md:flex fixed right-3 top-[140px] lg:right-6 z-40 inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800">
-        <List className="w-5 h-5" />
-      </button>
+
+      {/* Adaptive Reading Settings Modal */}
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSettingsOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[400px] bg-white shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Adaptive Reading</h2>
+              <button 
+                onClick={() => setSettingsOpen(false)}
+                className="p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Tema */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Tema</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <button
+                    onClick={() => updateReadingSettings('theme', 'light')}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      readingSettings.theme === 'light' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {readingSettings.theme === 'light' && (
+                      <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    )}
+                    <div className="text-center">
+                      <div className="w-full h-8 bg-white border border-gray-200 rounded mb-2 flex items-center justify-center">
+                        <span className="text-gray-800 text-sm font-medium">Belajar dengan Garuda Academy</span>
+                      </div>
+                      <span className="text-xs text-gray-600">Terang</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => updateReadingSettings('theme', 'warm')}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      readingSettings.theme === 'warm' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {readingSettings.theme === 'warm' && (
+                      <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    )}
+                    <div className="text-center">
+                      <div className="w-full h-8 bg-amber-50 border border-gray-200 rounded mb-2 flex items-center justify-center">
+                        <span className="text-gray-800 text-sm font-medium">Belajar dengan Garuda Academy</span>
+                      </div>
+                      <span className="text-xs text-gray-600">Hangat</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => updateReadingSettings('theme', 'dark')}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      readingSettings.theme === 'dark' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {readingSettings.theme === 'dark' && (
+                      <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    )}
+                    <div className="text-center">
+                      <div className="w-full h-8 bg-gray-800 border border-gray-200 rounded mb-2 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">Belajar dengan Garuda Academy</span>
+                      </div>
+                      <span className="text-xs text-gray-600">Gelap</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Jenis Font */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Jenis Font</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {['default', 'serif', 'dyslexic'].map((font) => (
+                    <button
+                      key={font}
+                      onClick={() => updateReadingSettings('fontType', font)}
+                      className={`relative p-3 rounded-lg border-2 transition-all ${
+                        readingSettings.fontType === font 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {readingSettings.fontType === font && (
+                        <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                      )}
+                      <div className="text-left">
+                        <span className="text-sm font-medium text-gray-900 capitalize">
+                          {font === 'dyslexic' ? 'Open Dyslexic' : font === 'default' ? 'Default' : 'Serif'}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ukuran Font */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Ukuran Font</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'small', label: 'Kecil' },
+                    { key: 'medium', label: 'Sedang' },
+                    { key: 'large', label: 'Besar' }
+                  ].map((size) => (
+                    <button
+                      key={size.key}
+                      onClick={() => updateReadingSettings('fontSize', size.key)}
+                      className={`relative p-3 rounded-lg border-2 transition-all ${
+                        readingSettings.fontSize === size.key 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {readingSettings.fontSize === size.key && (
+                        <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                      )}
+                      <div className="text-center">
+                        <span className="text-sm font-medium text-gray-900">{size.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Lebar Bacaan */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Lebar Bacaan</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => updateReadingSettings('readingWidth', 'medium')}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      readingSettings.readingWidth === 'medium' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {readingSettings.readingWidth === 'medium' && (
+                      <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    )}
+                    <div className="text-center">
+                      <div className="w-full h-6 bg-gray-200 rounded mb-2"></div>
+                      <span className="text-xs text-gray-600">Medium-width</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => updateReadingSettings('readingWidth', 'full')}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      readingSettings.readingWidth === 'full' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {readingSettings.readingWidth === 'full' && (
+                      <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    )}
+                    <div className="text-center">
+                      <div className="w-full h-6 bg-gray-200 rounded mb-2 flex items-center justify-center">
+                        <div className="w-4 h-1 bg-gray-400 rounded"></div>
+                      </div>
+                      <span className="text-xs text-gray-600">Full-width</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slide-out drawer for modules/notes - positioned between header and footer */}
       {drawerOpen && (
@@ -233,11 +461,11 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                         )}
                       </button>
                       {expandedSections.persiapan && (
-                        <div className="px-4 py-3 space-y-2 bg-white">
+                        <div className="px-4 py-3 space-y-1 bg-white">
                           {drawerContent.persiapan.items.map((item, index) => (
-                            <div key={index} className="flex items-center gap-3 py-2">
+                            <div key={index} className="flex items-center gap-3 py-1">
                               <CheckCircle className={`w-5 h-5 ${item.completed ? 'text-green-500' : 'text-gray-300'}`} />
-                              <span className={`text-sm ${item.completed ? 'text-gray-800 line-through' : 'text-gray-600'}`}>
+                              <span className={`text-sm ${item.completed ? 'text-gray-800' : 'text-gray-600'}`}>
                                 {item.title}
                               </span>
                             </div>
@@ -267,11 +495,11 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                         )}
                       </button>
                       {expandedSections['microsoft-fabric'] && (
-                        <div className="px-4 py-3 space-y-2 bg-white">
+                        <div className="px-4 py-3 space-y-1 bg-white">
                           {drawerContent.microsoftFabric.items.map((item, index) => (
-                            <div key={index} className="flex items-center gap-3 py-2">
+                            <div key={index} className="flex items-center gap-3 py-1">
                               <CheckCircle className={`w-5 h-5 ${item.completed ? 'text-green-500' : 'text-gray-300'}`} />
-                              <span className={`text-sm ${item.completed ? 'text-gray-800 line-through' : 'text-gray-600'}`}>
+                              <span className={`text-sm ${item.completed ? 'text-gray-800' : 'text-gray-600'}`}>
                                 {item.title}
                               </span>
                             </div>
@@ -300,31 +528,33 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       {/* Bottom navigation persistent (header/footer style khusus belajar) */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 border-t border-gray-200">
         {/* Desktop Footer */}
-        <div className="hidden md:block w-full px-4 py-3 grid grid-cols-3 gap-4">
-          <button 
-            onClick={() => navigateToModule('prev')}
-            disabled={currentModuleIndex === 0}
-            className={`text-left hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <div className="text-xs text-gray-500 mb-1">Materi Sebelumnya</div>
-            <div className="text-sm text-gray-700 truncate">
-              {currentModuleIndex > 0 ? modules[currentModuleIndex - 1]?.name || 'Materi Sebelumnya' : 'Tidak ada materi sebelumnya'}
+        <div className="hidden md:block">
+          <div className="w-full px-3 py-4 grid grid-cols-3 gap-4">
+            <button 
+              onClick={() => navigateToModule('prev')}
+              disabled={currentModuleIndex === 0}
+              className={`text-left hover:bg-gray-50 rounded-lg p-3 transition-colors ${currentModuleIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Sebelumnya</div>
+              <div className="text-sm text-gray-700 truncate">
+                {currentModuleIndex > 0 ? modules[currentModuleIndex - 1]?.name || 'Materi Sebelumnya' : 'Tidak ada materi sebelumnya'}
+              </div>
+            </button>
+            <div className="text-center flex flex-col justify-center">
+              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Saat Ini</div>
+              <div className="text-sm text-gray-900 font-semibold truncate">{moduleTitle || 'Kuis Mengupas Tuntas Analitik End-to-End de...'}</div>
             </div>
-          </button>
-          <div className="text-center">
-            <div className="text-xs text-gray-500 mb-1">Materi Saat Ini</div>
-            <div className="text-sm text-gray-900 font-medium truncate">{moduleTitle || 'Kuis Mengupas Tuntas Analitik End-to-End de...'}</div>
+            <button 
+              onClick={() => navigateToModule('next')}
+              disabled={currentModuleIndex === modules.length - 1}
+              className={`text-right hover:bg-gray-50 rounded-lg p-3 transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <div className="text-xs text-gray-500 mb-1 font-medium">Materi Selanjutnya</div>
+              <div className="text-sm text-gray-700 truncate">
+                {currentModuleIndex < modules.length - 1 ? modules[currentModuleIndex + 1]?.name || 'Materi Selanjutnya' : 'Tidak ada materi selanjutnya'}
+              </div>
+            </button>
           </div>
-          <button 
-            onClick={() => navigateToModule('next')}
-            disabled={currentModuleIndex === modules.length - 1}
-            className={`text-right hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors ${currentModuleIndex === modules.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <div className="text-xs text-gray-500 mb-1">Materi Selanjutnya</div>
-            <div className="text-sm text-gray-700 truncate">
-              {currentModuleIndex < modules.length - 1 ? modules[currentModuleIndex + 1]?.name || 'Materi Selanjutnya' : 'Tidak ada materi selanjutnya'}
-            </div>
-          </button>
         </div>
 
         {/* Mobile Footer */}
@@ -350,6 +580,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
