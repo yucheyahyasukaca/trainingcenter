@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, MessageCircle, Pin, Lock, Eye, Reply, ThumbsUp, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Plus, MessageCircle, Pin, Lock, Eye, Reply, ThumbsUp, CheckCircle, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -24,6 +24,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [openAttachment, setOpenAttachment] = useState<string | null>(null)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -269,11 +270,22 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Categories Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Kategori</h2>
-            <div className="space-y-2">
+          <div className="rounded-xl border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-6 shadow-sm lg:sticky lg:top-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Kategori</h2>
               <button
-                onClick={() => setSelectedCategory('all')}
+                className="lg:hidden inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border border-gray-200 bg-white hover:bg-primary-50 hover:border-primary-200 text-gray-700 transition-colors"
+                onClick={() => setCategoriesOpen(!categoriesOpen)}
+                aria-expanded={categoriesOpen}
+                aria-controls="forum-category-list"
+              >
+                <span>{categoriesOpen ? 'Tutup' : 'Lihat semua'}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${categoriesOpen ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+            <div id="forum-category-list" className={`space-y-2 lg:space-y-2 overflow-hidden lg:overflow-visible transition-[max-height] duration-300 ${categoriesOpen ? 'max-h-96' : 'max-h-0 lg:max-h-none'} lg:max-h-none lg:block`}>
+              <button
+                onClick={() => { setSelectedCategory('all'); if (window.innerWidth < 1024) setCategoriesOpen(false) }}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   selectedCategory === 'all' 
                     ? 'bg-primary-100 text-primary-700' 
@@ -285,7 +297,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
               {categories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => { setSelectedCategory(category.id); if (window.innerWidth < 1024) setCategoriesOpen(false) }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectedCategory === category.id 
                       ? 'bg-primary-100 text-primary-700' 

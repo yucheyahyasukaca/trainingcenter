@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Search, Calendar, Clock, CheckCircle, XCircle, MessageCircle, Users, ExternalLink } from 'lucide-react'
+import { Search, Calendar, Clock, CheckCircle, XCircle, MessageCircle, Users, ExternalLink, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -199,11 +199,11 @@ export default function MyEnrollmentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEnrollments.map((enrollment) => (
-              <div key={enrollment.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+              <div key={enrollment.id} className="bg-white/90 border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{enrollment.program?.title}</h3>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{enrollment.program?.description}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">{enrollment.program?.title}</h3>
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{enrollment.program?.description}</p>
                   </div>
                   <div className="flex flex-col items-end space-y-1">
                     <span className={getStatusBadge(enrollment.status)}>
@@ -236,7 +236,21 @@ export default function MyEnrollmentsPage() {
                   )}
                 </div>
 
-                <div className="text-xs text-gray-500 mb-4">
+                {/* Progress */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                    <span>Progress Kelas</span>
+                    <span>{Math.min(100, Math.max(0, enrollment.progress || 0))}%</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-600 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, Math.max(0, enrollment.progress || 0))}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 mb-5">
                   <p>Daftar pada: {formatDate(enrollment.created_at)}</p>
                   {enrollment.notes && (
                     <p className="mt-1">Catatan: {enrollment.notes}</p>
@@ -248,17 +262,19 @@ export default function MyEnrollmentsPage() {
                     <>
                       <Link
                         href={`/programs/${enrollment.program?.id}/classes`}
-                        className="w-full px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors text-center block"
+                        className="group w-full px-4 py-3 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 transition-colors text-center flex items-center justify-center"
                       >
-                        Akses Kelas
+                        <span>Akses Kelas</span>
+                        <ChevronRight className="w-4 h-4 ml-2 opacity-80 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                       
                       <Link
                         href={`/programs/${enrollment.program?.id}/forum`}
-                        className="w-full px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors text-center flex items-center justify-center"
+                        className="group w-full px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors text-center flex items-center justify-center"
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
-                        Forum Diskusi
+                        <span>Forum Diskusi</span>
+                        <ChevronRight className="w-4 h-4 ml-2 opacity-80 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
 
                       {enrollment.program?.whatsapp_group_url && (
@@ -266,7 +282,7 @@ export default function MyEnrollmentsPage() {
                           href={enrollment.program.whatsapp_group_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full px-3 py-2 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors text-center flex items-center justify-center"
+                          className="w-full px-4 py-3 bg-green-500 text-white text-sm font-semibold rounded-xl hover:bg-green-600 transition-colors text-center flex items-center justify-center"
                         >
                           <Users className="w-4 h-4 mr-2" />
                           Gabung WhatsApp

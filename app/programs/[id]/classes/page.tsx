@@ -47,7 +47,15 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
       if (classesError) throw classesError
 
-      // Fetch user enrollment
+      // Resolve participant for current user, then fetch enrollment by participant_id
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('user_id', profile?.id)
+        .single()
+
+      if (participantError) throw participantError
+
       const { data: enrollmentData, error: enrollmentError } = await supabase
         .from('enrollments')
         .select(`
@@ -55,9 +63,9 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           class:classes(*)
         `)
         .eq('program_id', params.id)
-        .eq('participant_id', profile?.id)
+        .eq('participant_id', participant.id)
         .eq('status', 'approved')
-        .single()
+        .maybeSingle()
 
       if (enrollmentError && enrollmentError.code !== 'PGRST116') {
         throw enrollmentError
@@ -108,7 +116,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/my-enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>
@@ -147,9 +155,9 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         </div>
       </div>
 
-      {/* Classes List */}
+      {/* Learning Modules */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Daftar Kelas</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Materi Belajar</h2>
         
         {classes.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
@@ -159,73 +167,44 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {classes.map((classItem) => (
-              <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
+              <div key={classItem.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    classItem.status === 'active' ? 'bg-green-100 text-green-800' :
-                    classItem.status === 'upcoming' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {classItem.status === 'active' ? 'Aktif' :
-                     classItem.status === 'upcoming' ? 'Akan Datang' : 'Selesai'}
-                  </span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${classItem.status === 'active' ? 'bg-green-100 text-green-800' : classItem.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{classItem.status === 'active' ? 'Aktif' : classItem.status === 'upcoming' ? 'Akan Datang' : 'Selesai'}</span>
                 </div>
 
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span>
+                {/* Module progress */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                    <span>Progress Modul</span>
+                    <span>{Math.min(100, Math.max(0, (classItem as any).progress || 0))}%</span>
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="w-4 h-4 mr-2" />
-                    <span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span>
-                  </div>
-                  {classItem.location && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>{classItem.location}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>{classItem.current_participants}/{classItem.max_participants} peserta</span>
+                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(100, Math.max(0, (classItem as any).progress || 0))}%` }} />
                   </div>
                 </div>
 
-                {/* Trainers */}
-                {classItem.trainers && classItem.trainers.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Trainer:</p>
-                    <div className="space-y-1">
-                      {classItem.trainers.map((ct, index) => (
-                        <div key={index} className="flex items-center text-sm text-gray-600">
-                          <span className="w-2 h-2 bg-primary-500 rounded-full mr-2"></span>
-                          <span>{ct.trainer?.name}</span>
-                          {ct.role && (
-                            <span className="ml-2 text-xs text-gray-500">({ct.role})</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex space-x-2">
-                    <button className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors">
-                      <Video className="w-4 h-4 mr-2" />
-                      Join Kelas
-                    </button>
-                    <button className="flex-1 flex items-center justify-center px-3 py-2 text-sm bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                {/* Materials list */}
+                <div className="space-y-2 mb-5">
+                  <p className="text-sm font-medium text-gray-700">Materi dalam modul:</p>
+                  {((classItem as any).materials_needed || classItem.materials_needed || ['Pendahuluan', 'Materi Inti', 'Kuis']).map((m: string, idx: number) => (
+                    <div key={idx} className="flex items-center text-sm text-gray-600">
                       <FileText className="w-4 h-4 mr-2" />
-                      Materi
-                    </button>
-                  </div>
+                      <span className="truncate">{m}</span>
+                    </div>
+                  ))}
                 </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                  <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" /><span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span></div>
+                  <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span></div>
+                </div>
+
+                <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">
+                  Lanjut Belajar
+                </Link>
               </div>
             ))}
           </div>
