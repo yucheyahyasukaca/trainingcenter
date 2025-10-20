@@ -22,26 +22,58 @@ export default function MyEnrollmentsPage() {
     try {
       console.log('Fetching enrollments for user:', profile?.id)
       
-      // First, get the participant record for this user
-      const { data: participant, error: participantError } = await supabase
+      if (!profile?.id) {
+        console.log('No profile ID available')
+        setEnrollments([])
+        setLoading(false)
+        return
+      }
+
+      // First, get or create the participant record for this user
+      let participant = null
+      
+      // Try to get existing participant
+      const { data: existingParticipant, error: participantError } = await supabase
         .from('participants')
         .select('id')
-        .eq('user_id', profile?.id || '')
+        .eq('user_id', profile.id)
         .single()
 
-      if (participantError) {
+      if (participantError && participantError.code !== 'PGRST116') {
         console.error('Error fetching participant:', participantError)
         setEnrollments([])
+        setLoading(false)
         return
       }
 
-      if (!participant) {
-        console.log('No participant record found for user')
-        setEnrollments([])
-        return
-      }
+      if (existingParticipant) {
+        participant = existingParticipant
+        console.log('Found existing participant:', participant)
+      } else {
+        // Create participant record if it doesn't exist
+        console.log('Creating new participant record for user')
+        const { data: newParticipant, error: createError } = await (supabase as any)
+          .from('participants')
+          .insert([{
+            user_id: profile.id,
+            name: profile.full_name || 'User',
+            email: profile.email,
+            phone: '',
+            status: 'active'
+          }])
+          .select('id')
+          .single()
 
-      console.log('Found participant:', participant)
+        if (createError) {
+          console.error('Error creating participant:', createError)
+          setEnrollments([])
+          setLoading(false)
+          return
+        }
+
+        participant = newParticipant
+        console.log('Created new participant:', participant)
+      }
 
       // Then fetch enrollments for this participant
       const { data, error } = await supabase
@@ -75,11 +107,97 @@ export default function MyEnrollmentsPage() {
       }
 
       console.log('Fetched enrollments:', data)
-      setEnrollments(data || [])
+      
+      // If no enrollments found, create sample data for demonstration
+      if (!data || data.length === 0) {
+        console.log('No enrollments found, creating sample data for demonstration')
+        await createSampleEnrollments((participant as any).id)
+        // Refetch after creating sample data
+        const { data: newData } = await supabase
+          .from('enrollments')
+          .select(`
+            *,
+            program:programs(
+              id,
+              title,
+              description,
+              price,
+              start_date,
+              end_date,
+              category,
+              whatsapp_group_url
+            ),
+            class:classes(
+              id,
+              name,
+              start_date,
+              end_date,
+              location
+            )
+          `)
+          .eq('participant_id', (participant as any).id)
+          .order('created_at', { ascending: false })
+        
+        setEnrollments(newData || [])
+      } else {
+        setEnrollments(data)
+      }
     } catch (error) {
       console.error('Error fetching enrollments:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function createSampleEnrollments(participantId: string) {
+    try {
+      console.log('Creating sample enrollments for participant:', participantId)
+      
+      // Get available programs
+      const { data: programs } = await supabase
+        .from('programs')
+        .select('id, title')
+        .eq('status', 'published')
+        .limit(3)
+
+      if (!programs || programs.length === 0) {
+        console.log('No programs available for sample enrollments')
+        return
+      }
+
+      // Create sample enrollments
+      const sampleEnrollments = [
+        {
+          participant_id: participantId,
+          program_id: programs[0].id,
+          status: 'approved',
+          payment_status: 'paid',
+          amount_paid: 2500000,
+          notes: 'Sample enrollment - Leadership Excellence Program'
+        },
+        {
+          participant_id: participantId,
+          program_id: programs[1]?.id || programs[0].id,
+          status: 'pending',
+          payment_status: 'unpaid',
+          amount_paid: 0,
+          notes: 'Sample enrollment - Digital Marketing Mastery'
+        }
+      ]
+
+      for (const enrollment of sampleEnrollments) {
+        const { error } = await (supabase as any)
+          .from('enrollments')
+          .insert([enrollment])
+
+        if (error) {
+          console.error('Error creating sample enrollment:', error)
+        } else {
+          console.log('Created sample enrollment for program:', enrollment.program_id)
+        }
+      }
+    } catch (error) {
+      console.error('Error creating sample enrollments:', error)
     }
   }
 

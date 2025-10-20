@@ -397,6 +397,17 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                     </div>
                   </div>
                 )}
+                
+                {/* Content Management Button */}
+                <div className="mt-4">
+                  <a
+                    href={`/programs/${programId}/classes/${classItem.id}/content`}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Kelola Materi
+                  </a>
+                </div>
               </div>
             </div>
           ))}

@@ -344,6 +344,217 @@ export interface Database {
           avatar_url?: string | null
         }
       }
+      learning_contents: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          class_id: string
+          created_by: string | null
+          title: string
+          description: string | null
+          content_type: 'video' | 'text' | 'quiz' | 'document' | 'assignment'
+          content_data: Json | null
+          order_index: number
+          is_free: boolean
+          status: 'draft' | 'published' | 'archived'
+          is_required: boolean
+          estimated_duration: number | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          class_id: string
+          created_by?: string | null
+          title: string
+          description?: string | null
+          content_type: 'video' | 'text' | 'quiz' | 'document' | 'assignment'
+          content_data?: Json | null
+          order_index?: number
+          is_free?: boolean
+          status?: 'draft' | 'published' | 'archived'
+          is_required?: boolean
+          estimated_duration?: number | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          class_id?: string
+          created_by?: string | null
+          title?: string
+          description?: string | null
+          content_type?: 'video' | 'text' | 'quiz' | 'document' | 'assignment'
+          content_data?: Json | null
+          order_index?: number
+          is_free?: boolean
+          status?: 'draft' | 'published' | 'archived'
+          is_required?: boolean
+          estimated_duration?: number | null
+        }
+      }
+      learning_progress: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          content_id: string
+          enrollment_id: string | null
+          status: 'not_started' | 'in_progress' | 'completed'
+          progress_percentage: number
+          time_spent: number
+          last_position: number
+          completed_at: string | null
+          attempts: number
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          content_id: string
+          enrollment_id?: string | null
+          status?: 'not_started' | 'in_progress' | 'completed'
+          progress_percentage?: number
+          time_spent?: number
+          last_position?: number
+          completed_at?: string | null
+          attempts?: number
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          content_id?: string
+          enrollment_id?: string | null
+          status?: 'not_started' | 'in_progress' | 'completed'
+          progress_percentage?: number
+          time_spent?: number
+          last_position?: number
+          completed_at?: string | null
+          attempts?: number
+          notes?: string | null
+        }
+      }
+      quiz_questions: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          content_id: string
+          question_text: string
+          question_type: 'multiple_choice' | 'true_false' | 'essay' | 'short_answer'
+          order_index: number
+          points: number
+          explanation: string | null
+          correct_answer: string | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          content_id: string
+          question_text: string
+          question_type: 'multiple_choice' | 'true_false' | 'essay' | 'short_answer'
+          order_index?: number
+          points?: number
+          explanation?: string | null
+          correct_answer?: string | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          content_id?: string
+          question_text?: string
+          question_type?: 'multiple_choice' | 'true_false' | 'essay' | 'short_answer'
+          order_index?: number
+          points?: number
+          explanation?: string | null
+          correct_answer?: string | null
+        }
+      }
+      quiz_options: {
+        Row: {
+          id: string
+          created_at: string
+          question_id: string
+          option_text: string
+          is_correct: boolean
+          order_index: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          question_id: string
+          option_text: string
+          is_correct?: boolean
+          order_index?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          question_id?: string
+          option_text?: string
+          is_correct?: boolean
+          order_index?: number
+        }
+      }
+      quiz_submissions: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          content_id: string
+          question_id: string
+          selected_option_id: string | null
+          answer_text: string | null
+          is_correct: boolean | null
+          points_earned: number
+          graded_by: string | null
+          graded_at: string | null
+          feedback: string | null
+          attempt_number: number
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          content_id: string
+          question_id: string
+          selected_option_id?: string | null
+          answer_text?: string | null
+          is_correct?: boolean | null
+          points_earned?: number
+          graded_by?: string | null
+          graded_at?: string | null
+          feedback?: string | null
+          attempt_number?: number
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          content_id?: string
+          question_id?: string
+          selected_option_id?: string | null
+          answer_text?: string | null
+          is_correct?: boolean | null
+          points_earned?: number
+          graded_by?: string | null
+          graded_at?: string | null
+          feedback?: string | null
+          attempt_number?: number
+        }
+      }
     }
     Views: {
       [_ in never]: never
