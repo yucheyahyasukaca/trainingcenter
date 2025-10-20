@@ -256,9 +256,9 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/my-enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Kembali ke Pendaftaran Saya</span>
+          <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>
         </Link>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Forum Diskusi</h1>

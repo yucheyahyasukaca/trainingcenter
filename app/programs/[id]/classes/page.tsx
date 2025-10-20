@@ -76,7 +76,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       setEnrollment(enrollmentData)
     } catch (error) {
       console.error('Error fetching data:', error)
-      router.push('/enrollments')
+      router.push('/programs')
     } finally {
       setLoading(false)
     }
@@ -104,7 +104,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
           <p className="text-gray-600 mb-6">Anda belum terdaftar atau belum disetujui untuk program ini.</p>
-          <Link href="/enrollments" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <Link href="/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali ke Daftar Program
           </Link>
@@ -116,7 +116,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/my-enrollments" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>

@@ -98,10 +98,10 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         {/* Desktop Header */}
         <div className="hidden md:block w-full px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href={`/programs/${params.programId}/classes`} className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm whitespace-nowrap">
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Kembali
-            </Link>
+          <Link href={`/programs`} className="inline-flex items-center text-gray-600 hover:text-gray-900 text-sm whitespace-nowrap">
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Kembali
+          </Link>
             <span className="font-semibold text-gray-900 truncate">{moduleTitle || 'Belajar Modul'}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
         {/* Mobile Header */}
         <div className="md:hidden w-full px-4 py-3 flex items-center justify-between">
-          <Link href={`/programs/${params.programId}/classes`} className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <Link href={`/programs`} className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
           <div className="flex items-center gap-2">
