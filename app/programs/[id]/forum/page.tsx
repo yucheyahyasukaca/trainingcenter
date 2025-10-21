@@ -270,7 +270,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Categories Sidebar */}
         <div className="lg:col-span-1">
-          <div className="rounded-xl border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-6 shadow-sm lg:sticky lg:top-6">
+          <div className="rounded-xl border border-gray-200 bg-gradient-to-b from-primary-50 to-red-50 p-6 shadow-sm lg:sticky lg:top-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Kategori</h2>
               <button
@@ -329,7 +329,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
 
             {/* New Thread Form */}
             {showNewThread && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-red-50 rounded-lg border border-primary-200">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Buat Thread Baru</h3>
                 <div className="space-y-4">
                   <div>
@@ -400,7 +400,7 @@ export default function ProgramForumPage({ params }: { params: { id: string } })
                 {filteredThreads.map((thread) => (
                   <div
                     key={thread.id}
-                    className="p-5 bg-white/70 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
+                    className="p-5 bg-gradient-to-r from-white to-primary-50/30 border border-primary-200 rounded-xl shadow-sm hover:shadow-md hover:border-primary-300 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
                     onClick={() => {
                       incrementViewCount(thread.id)
                       router.push(`/programs/${params.id}/forum/${thread.id}`)

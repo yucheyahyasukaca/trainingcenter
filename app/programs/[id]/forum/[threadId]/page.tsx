@@ -433,7 +433,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -484,7 +484,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       </div>
 
       {/* Thread Content */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-xl border border-primary-200 p-6 shadow-sm">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-2">
             {thread.is_pinned && (
@@ -500,7 +500,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
           {renderRichContent(thread.content || '')}
         </div>
 
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-primary-200">
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleThreadLike}
@@ -522,7 +522,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
         <h2 className="text-lg font-semibold text-gray-900">Balasan ({thread.reply_count})</h2>
         
         {groupedReplies['root']?.map((reply: any) => (
-          <div key={reply.id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <div key={reply.id} className="bg-white rounded-xl border border-primary-200 p-6 shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
@@ -645,7 +645,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
         ))}
 
         {(!groupedReplies['root'] || groupedReplies['root'].length === 0) && (
-          <div className="text-center py-8 bg-white rounded-xl border border-gray-200">
+          <div className="text-center py-8 bg-white rounded-xl border border-primary-200">
             <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">Belum ada balasan untuk thread ini</p>
           </div>
@@ -654,7 +654,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
 
       {/* New Reply Form */}
       {!replyingTo && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-primary-200 p-6 shadow-sm">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Tulis Balasan</h3>
           <div className="space-y-4">
             <textarea

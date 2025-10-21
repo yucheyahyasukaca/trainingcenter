@@ -311,7 +311,7 @@ export default function ThreadDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat thread...</p>
@@ -322,7 +322,7 @@ export default function ThreadDetailPage({
 
   if (!thread || !classData || !program) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50 flex items-center justify-center">
         <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
         <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md mx-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -358,7 +358,7 @@ export default function ThreadDetailPage({
   const canModerate = isThreadAuthor || isAdmin
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -448,7 +448,7 @@ export default function ThreadDetailPage({
               {/* Thread Attachment */}
               {thread.attachment_url && (
                 <div className="mt-4">
-                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div className="border border-primary-200 rounded-lg p-4 bg-gradient-to-r from-primary-50 to-red-50">
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Lampiran:</h4>
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
@@ -492,11 +492,11 @@ export default function ThreadDetailPage({
                 const canModerateReply = isReplyAuthor || isAdmin
 
                 return (
-                  <div key={reply.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-indigo-200">
+                  <div key={reply.id} className="bg-gradient-to-r from-primary-50 to-red-50 rounded-lg p-4 border-l-4 border-primary-300">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
-                        <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-indigo-600">
+                        <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-primary-700">
                             {(replyAuthor?.full_name || replyAuthor?.email || 'U').charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -537,7 +537,7 @@ export default function ThreadDetailPage({
                     {/* Reply Attachment */}
                     {reply.attachment_url && (
                       <div className="mt-3">
-                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                        <div className="border border-primary-200 rounded-lg p-3 bg-gradient-to-r from-primary-50 to-red-50">
                           <h5 className="text-xs font-medium text-gray-700 mb-2">Lampiran:</h5>
                           <div className="flex items-center space-x-2">
                             <FileText className="h-3 w-3 text-gray-500" />
@@ -581,10 +581,10 @@ export default function ThreadDetailPage({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Tambah Balasan
                 </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-primary-50 to-red-50 rounded-lg p-4 border border-primary-200">
                   <div className="flex items-start space-x-3 mb-4">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-indigo-600">
+                    <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-primary-700">
                         {(profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     </div>
