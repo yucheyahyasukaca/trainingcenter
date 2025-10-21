@@ -7,6 +7,7 @@ import { ArrowLeft, Send, Pin, Lock, Eye, ThumbsUp, MoreVertical, Trash2, Edit2 
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
 
 interface ThreadData {
   id: string
@@ -38,6 +39,7 @@ export default function ThreadDetailPage({
 }) {
   const router = useRouter()
   const { profile } = useAuth()
+  const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
   
   const [classData, setClassData] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
@@ -67,12 +69,26 @@ export default function ThreadDetailPage({
         .eq('id', params.threadId)
         .single()
 
-      if (threadError) throw threadError
+      if (threadError) {
+        console.error('Thread not found:', threadError)
+        if (threadError.code === 'PGRST116') {
+          // Thread not found
+          setThread(null)
+          return
+        }
+        throw threadError
+      }
+      
+      if (!threadData) {
+        console.error('Thread data is null')
+        setThread(null)
+        return
+      }
+      
       setThread(threadData)
 
-      // Increment view count
-      await supabase.rpc('increment_thread_view', { thread_id: params.threadId })
-        .catch(err => console.log('View count update failed (non-critical):', err))
+      // View count increment - skip for now to avoid RPC errors
+      // TODO: Implement view count increment after RPC function is created
 
       // Fetch category
       const { data: categoryData, error: categoryError } = await supabase
@@ -133,9 +149,9 @@ export default function ThreadDetailPage({
         }, {})
         setUserProfiles(profilesMap)
       }
-    } catch (error) {
-      console.error('Error fetching thread data:', error)
-      alert('Gagal memuat data thread')
+    } catch (err) {
+      console.error('Error fetching thread data:', err)
+      error('Error', 'Gagal memuat data thread')
     } finally {
       setLoading(false)
     }
@@ -173,10 +189,10 @@ export default function ThreadDetailPage({
       // Refresh data
       await fetchData()
 
-      alert('Reply berhasil ditambahkan!')
-    } catch (error) {
-      console.error('Error submitting reply:', error)
-      alert('Gagal menambahkan reply: ' + (error as any).message)
+      forum('Reply Berhasil Ditambahkan!', 'Balasan Anda telah dipublikasikan', 3000)
+    } catch (err) {
+      console.error('Error submitting reply:', err)
+      error('Error', 'Gagal menambahkan reply: ' + (err as any).message)
     } finally {
       setSubmitting(false)
     }
@@ -195,11 +211,13 @@ export default function ThreadDetailPage({
 
       if (error) throw error
 
-      alert('Thread berhasil dihapus')
-      router.push(`/programs/${params.id}/classes/${params.classId}/forum`)
-    } catch (error) {
-      console.error('Error deleting thread:', error)
-      alert('Gagal menghapus thread: ' + (error as any).message)
+      success('Thread Berhasil Dihapus', 'Thread telah dihapus dari forum', 2000)
+      setTimeout(() => {
+        router.push(`/programs/${params.id}/classes/${params.classId}/forum`)
+      }, 1000)
+    } catch (err) {
+      console.error('Error deleting thread:', err)
+      error('Error', 'Gagal menghapus thread: ' + (err as any).message)
     }
   }
 
@@ -216,11 +234,11 @@ export default function ThreadDetailPage({
 
       if (error) throw error
 
-      alert('Reply berhasil dihapus')
+      success('Reply Berhasil Dihapus', 'Balasan telah dihapus dari thread', 2000)
       await fetchData()
-    } catch (error) {
-      console.error('Error deleting reply:', error)
-      alert('Gagal menghapus reply: ' + (error as any).message)
+    } catch (err) {
+      console.error('Error deleting reply:', err)
+      error('Error', 'Gagal menghapus reply: ' + (err as any).message)
     }
   }
 
@@ -238,14 +256,30 @@ export default function ThreadDetailPage({
   if (!thread || !classData || !program) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Thread tidak ditemukan</p>
-          <Link 
-            href={`/programs/${params.id}/classes/${params.classId}/forum`} 
-            className="text-indigo-600 hover:text-indigo-700 mt-4 inline-block"
-          >
-            Kembali ke Forum
-          </Link>
+        <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
+        <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Thread Tidak Ditemukan</h1>
+          <p className="text-gray-600 mb-6">
+            Thread yang Anda cari tidak ditemukan atau mungkin telah dihapus.
+          </p>
+          <div className="space-y-3">
+            <Link 
+              href={`/programs/${params.id}/classes/${params.classId}/forum`} 
+              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Kembali ke Forum
+            </Link>
+            <Link 
+              href={`/programs/${params.id}/classes/${params.classId}`} 
+              className="block text-sm text-gray-500 hover:text-gray-700"
+            >
+              Kembali ke Kelas
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -258,6 +292,7 @@ export default function ThreadDetailPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">

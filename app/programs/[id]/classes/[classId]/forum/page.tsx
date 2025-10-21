@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, MessageCircle, Pin, Lock, Eye, Reply, Upload, X, FileT
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
 
 interface ForumCategory {
   id: string
@@ -37,6 +38,7 @@ export default function ClassForumPage({
 }) {
   const router = useRouter()
   const { profile } = useAuth()
+  const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
   
   const [classData, setClassData] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
@@ -131,9 +133,9 @@ export default function ClassForumPage({
           }
         }
       }
-    } catch (error) {
-      console.error('Error fetching forum data:', error)
-      alert('Gagal memuat data forum')
+    } catch (err) {
+      console.error('Error fetching forum data:', err)
+      error('Error', 'Gagal memuat data forum')
     } finally {
       setLoading(false)
     }
@@ -141,12 +143,12 @@ export default function ClassForumPage({
 
   async function handleCreateThread() {
     if (!newThreadTitle.trim() || !newThreadContent.trim() || !newThreadCategoryId) {
-      alert('Judul dan konten thread tidak boleh kosong')
+      warning('Validasi Gagal', 'Judul dan konten thread tidak boleh kosong')
       return
     }
 
     if (!profile?.id) {
-      alert('Anda harus login untuk membuat thread')
+      error('Akses Ditolak', 'Anda harus login untuk membuat thread')
       return
     }
 
@@ -181,10 +183,10 @@ export default function ClassForumPage({
       // Refresh data
       await fetchData()
 
-      alert('Thread berhasil dibuat!')
-    } catch (error) {
-      console.error('Error creating thread:', error)
-      alert('Gagal membuat thread: ' + (error as any).message)
+      forum('Thread Berhasil Dibuat!', 'Thread baru telah dipublikasikan di forum', 3000)
+    } catch (err) {
+      console.error('Error creating thread:', err)
+      error('Error', 'Gagal membuat thread: ' + (err as any).message)
     } finally {
       setSubmitting(false)
     }
@@ -243,6 +245,7 @@ export default function ClassForumPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
