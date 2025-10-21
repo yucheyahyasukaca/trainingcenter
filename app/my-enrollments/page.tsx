@@ -106,42 +106,71 @@ export default function MyEnrollmentsPage() {
         throw error
       }
 
-      console.log('Fetched enrollments:', data)
+      console.log('Raw enrollments from database:', data)
       
-      // If no enrollments found, create sample data for demonstration
-      if (!data || data.length === 0) {
-        console.log('No enrollments found, creating sample data for demonstration')
-        await createSampleEnrollments((participant as any).id)
-        // Refetch after creating sample data
-        const { data: newData } = await supabase
-          .from('enrollments')
-          .select(`
-            *,
-            program:programs(
-              id,
-              title,
-              description,
-              price,
-              start_date,
-              end_date,
-              category,
-              whatsapp_group_url
-            ),
-            class:classes(
-              id,
-              name,
-              start_date,
-              end_date,
-              location
-            )
-          `)
-          .eq('participant_id', (participant as any).id)
-          .order('created_at', { ascending: false })
+      // Filter out sample/test enrollments that might have been created by setup scripts
+      const validEnrollments = (data || []).filter((enrollment: any) => {
+        // Skip enrollments that are clearly sample data
+        if (enrollment.notes && (
+          enrollment.notes.includes('Sample enrollment') ||
+          enrollment.notes.includes('sample') ||
+          enrollment.notes.includes('test') ||
+          enrollment.notes.includes('Sample') ||
+          enrollment.notes.includes('Test')
+        )) {
+          console.log('Filtering out sample enrollment by notes:', enrollment)
+          return false
+        }
         
-        setEnrollments(newData || [])
-      } else {
-        setEnrollments(data)
+        // Skip enrollments that were created very recently (within last 5 minutes) 
+        // and have approved status - likely sample data
+        const enrollmentTime = new Date(enrollment.created_at)
+        const now = new Date()
+        const timeDiff = now.getTime() - enrollmentTime.getTime()
+        const minutesDiff = timeDiff / (1000 * 60)
+        
+        if (enrollment.status === 'approved' && minutesDiff < 5) {
+          console.log('Filtering out recent approved enrollment (likely sample):', enrollment)
+          return false
+        }
+        
+        return true
+      })
+      
+      console.log('Valid enrollments after filtering:', validEnrollments)
+      
+      // Additional check: if this is a new user and they have enrollments, 
+      // but all enrollments are very recent (within 1 hour), they might be sample data
+      const now = new Date()
+      const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000))
+      
+      const hasRecentEnrollments = validEnrollments.some((enrollment: any) => {
+        const enrollmentTime = new Date(enrollment.created_at)
+        return enrollmentTime > oneHourAgo
+      })
+      
+      const hasOldEnrollments = validEnrollments.some((enrollment: any) => {
+        const enrollmentTime = new Date(enrollment.created_at)
+        return enrollmentTime <= oneHourAgo
+      })
+      
+      // Determine final enrollments to use
+      let finalEnrollments = validEnrollments
+      
+      // For new users, be very aggressive about filtering
+      if (participant && participant.created_at) {
+        const participantTime = new Date(participant.created_at)
+        if (participantTime > oneHourAgo) {
+          console.log('New participant detected - filtering out all enrollments as likely sample data')
+          finalEnrollments = []
+        } else if (hasRecentEnrollments && !hasOldEnrollments) {
+          console.log('Filtering out all recent enrollments for participant with no old enrollments (likely all sample data)')
+          finalEnrollments = []
+        }
       }
+      
+      console.log('Final enrollments after aggressive filtering:', finalEnrollments)
+      setEnrollments(finalEnrollments)
     } catch (error) {
       console.error('Error fetching enrollments:', error)
     } finally {
@@ -149,57 +178,6 @@ export default function MyEnrollmentsPage() {
     }
   }
 
-  async function createSampleEnrollments(participantId: string) {
-    try {
-      console.log('Creating sample enrollments for participant:', participantId)
-      
-      // Get available programs
-      const { data: programs } = await supabase
-        .from('programs')
-        .select('id, title')
-        .eq('status', 'published')
-        .limit(3)
-
-      if (!programs || programs.length === 0) {
-        console.log('No programs available for sample enrollments')
-        return
-      }
-
-      // Create sample enrollments
-      const sampleEnrollments = [
-        {
-          participant_id: participantId,
-          program_id: programs[0].id,
-          status: 'approved',
-          payment_status: 'paid',
-          amount_paid: 2500000,
-          notes: 'Sample enrollment - Leadership Excellence Program'
-        },
-        {
-          participant_id: participantId,
-          program_id: programs[1]?.id || programs[0].id,
-          status: 'pending',
-          payment_status: 'unpaid',
-          amount_paid: 0,
-          notes: 'Sample enrollment - Digital Marketing Mastery'
-        }
-      ]
-
-      for (const enrollment of sampleEnrollments) {
-        const { error } = await (supabase as any)
-          .from('enrollments')
-          .insert([enrollment])
-
-        if (error) {
-          console.error('Error creating sample enrollment:', error)
-        } else {
-          console.log('Created sample enrollment for program:', enrollment.program_id)
-        }
-      }
-    } catch (error) {
-      console.error('Error creating sample enrollments:', error)
-    }
-  }
 
   const filteredEnrollments = enrollments.filter((enrollment) => {
     const matchesSearch = 
