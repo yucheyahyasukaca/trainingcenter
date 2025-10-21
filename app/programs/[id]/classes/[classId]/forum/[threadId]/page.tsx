@@ -325,15 +325,29 @@ export default function ThreadDetailPage({
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">
                   {thread.title}
                 </h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>
-                    oleh <strong>{threadAuthor?.full_name || threadAuthor?.email || 'Unknown'}</strong>
-                  </span>
-                  <span>{formatDate(thread.created_at)}</span>
-                  <span className="inline-flex items-center">
-                    <Eye className="h-4 w-4 mr-1" />
-                    {thread.view_count} views
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-2">
+                        <span className="text-xs font-medium text-indigo-600">
+                          {(threadAuthor?.full_name || threadAuthor?.email || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <span>
+                        oleh <strong>{threadAuthor?.full_name || threadAuthor?.email || 'Unknown'}</strong>
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <span className="bg-gray-50 px-2 py-1 rounded text-xs">
+                      {formatDate(thread.created_at)}
+                    </span>
+                    <span className="inline-flex items-center bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">
+                      <Eye className="h-3 w-3 mr-1" />
+                      {thread.view_count} views
+                    </span>
+                  </div>
                 </div>
               </div>
               
@@ -370,38 +384,47 @@ export default function ThreadDetailPage({
                 const canModerateReply = isReplyAuthor || isAdmin
 
                 return (
-                  <div key={reply.id} className="border-l-2 border-indigo-200 pl-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <strong className="text-gray-900">
-                          {replyAuthor?.full_name || replyAuthor?.email || 'Unknown'}
-                        </strong>
-                        {replyAuthor?.role === 'trainer' && (
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
-                            Trainer
+                  <div key={reply.id} className="bg-gray-50 rounded-lg p-4 border-l-4 border-indigo-200">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-7 h-7 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-indigo-600">
+                            {(replyAuthor?.full_name || replyAuthor?.email || 'U').charAt(0).toUpperCase()}
                           </span>
-                        )}
-                        {replyAuthor?.role === 'admin' && (
-                          <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded">
-                            Admin
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <strong className="text-sm text-gray-900">
+                              {replyAuthor?.full_name || replyAuthor?.email || 'Unknown'}
+                            </strong>
+                            {replyAuthor?.role === 'trainer' && (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                                Trainer
+                              </span>
+                            )}
+                            {replyAuthor?.role === 'admin' && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                            {formatDate(reply.created_at)}
                           </span>
-                        )}
-                        <span className="text-gray-500">
-                          {formatDate(reply.created_at)}
-                        </span>
+                        </div>
                       </div>
                       
                       {canModerateReply && (
                         <button
                           onClick={() => handleDeleteReply(reply.id)}
-                          className="text-gray-400 hover:text-red-600"
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Hapus Reply"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{reply.content}</p>
                   </div>
                 )
               })}
@@ -416,25 +439,39 @@ export default function ThreadDetailPage({
             {/* Reply Form */}
             {!thread.is_locked && (
               <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-md font-semibold text-gray-900 mb-3">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Tambah Balasan
                 </h3>
-                <textarea
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Tulis balasan Anda..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-3"
-                />
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleSubmitReply}
-                    disabled={submitting || !replyContent.trim()}
-                    className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {submitting ? 'Mengirim...' : 'Kirim Balasan'}
-                  </button>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-start space-x-3 mb-4">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-indigo-600">
+                        {(profile?.full_name || profile?.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 mb-1">
+                        {profile?.full_name || profile?.email || 'Anda'}
+                      </p>
+                    </div>
+                  </div>
+                  <textarea
+                    value={replyContent}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    placeholder="Tulis balasan Anda..."
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4 resize-none"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSubmitReply}
+                      disabled={submitting || !replyContent.trim()}
+                      className="inline-flex items-center px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {submitting ? 'Mengirim...' : 'Kirim Balasan'}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

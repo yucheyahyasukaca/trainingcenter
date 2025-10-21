@@ -467,46 +467,64 @@ export default function ClassForumPage({
                 <Link
                   key={thread.id}
                   href={`/programs/${params.id}/classes/${params.classId}/forum/${thread.id}`}
-                  className="block bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+                  className="block bg-gradient-to-br from-white to-indigo-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100 hover:border-indigo-200 hover:scale-[1.02] hover:from-indigo-50 hover:to-blue-50"
                 >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        {/* Thread Title */}
-                        <div className="flex items-center space-x-2 mb-2">
-                          {thread.is_pinned && (
-                            <Pin className="h-4 w-4 text-indigo-600" />
-                          )}
-                          {thread.is_locked && (
-                            <Lock className="h-4 w-4 text-gray-400" />
-                          )}
-                          <h3 className="text-lg font-semibold text-gray-900 hover:text-indigo-600">
-                            {thread.title}
-                          </h3>
-                        </div>
+                  <div className="p-5 border-l-4 border-l-indigo-500">
+                    {/* Top Row: Category & Icons */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs font-bold rounded-full shadow-lg transform hover:scale-105 transition-transform">
+                          {category?.name || 'Umum'}
+                        </span>
+                        {thread.is_pinned && (
+                          <Pin className="h-5 w-5 text-indigo-600 animate-pulse" />
+                        )}
+                        {thread.is_locked && (
+                          <Lock className="h-5 w-5 text-gray-400" />
+                        )}
+                      </div>
+                    </div>
 
-                        {/* Thread Meta */}
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                          <span className="inline-flex items-center px-2 py-1 bg-indigo-100 text-indigo-700 rounded">
-                            {category?.name || 'Umum'}
-                          </span>
-                          <span>
-                            oleh <strong>{author?.full_name || author?.email || 'Unknown'}</strong>
-                          </span>
-                          <span>{formatDate(thread.created_at)}</span>
-                        </div>
+                    {/* Thread Title */}
+                    <h3 className="text-xl font-bold text-gray-900 hover:text-indigo-600 transition-colors mb-4 leading-tight" style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}>
+                      {thread.title}
+                    </h3>
 
-                        {/* Thread Stats */}
-                        <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                          <span className="inline-flex items-center">
-                            <Eye className="h-4 w-4 mr-1" />
-                            {thread.view_count} views
-                          </span>
-                          <span className="inline-flex items-center">
-                            <Reply className="h-4 w-4 mr-1" />
-                            {thread.reply_count} replies
-                          </span>
-                        </div>
+                    {/* Bottom Row: Author */}
+                    <div className="flex items-center mb-2">
+                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-full flex items-center justify-center mr-3 shadow-lg">
+                        <span className="text-sm font-bold text-white">
+                          {(author?.full_name || author?.email || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">
+                          {author?.full_name || author?.email || 'Unknown'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom Row: Date & Stats */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-700 bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full shadow-sm">
+                        {formatDate(thread.created_at)}
+                      </span>
+                      
+                      {/* Stats - Compact */}
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
+                          <Eye className="h-4 w-4 mr-1" />
+                          {thread.view_count}
+                        </span>
+                        <span className="flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
+                          <Reply className="h-4 w-4 mr-1" />
+                          {thread.reply_count}
+                        </span>
                       </div>
                     </div>
                   </div>
