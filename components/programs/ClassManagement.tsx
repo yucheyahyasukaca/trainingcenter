@@ -539,7 +539,10 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                         placeholder="Masukkan jumlah maksimal peserta"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Hanya {participantLimit} peserta yang bisa bergabung
+                        {participantLimit === null || participantLimit === undefined 
+                          ? 'Unlimited peserta yang bisa bergabung' 
+                          : `Hanya ${participantLimit} peserta yang bisa bergabung`
+                        }
                       </p>
                     </div>
                   )}
@@ -665,7 +668,10 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                         placeholder="Masukkan jumlah maksimal peserta"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Hanya {editingClass.max_participants} peserta yang bisa bergabung
+                        {editingClass.max_participants === null || editingClass.max_participants === undefined 
+                          ? 'Unlimited peserta yang bisa bergabung' 
+                          : `Hanya ${editingClass.max_participants} peserta yang bisa bergabung`
+                        }
                       </p>
                     </div>
                   )}

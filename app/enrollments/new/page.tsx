@@ -207,7 +207,7 @@ export default function NewEnrollmentPage() {
                   searchPlaceholder="Cari kelas..."
                   options={selectedProgram.classes.map(classItem => ({
                     value: classItem.id,
-                    label: `${classItem.name} - ${classItem.start_date} (${classItem.current_participants}/${classItem.max_participants} peserta)`
+                    label: `${classItem.name} - ${classItem.start_date} (${classItem.current_participants}/${classItem.max_participants === null || classItem.max_participants === undefined ? 'Unlimited' : classItem.max_participants} peserta)`
                   }))}
                 />
               </div>

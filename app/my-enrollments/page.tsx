@@ -314,7 +314,12 @@ export default function MyEnrollmentsPage() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>{formatDate(enrollment.program?.start_date)} - {formatDate(enrollment.program?.end_date)}</span>
+                    <span>
+                      {(enrollment.program as any)?.registration_type === 'lifetime' 
+                        ? 'Lifetime' 
+                        : `${formatDate(enrollment.program?.start_date)} - ${formatDate(enrollment.program?.end_date)}`
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="font-medium mr-2">Kategori:</span>

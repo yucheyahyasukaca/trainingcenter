@@ -365,11 +365,21 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Tanggal:</span>
-                  <span>{formatDate(program.start_date)} - {formatDate(program.end_date)}</span>
+                  <span>
+                    {(program as any).registration_type === 'lifetime' 
+                      ? 'Lifetime' 
+                      : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
+                    }
+                  </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Peserta:</span>
-                  <span>Max {program.max_participants} orang</span>
+                  <span>
+                    {program.max_participants === null || program.max_participants === undefined 
+                      ? 'Unlimited' 
+                      : `Max ${program.max_participants} orang`
+                    }
+                  </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Kelas:</span>
@@ -419,7 +429,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                     searchPlaceholder="Cari kelas..."
                     options={program.classes.map(classItem => ({
                       value: classItem.id,
-                      label: `${classItem.name} - ${formatDate(classItem.start_date)} (${classItem.current_participants}/${classItem.max_participants} peserta)`
+                      label: `${classItem.name} - ${formatDate(classItem.start_date)} (${classItem.current_participants}/${classItem.max_participants === null || classItem.max_participants === undefined ? 'Unlimited' : classItem.max_participants} peserta)`
                     }))}
                   />
                 </div>

@@ -451,12 +451,15 @@ export function AvailablePrograms() {
                     }
                   </span>
                 </div>
-                {program.max_participants && (
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Users className="w-4 h-4 text-green-500" />
-                    <span className="font-medium">{program.max_participants} peserta</span>
-                  </div>
-                )}
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Users className="w-4 h-4 text-green-500" />
+                  <span className="font-medium">
+                    {program.max_participants === null || program.max_participants === undefined 
+                      ? 'Unlimited peserta' 
+                      : `${program.max_participants} peserta`
+                    }
+                  </span>
+                </div>
                 {program.classes && program.classes.length > 0 && (
                   <div className="flex items-center space-x-2 text-gray-600">
                     <BookOpen className="w-4 h-4 text-purple-500" />

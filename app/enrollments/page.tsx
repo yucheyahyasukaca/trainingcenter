@@ -242,11 +242,21 @@ export default function EnrollmentsPage() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2" />
-                      <span>{formatDate(program.start_date)} - {formatDate(program.end_date)}</span>
+                      <span>
+                        {(program as any).registration_type === 'lifetime' 
+                          ? 'Lifetime' 
+                          : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="w-4 h-4 mr-2" />
-                      <span>Max {program.max_participants} peserta</span>
+                      <span>
+                        {program.max_participants === null || program.max_participants === undefined 
+                          ? 'Unlimited peserta' 
+                          : `Max ${program.max_participants} peserta`
+                        }
+                      </span>
                     </div>
                   </div>
 
@@ -267,7 +277,15 @@ export default function EnrollmentsPage() {
                           </span>
                         </div>
                         <div className="mt-1 text-xs text-gray-500">
-                          Total kuota: {program.classes.reduce((sum, cls) => sum + cls.max_participants, 0)} peserta
+                          Total kuota: {(() => {
+                            const totalQuota = program.classes.reduce((sum, cls) => {
+                              if (cls.max_participants === null || cls.max_participants === undefined) {
+                                return sum + 999999; // Use a large number to represent unlimited
+                              }
+                              return sum + cls.max_participants;
+                            }, 0);
+                            return totalQuota >= 999999 ? 'Unlimited peserta' : `${totalQuota} peserta`;
+                          })()}
                         </div>
                       </div>
                     )}

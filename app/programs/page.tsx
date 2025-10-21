@@ -570,12 +570,15 @@ export default function ProgramsPage() {
                         }
                       </span>
                     </div>
-                    {program.max_participants && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Users className="w-4 h-4 mr-2 text-red-500" />
-                        <span>Max {program.max_participants} peserta</span>
-                      </div>
-                    )}
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="w-4 h-4 mr-2 text-red-500" />
+                      <span>
+                        {program.max_participants === null || program.max_participants === undefined 
+                          ? 'Unlimited peserta' 
+                          : `Max ${program.max_participants} peserta`
+                        }
+                      </span>
+                    </div>
                     {program.classes && program.classes.length > 0 && (
                       <div className="flex items-center text-sm text-gray-600">
                         <BookOpen className="w-4 h-4 mr-2 text-red-500" />
