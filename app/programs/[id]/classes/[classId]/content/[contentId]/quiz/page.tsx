@@ -118,18 +118,18 @@ export default function QuizManagementPage({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
-          <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link href="/dashboard" className="hover:text-primary-600">Dashboard</Link>
-            <span>/</span>
-            <Link href="/programs" className="hover:text-primary-600">Programs</Link>
-            <span>/</span>
-            <Link href={`/programs/${params.id}`} className="hover:text-primary-600">Program</Link>
-            <span>/</span>
-            <Link href={`/programs/${params.id}/classes/${params.classId}/content`} className="hover:text-primary-600">
+          <nav className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
+            <Link href="/dashboard" className="hover:text-primary-600 whitespace-nowrap">Dashboard</Link>
+            <span className="text-gray-400">/</span>
+            <Link href="/programs" className="hover:text-primary-600 whitespace-nowrap">Programs</Link>
+            <span className="text-gray-400">/</span>
+            <Link href={`/programs/${params.id}`} className="hover:text-primary-600 whitespace-nowrap">Program</Link>
+            <span className="text-gray-400">/</span>
+            <Link href={`/programs/${params.id}/classes/${params.classId}/content`} className="hover:text-primary-600 whitespace-nowrap">
               Content
             </Link>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">Quiz Management</span>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-900 font-medium whitespace-nowrap">Quiz Management</span>
           </nav>
         </div>
 

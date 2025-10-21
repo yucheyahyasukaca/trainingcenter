@@ -68,7 +68,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     try {
       // Use the hierarchical function to get structured data
       const { data, error } = await supabase
-        .rpc('get_content_hierarchy', { class_uuid: classId })
+        .rpc('get_content_hierarchy', { class_uuid: classId } as any)
 
       if (error) throw error
       
@@ -119,7 +119,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
 
       const { data, error } = await supabase
         .from('learning_contents')
-        .insert([contentData])
+        .insert([contentData] as any)
         .select()
 
       if (error) throw error
@@ -139,7 +139,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     if (!editingContent) return
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('learning_contents')
         .update({
           title: editingContent.title,
@@ -200,11 +200,11 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     // Update order_index in database
     try {
       await Promise.all([
-        supabase
+        (supabase as any)
           .from('learning_contents')
           .update({ order_index: newIndex })
           .eq('id', id),
-        supabase
+        (supabase as any)
           .from('learning_contents')
           .update({ order_index: index })
           .eq('id', newContents[index].id)
@@ -275,28 +275,29 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Materi Pembelajaran</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Materi Pembelajaran</h2>
           <p className="text-sm text-gray-600 mt-1">Kelola video, teks, quiz, dan dokumen untuk kelas {className}</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
-          Tambah Materi
+          <span className="hidden sm:inline">Tambah Materi</span>
+          <span className="sm:hidden">Tambah</span>
         </button>
       </div>
 
       {/* Content List */}
       {contents.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">Belum ada materi pembelajaran</p>
+        <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg px-4">
+          <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 text-sm sm:text-base">Belum ada materi pembelajaran</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="mt-4 text-primary-600 hover:text-primary-700 font-medium"
+            className="mt-4 text-primary-600 hover:text-primary-700 font-medium text-sm sm:text-base"
           >
             Tambah materi pertama
           </button>
@@ -306,29 +307,31 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           {contents.map((content, index) => (
             <div key={content.id} className="space-y-2">
               {/* Main Material */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="mt-1">
+              <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="mt-1 flex-shrink-0">
                       {getContentIcon(content.content_type)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 text-lg">{content.title}</h3>
-                        {getStatusBadge(content.status)}
-                        {content.is_free && (
-                          <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
-                            Gratis
-                          </span>
-                        )}
-                        {content.is_required && (
-                          <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
-                            Wajib
-                          </span>
-                        )}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate">{content.title}</h3>
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
+                          {getStatusBadge(content.status)}
+                          {content.is_free && (
+                            <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                              Gratis
+                            </span>
+                          )}
+                          {content.is_required && (
+                            <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                              Wajib
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {content.description && (
-                        <p className="text-sm text-gray-600 mb-2">{content.description}</p>
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{content.description}</p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span className="capitalize">{content.content_type}</span>
@@ -340,7 +343,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                   </div>
 
                   {/* Main Material Actions */}
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center justify-end gap-1 sm:gap-2 flex-wrap">
                     <button
                       onClick={() => handleReorder(content.id, 'up')}
                       disabled={index === 0}
@@ -392,34 +395,36 @@ export function ContentManagement({ classId, className, programId }: ContentMana
 
               {/* Sub Materials */}
               {content.sub_materials && content.sub_materials.length > 0 && (
-                <div className="ml-6 space-y-2">
+                <div className="ml-3 sm:ml-6 space-y-2">
                   {content.sub_materials.map((subMaterial, subIndex) => (
                     <div
                       key={subMaterial.id}
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-3 hover:bg-gray-100 transition-colors"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className="mt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                          <div className="mt-1 flex-shrink-0">
                             {getContentIcon(subMaterial.content_type)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-medium text-gray-800">{subMaterial.title}</h4>
-                              {getStatusBadge(subMaterial.status)}
-                              {subMaterial.is_free && (
-                                <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
-                                  Gratis
-                                </span>
-                              )}
-                              {subMaterial.is_required && (
-                                <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
-                                  Wajib
-                                </span>
-                              )}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                              <h4 className="font-medium text-gray-800 text-sm sm:text-base truncate">{subMaterial.title}</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {getStatusBadge(subMaterial.status)}
+                                {subMaterial.is_free && (
+                                  <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                                    Gratis
+                                  </span>
+                                )}
+                                {subMaterial.is_required && (
+                                  <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                                    Wajib
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             {subMaterial.description && (
-                              <p className="text-sm text-gray-600 mb-1">{subMaterial.description}</p>
+                              <p className="text-xs sm:text-sm text-gray-600 mb-1 line-clamp-2">{subMaterial.description}</p>
                             )}
                             <div className="flex items-center gap-4 text-xs text-gray-500">
                               <span className="capitalize">{subMaterial.content_type}</span>
@@ -431,7 +436,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                         </div>
 
                         {/* Sub Material Actions */}
-                        <div className="flex items-center gap-1 ml-4">
+                        <div className="flex items-center justify-end gap-1 flex-wrap">
                           <button
                             onClick={() => handleReorder(subMaterial.id, 'up')}
                             disabled={subIndex === 0}
@@ -517,7 +522,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
             setEditingContent(null)
           }}
           title="Edit Materi"
-          onChange={setEditingContent}
+          onChange={(content) => setEditingContent(content as LearningContent)}
           selectedParentId={editingContent.parent_id || null}
           setSelectedParentId={(id) => setEditingContent({ ...editingContent, parent_id: id })}
           contents={contents}
@@ -541,24 +546,24 @@ interface ContentFormModalProps {
 
 function ContentFormModal({ content, onSave, onClose, title, onChange, selectedParentId, setSelectedParentId, contents }: ContentFormModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[95vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form */}
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           {/* Material Type Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Jenis Materi <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <label className="flex items-center">
                 <input
                   type="radio"
@@ -673,7 +678,7 @@ function ContentFormModal({ content, onSave, onClose, title, onChange, selectedP
           </div>
 
           {/* Settings Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -691,8 +696,8 @@ function ContentFormModal({ content, onSave, onClose, title, onChange, selectedP
             </div>
 
             {/* Is Required */}
-            <div>
-              <label className="flex items-center gap-2 h-full pt-8">
+            <div className="flex items-center justify-center sm:justify-start">
+              <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={content.is_required || false}
@@ -704,8 +709,8 @@ function ContentFormModal({ content, onSave, onClose, title, onChange, selectedP
             </div>
 
             {/* Is Free */}
-            <div>
-              <label className="flex items-center gap-2 h-full pt-8">
+            <div className="flex items-center justify-center sm:justify-start sm:col-span-2 lg:col-span-1">
+              <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={content.is_free || false}
@@ -719,17 +724,17 @@ function ContentFormModal({ content, onSave, onClose, title, onChange, selectedP
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t">
+        <div className="sticky bottom-0 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium"
           >
             Batal
           </button>
           <button
             onClick={onSave}
             disabled={!content.title}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             <Save className="w-4 h-4" />
             Simpan
