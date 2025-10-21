@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
 import { ClassManagement } from '@/components/programs/ClassManagement'
-import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus, UserCheck, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -315,215 +315,250 @@ export default function ProgramsPage() {
 
   if (selectedProgram) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSelectedProgram(null)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Manajemen Kelas</h1>
-              <p className="text-gray-600 mt-1">Program: {selectedProgram.title}</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => setSelectedProgram(null)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Manajemen Kelas</h1>
+                  <p className="text-gray-600 mt-1">Program: {selectedProgram.title}</p>
+                </div>
+              </div>
             </div>
+            <ClassManagement programId={selectedProgram.id} programTitle={selectedProgram.title} />
           </div>
         </div>
-        <ClassManagement programId={selectedProgram.id} programTitle={selectedProgram.title} />
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isAdminOrManager ? 'Manajemen Program' : 'Daftar Program'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {isAdminOrManager ? 'Kelola program dan kegiatan training' : 'Lihat dan daftar program training yang tersedia'}
-          </p>
-        </div>
-        {isAdminOrManager && (
-          <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-            <Plus className="w-5 h-5 mr-2" />
-            <span>Tambah Program</span>
-          </Link>
-        )}
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Cari program..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isAdminOrManager ? 'Manajemen Program' : 'Program Training'}
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {isAdminOrManager ? 'Kelola program dan kegiatan training' : 'Temukan program training yang sesuai untuk Anda'}
+              </p>
+            </div>
+            
+            {isAdminOrManager && (
+              <Link 
+                href="/programs/new" 
+                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Tambah Program
+              </Link>
+            )}
+          </div>
+          
+          {/* Search Bar */}
+          <div className="mt-6 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Cari program training..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+              />
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-300 rounded w-3/4 mb-4"></div>
+                  <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-gray-300 rounded w-2/3 mb-4"></div>
+                  <div className="flex items-center justify-between">
+                    <div className="h-6 bg-gray-300 rounded w-20"></div>
+                    <div className="h-8 bg-gray-300 rounded w-16"></div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : filteredPrograms.length === 0 ? (
-          <div className="text-center py-12">
-            <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Belum ada program tersedia</p>
-            <Link href="/programs/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors mt-4">
-              Tambah Program Pertama
-            </Link>
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <GraduationCap className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Belum ada program tersedia</h3>
+            <p className="text-gray-600 mb-6">
+              {isAdminOrManager ? 'Mulai buat program training pertama Anda' : 'Program training akan segera hadir'}
+            </p>
+            {isAdminOrManager && (
+              <Link 
+                href="/programs/new" 
+                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Tambah Program Pertama
+              </Link>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrograms.map((program) => (
-              <div key={program.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <span className={getStatusBadge(program.status)}>
-                    {program.status}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    {isAdminOrManager ? (
-                      <>
-                        <button
-                          onClick={() => setSelectedProgram(program)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Kelola Kelas"
-                        >
-                          <BookOpen className="w-4 h-4" />
-                        </button>
-                        <Link
-                          href={`/programs/${program.id}`}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit Program"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => deleteProgram(program.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Hapus Program"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      (() => {
-                        const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
-                        
-                        // Extra protection: if user has no enrollments at all, always show "Daftar"
-                        if (userEnrollments.length === 0) {
-                          return (
-                            <Link
-                              href={`/programs/${program.id}/enroll`}
-                              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                            >
-                              Daftar
-                            </Link>
-                          )
-                        }
-                        
-                        if (enrollmentStatus === 'pending') {
-                          return (
-                            <div className="px-4 py-2 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg text-center">
-                              Menunggu Persetujuan
-                            </div>
-                          )
-                        } else if (enrollmentStatus === 'approved') {
-                          return (
-                            <div className="px-4 py-2 bg-green-100 text-green-800 text-sm font-medium rounded-lg text-center">
-                              Sudah Terdaftar
-                            </div>
-                          )
-                        } else if (enrollmentStatus === 'rejected') {
-                          return (
-                            <div className="px-4 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center">
-                              Daftar Ulang
-                            </div>
-                          )
-                        } else if (enrollmentsLoading) {
-                          return (
-                            <div className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
-                              Memuat...
-                            </div>
-                          )
-                        } else {
-                          return (
-                            <Link
-                              href={`/programs/${program.id}/enroll`}
-                              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
-                            >
-                              Daftar
-                            </Link>
-                          )
-                        }
-                      })()
+              <div key={program.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      program.status === 'published' ? 'bg-green-100 text-green-800' :
+                      program.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {program.status === 'published' ? 'Aktif' : 
+                       program.status === 'draft' ? 'Draft' : 'Arsip'}
+                    </span>
+                    
+                    <div className="flex items-center space-x-1">
+                      {isAdminOrManager ? (
+                        <>
+                          <button
+                            onClick={() => setSelectedProgram(program)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Kelola Kelas"
+                          >
+                            <BookOpen className="w-4 h-4" />
+                          </button>
+                          <Link
+                            href={`/programs/${program.id}`}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit Program"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => deleteProgram(program.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Hapus Program"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      ) : (
+                        (() => {
+                          const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
+                          
+                          if (userEnrollments.length === 0) {
+                            return (
+                              <Link
+                                href={`/programs/${program.id}/enroll`}
+                                className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                Daftar
+                              </Link>
+                            )
+                          }
+                          
+                          if (enrollmentStatus === 'pending') {
+                            return (
+                              <div className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg text-center">
+                                Menunggu
+                              </div>
+                            )
+                          } else if (enrollmentStatus === 'approved') {
+                            return (
+                              <div className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-lg text-center">
+                                Terdaftar
+                              </div>
+                            )
+                          } else if (enrollmentStatus === 'rejected') {
+                            return (
+                              <div className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center">
+                                Daftar Ulang
+                              </div>
+                            )
+                          } else if (enrollmentsLoading) {
+                            return (
+                              <div className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
+                                Memuat...
+                              </div>
+                            )
+                          } else {
+                            return (
+                              <Link
+                                href={`/programs/${program.id}/enroll`}
+                                className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                              >
+                                Daftar
+                              </Link>
+                            )
+                          }
+                        })()
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Title & Description */}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{program.title}</h3>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
+
+                  {/* Program Details */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <GraduationCap className="w-4 h-4 mr-2 text-red-500" />
+                      <span>{program.category}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2 text-red-500" />
+                      <span>{formatDate(program.start_date)} - {formatDate(program.end_date)}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="w-4 h-4 mr-2 text-red-500" />
+                      <span>Max {program.max_participants} peserta</span>
+                    </div>
+                    {program.classes && program.classes.length > 0 && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <BookOpen className="w-4 h-4 mr-2 text-red-500" />
+                        <span>{program.classes.length} kelas tersedia</span>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{program.title}</h3>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <GraduationCap className="w-4 h-4 mr-2" />
-                    <span>{program.category}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>{formatDate(program.start_date)} - {formatDate(program.end_date)}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>Max {program.max_participants} peserta</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Harga</span>
-                    <span className="text-lg font-bold text-primary-600">
-                      {formatCurrency(program.price)}
-                    </span>
-                  </div>
-                  
-                  {program.classes && program.classes.length > 0 ? (
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Kelas Tersedia</span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {program.classes.length} kelas
-                        </span>
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        Total kuota: {program.classes.reduce((sum, cls) => sum + cls.max_participants, 0)} peserta
-                      </div>
+                  {/* Price & Action */}
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-gray-600">Harga</span>
+                      <span className="text-xl font-bold text-red-600">
+                        {formatCurrency(program.price)}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Kelas Tersedia</span>
-                        <span className="text-sm font-medium text-gray-500">
-                          Belum ada kelas
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {program.trainer && (
-                    <div className="mt-2">
-                      <span className="text-xs text-gray-500">Trainer: {program.trainer.name}</span>
-                    </div>
-                  )}
+                    
+                    {!isAdminOrManager && (
+                      <Link
+                        href={`/programs/${program.id}/enroll`}
+                        className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                      >
+                        <GraduationCap className="w-4 h-4 mr-2" />
+                        Daftar Sekarang
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

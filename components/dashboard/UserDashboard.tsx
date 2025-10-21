@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
+import { supabase } from '@/lib/supabase'
 import { MyEnrollments } from './MyEnrollments'
 import { AvailablePrograms } from './AvailablePrograms'
 import { TrainerProfile } from './TrainerProfile'
@@ -17,6 +19,13 @@ import {
 
 export function UserDashboard() {
   const { profile } = useAuth()
+  const [userStats, setUserStats] = useState({
+    enrolledPrograms: 0,
+    certificates: 0,
+    scheduledPrograms: 0,
+    completedPrograms: 0
+  })
+  const [statsLoading, setStatsLoading] = useState(true)
 
   const getTrainerLevelInfo = (level: string) => {
     switch (level) {
@@ -46,11 +55,11 @@ export function UserDashboard() {
         }
       default:
         return {
-          title: 'Regular User',
+          title: 'Level 0',
           description: 'Dapat mengikuti program pelatihan',
           color: 'gray',
           icon: BookOpen,
-          badge: 'User'
+          badge: 'L0'
         }
     }
   }
@@ -58,28 +67,87 @@ export function UserDashboard() {
   const levelInfo = getTrainerLevelInfo((profile as any)?.trainer_level || 'user')
   const Icon = levelInfo.icon
 
-  const userStats = [
+  // Fetch user statistics from database
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (!profile?.id) return
+
+      try {
+        setStatsLoading(true)
+        
+        // Get participant ID
+        const { data: participant } = await supabase
+          .from('participants')
+          .select('id')
+          .eq('user_id', profile.id)
+          .single()
+
+        if (!participant) {
+          setStatsLoading(false)
+          return
+        }
+
+        // Fetch enrollments
+        const { data: enrollments } = await supabase
+          .from('enrollments')
+          .select('status, programs(start_date)')
+          .eq('participant_id', participant.id)
+
+        // Fetch certificates
+        const { data: certificates } = await supabase
+          .from('certificates')
+          .select('id')
+          .eq('participant_id', participant.id)
+
+        if (enrollments) {
+          const now = new Date()
+          const enrolledCount = enrollments.length
+          const completedCount = enrollments.filter(e => e.status === 'completed').length
+          const scheduledCount = enrollments.filter(e => {
+            if (!e.programs?.start_date) return false
+            const startDate = new Date(e.programs.start_date)
+            return startDate > now && e.status === 'approved'
+          }).length
+
+          setUserStats({
+            enrolledPrograms: enrolledCount,
+            certificates: certificates?.length || 0,
+            scheduledPrograms: scheduledCount,
+            completedPrograms: completedCount
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching user stats:', error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+
+    fetchUserStats()
+  }, [profile?.id])
+
+  const statsData = [
     {
       title: 'Program Diikuti',
-      value: '3',
+      value: userStats.enrolledPrograms.toString(),
       icon: GraduationCap,
       color: 'blue'
     },
     {
       title: 'Sertifikat',
-      value: '2',
+      value: userStats.certificates.toString(),
       icon: Award,
       color: 'green'
     },
     {
       title: 'Program Dijadwalkan',
-      value: '1',
+      value: userStats.scheduledPrograms.toString(),
       icon: Clock,
       color: 'orange'
     },
     {
       title: 'Program Selesai',
-      value: '2',
+      value: userStats.completedPrograms.toString(),
       icon: CheckCircle,
       color: 'purple'
     }
@@ -151,14 +219,38 @@ export function UserDashboard() {
 
 
       {/* User Stats - Modern Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-        {userStats.map((stat, index) => {
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12">
+        {statsLoading ? (
+          // Loading skeleton
+          Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-6">
+              <div className="animate-pulse">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-2xl"></div>
+                  <div className="text-left sm:text-right">
+                    <div className="h-8 bg-gray-300 rounded w-12 mb-2"></div>
+                    <div className="h-4 bg-gray-300 rounded w-20"></div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <div className="h-3 bg-gray-300 rounded w-8"></div>
+                  </div>
+                  <div className="h-3 bg-gray-300 rounded w-12"></div>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          statsData.map((stat, index) => {
           const Icon = stat.icon
           return (
             <div key={index} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
               <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
-              <div className="relative z-10 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 space-y-3 sm:space-y-0">
+              <div className="relative z-10 p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
                   <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
                     stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
                     stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
@@ -193,7 +285,9 @@ export function UserDashboard() {
               <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           )
-        })}
+        })
+        )}
+        </div>
       </div>
 
       {/* Quick Actions removed as requested */}

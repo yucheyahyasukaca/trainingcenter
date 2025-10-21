@@ -115,7 +115,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             }`}></div>
             <span className="text-sm font-medium text-gray-700 capitalize">
               {profile.role === 'admin' ? 'Administrator' :
-               profile.role === 'manager' ? 'Manager' : 'User'}
+               profile.role === 'manager' ? 'Manager' : 'User Level 0'}
             </span>
                    {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
