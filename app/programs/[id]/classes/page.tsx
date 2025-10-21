@@ -7,11 +7,13 @@ import { ArrowLeft, Calendar, Clock, MapPin, Users, Video, FileText, Download } 
 import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { useNotification } from '@/components/ui/Notification'
 import { ClassWithTrainers } from '@/types'
 
 export default function ProgramClassesPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { profile } = useAuth()
+  const { addNotification } = useNotification()
   const [program, setProgram] = useState<any>(null)
   const [classes, setClasses] = useState<ClassWithTrainers[]>([])
   const [enrollment, setEnrollment] = useState<any>(null)
@@ -166,6 +168,37 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
     }
   }
 
+  function handleResourceClick(resourceType: 'module' | 'recording' | 'certificate') {
+    // Check if trainer has been assigned to any class
+    const hasTrainer = classes.some(classItem => 
+      classItem.trainers && classItem.trainers.length > 0
+    )
+
+    if (!hasTrainer) {
+      const resourceNames = {
+        module: 'Modul Pelatihan',
+        recording: 'Rekaman Kelas',
+        certificate: 'Sertifikat'
+      }
+
+      addNotification({
+        type: 'warning',
+        title: 'Materi Belum Tersedia',
+        message: `${resourceNames[resourceType]} belum dapat diakses karena trainer untuk kelas ini belum ditambahkan. Kami akan segera mempersiapkan materi setelah trainer ditunjuk. Untuk informasi lebih lanjut, silakan hubungi admin melalui menu bantuan.`,
+        duration: 8000
+      })
+      return
+    }
+
+    // TODO: Implement actual resource download/access logic
+    addNotification({
+      type: 'info',
+      title: 'Segera Hadir',
+      message: 'Fitur download materi sedang dalam pengembangan dan akan segera tersedia.',
+      duration: 5000
+    })
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -207,26 +240,65 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         </Link>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Kelas Program</h1>
         <p className="text-gray-600 mt-1 text-sm md:text-base">
-          {program.title} - Kelas: {enrollment.class?.name || 'Tidak ada kelas'}
+          {program.title} - Kelas: {enrollment.class?.name || (classes.length > 0 ? classes[0].name : 'Tidak ada kelas')}
         </p>
       </div>
 
       {/* Program Overview */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Informasi Program</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="flex items-center space-x-3">
             <Calendar className="w-5 h-5 text-gray-400" />
             <div>
               <p className="text-sm text-gray-600">Tanggal Mulai</p>
-              <p className="font-medium">{formatDate(program.start_date)}</p>
+              <p className="font-medium">
+                {enrollment.class?.start_date 
+                  ? formatDate(enrollment.class.start_date)
+                  : classes.length > 0 
+                    ? formatDate(classes[0].start_date)
+                    : formatDate(program.start_date)
+                }
+              </p>
+              {(enrollment.class?.start_time || (classes.length > 0 && classes[0].start_time)) && (
+                <p className="text-xs text-gray-500">
+                  {formatTime(enrollment.class?.start_time || classes[0].start_time)}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <Calendar className="w-5 h-5 text-gray-400" />
             <div>
               <p className="text-sm text-gray-600">Tanggal Selesai</p>
-              <p className="font-medium">{formatDate(program.end_date)}</p>
+              <p className="font-medium">
+                {enrollment.class?.end_date 
+                  ? formatDate(enrollment.class.end_date)
+                  : classes.length > 0 
+                    ? formatDate(classes[0].end_date)
+                    : formatDate(program.end_date)
+                }
+              </p>
+              {(enrollment.class?.end_time || (classes.length > 0 && classes[0].end_time)) && (
+                <p className="text-xs text-gray-500">
+                  {formatTime(enrollment.class?.end_time || classes[0].end_time)}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <Users className="w-5 h-5 text-gray-400" />
+            <div>
+              <p className="text-sm text-gray-600">Tipe Program</p>
+              <p className="font-medium">
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  (program as any).program_type === 'tot' 
+                    ? 'bg-purple-100 text-purple-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {(program as any).program_type === 'tot' ? 'TOT' : 'Regular'}
+                </span>
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -238,6 +310,66 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           </div>
         </div>
       </div>
+
+      {/* TOT Program Information */}
+      {(program as any).program_type === 'tot' && (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 p-6">
+          <div className="flex items-start space-x-4">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-purple-900 mb-4">Program Training of Trainers (TOT)</h3>
+              
+              <div className="space-y-6">
+                {/* Syarat Kelulusan */}
+                <div>
+                  <h4 className="text-base font-semibold text-purple-900 mb-3">Syarat Kelulusan:</h4>
+                  <ul className="space-y-2">
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">Menyelesaikan seluruh materi pembelajaran</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">
+                        Melakukan diseminasi minimal kepada <strong className="font-semibold text-purple-900">50 orang</strong>
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">
+                        Mengumpulkan bukti diseminasi (foto, video, atau dokumen)
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Benefit Kelulusan */}
+                <div>
+                  <h4 className="text-base font-semibold text-purple-900 mb-3">Benefit Kelulusan:</h4>
+                  <ul className="space-y-2">
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">Mendapat sertifikat kelulusan TOT</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">
+                        Status berubah dari <strong className="font-semibold text-purple-900">User Level 0</strong> menjadi <strong className="font-semibold text-purple-900">Trainer Level 0</strong>
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">Dapat mengajar program training di platform ini</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Learning Modules */}
       <div className="space-y-4">
@@ -299,7 +431,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Materi dan Sumber Daya</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+          <div 
+            onClick={() => handleResourceClick('module')}
+            className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          >
             <FileText className="w-8 h-8 text-blue-600" />
             <div>
               <p className="font-medium text-gray-900">Modul Pelatihan</p>
@@ -307,7 +442,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             </div>
             <Download className="w-4 h-4 text-gray-400 ml-auto" />
           </div>
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+          <div 
+            onClick={() => handleResourceClick('recording')}
+            className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          >
             <Video className="w-8 h-8 text-red-600" />
             <div>
               <p className="font-medium text-gray-900">Rekaman Kelas</p>
@@ -315,7 +453,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             </div>
             <Download className="w-4 h-4 text-gray-400 ml-auto" />
           </div>
-          <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+          <div 
+            onClick={() => handleResourceClick('certificate')}
+            className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+          >
             <FileText className="w-8 h-8 text-green-600" />
             <div>
               <p className="font-medium text-gray-900">Sertifikat</p>
