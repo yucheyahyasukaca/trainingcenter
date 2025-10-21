@@ -38,9 +38,16 @@ export default function RegisterPage() {
       {/* Simple public header for unauthenticated pages */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto p-4">
-          <a href="/" className="inline-flex items-center space-x-3 text-gray-700 hover:text-gray-900">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-800 text-white font-semibold">g</span>
-            <span className="text-sm sm:text-base font-medium">Homepage GARUDA-21 Training Center</span>
+          <a href="/" className="inline-flex items-center text-gray-700 hover:text-gray-900">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+              <Image
+                src="/logo-06.png"
+                alt="Garuda Academy Logo"
+                width={80}
+                height={80}
+                className="object-contain w-full h-full"
+              />
+            </div>
           </a>
         </div>
       </div>

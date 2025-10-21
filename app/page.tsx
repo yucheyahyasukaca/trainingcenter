@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { getCurrentUser } from '@/lib/auth'
 import { 
-  GraduationCap, 
   Users, 
   UserCog, 
   BarChart3, 
@@ -45,7 +45,7 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: GraduationCap,
+      icon: Zap,
       title: 'Self Learning Course',
       description: 'Akses pelatihan 100% gratis dengan kurikulum berstandar industri global. Belajar fleksibel kapan saja, di mana saja',
       color: 'bg-blue-500',
@@ -105,7 +105,7 @@ export default function LandingPage() {
 
   const stats = [
     { label: 'Peserta Aktif', value: '50K+', icon: Users },
-    { label: 'Program Pelatihan', value: '10+', icon: GraduationCap },
+    { label: 'Program Pelatihan', value: '10+', icon: BarChart3 },
     { label: 'Tingkat Kelulusan', value: '85%', icon: TrendingUp },
     { label: 'Kepuasan Peserta', value: '4.8/5', icon: Star },
   ]
@@ -116,23 +116,19 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">Garuda Academy</h1>
-                <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
+            <div className="flex items-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
+                <Image
+                  src="/logo-06.png"
+                  alt="Garuda Academy Logo"
+                  width={96}
+                  height={96}
+                  className="object-contain w-full h-full"
+                />
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/login"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Login
-              </Link>
+            <div className="flex items-center">
               <Link
                 href="/register"
                 className="btn-primary text-sm"
@@ -299,7 +295,7 @@ export default function LandingPage() {
                       <p className="text-sm text-gray-600">Program Aktif</p>
                       <p className="text-2xl font-bold text-gray-900">12</p>
                     </div>
-                    <GraduationCap className="w-10 h-10 text-blue-600" />
+                    <BarChart3 className="w-10 h-10 text-blue-600" />
                   </div>
 
                   <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
@@ -354,7 +350,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-6">
             <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div className="text-left">
               <h3 className="text-lg font-bold text-white">Garuda Academy</h3>

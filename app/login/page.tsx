@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signIn } from '@/lib/auth'
-import { GraduationCap, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -58,11 +59,17 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-600 rounded-2xl mb-4">
-            <GraduationCap className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 mb-6">
+            <Image
+              src="/logo-06.png"
+              alt="Garuda Academy Logo"
+              width={144}
+              height={144}
+              className="object-contain w-full h-full"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Garuda Academy</h1>
-          <p className="text-gray-600">GARUDA-21 Training Center - Silakan login untuk melanjutkan</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
+          <p className="text-gray-600">Silakan login untuk melanjutkan</p>
         </div>
 
         {/* Login Form */}

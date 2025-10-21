@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, 
@@ -8,7 +9,6 @@ import {
   UserCog, 
   Calendar, 
   BarChart3,
-  GraduationCap,
   X,
   Settings,
   HelpCircle,
@@ -27,7 +27,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'admin') {
     return [
       ...baseItems,
-      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['admin'] },
+      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['admin'] },
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
@@ -40,7 +40,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'manager') {
     return [
       ...baseItems,
-      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['manager'] },
+      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['manager'] },
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['manager'] },
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['manager'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['manager'] },
@@ -52,7 +52,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'user') {
     const userItems = [
       ...baseItems,
-      { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['user'] },
+      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['user'] },
       { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
     ]
 
@@ -85,13 +85,15 @@ export function Sidebar({ onClose }: SidebarProps) {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Garuda Academy</h1>
-              <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
+          <div className="flex items-center">
+            <div className="w-20 h-20 flex items-center justify-center">
+              <Image
+                src="/logo-06.png"
+                alt="Garuda Academy Logo"
+                width={80}
+                height={80}
+                className="object-contain w-full h-full"
+              />
             </div>
           </div>
           
