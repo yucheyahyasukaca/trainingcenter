@@ -895,47 +895,90 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute right-0 top-0 h-full w-full sm:w-[400px] bg-white shadow-2xl flex flex-col">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Adaptive Reading</h2>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+              <Settings className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Pengaturan Baca</h2>
+              <p className="text-sm text-gray-600">Sesuaikan pengalaman belajar Anda</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/50 transition-colors duration-200">
             <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex-1 overflow-auto p-8 space-y-8">
           {/* Tema */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Tema</h3>
-            <div className="grid grid-cols-1 gap-3">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
+              Tema Visual
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
               {[
-                { key: 'light', label: 'Terang', bgColor: '#ffffff', textColor: '#000000' },
-                { key: 'warm', label: 'Hangat (Nyaman untuk Mata)', bgColor: '#FFF8E7', textColor: '#4A3520' },
-                { key: 'dark', label: 'Gelap', bgColor: '#1f1f1f', textColor: '#ffffff' }
+                { 
+                  key: 'light', 
+                  label: 'Terang', 
+                  description: 'Tema standar yang nyaman',
+                  bgColor: '#ffffff', 
+                  textColor: '#000000',
+                  icon: '☀️',
+                  gradient: 'from-yellow-400 to-orange-500'
+                },
+                { 
+                  key: 'warm', 
+                  label: 'Hangat', 
+                  description: 'Nyaman untuk mata, mengurangi kelelahan',
+                  bgColor: '#FFF8E7', 
+                  textColor: '#4A3520',
+                  icon: '🌅',
+                  gradient: 'from-amber-400 to-yellow-500'
+                },
+                { 
+                  key: 'dark', 
+                  label: 'Gelap', 
+                  description: 'Ideal untuk membaca di malam hari',
+                  bgColor: '#1f1f1f', 
+                  textColor: '#ffffff',
+                  icon: '🌙',
+                  gradient: 'from-slate-600 to-slate-800'
+                }
               ].map((theme) => (
                 <button
                   key={theme.key}
                   onClick={() => onUpdate('theme', theme.key)}
-                  className={`relative p-4 rounded-lg border-2 transition-all ${
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${
                     settings.theme === theme.key 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg scale-[1.02]' 
+                      : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01] bg-white'
                   }`}
                 >
                   {settings.theme === theme.key && (
-                    <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
-                  )}
-                  <div className="text-center">
-                    <div 
-                      className="w-full h-8 border border-gray-200 rounded mb-2 flex items-center justify-center"
-                      style={{ backgroundColor: theme.bgColor, color: theme.textColor }}
-                    >
-                      <span className="text-sm font-medium">Belajar dengan Garuda Academy</span>
+                    <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <Check className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-xs text-gray-600">{theme.label}</span>
+                  )}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${theme.gradient} flex items-center justify-center text-2xl`}>
+                      {theme.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h4 className="text-lg font-bold text-gray-900 mb-1">{theme.label}</h4>
+                      <p className="text-sm text-gray-600 mb-3">{theme.description}</p>
+                      <div 
+                        className="w-full h-12 border border-gray-200 rounded-xl flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: theme.bgColor, color: theme.textColor }}
+                      >
+                        <span className="text-sm font-medium">Contoh teks bacaan</span>
+                      </div>
+                    </div>
                   </div>
                 </button>
               ))}
@@ -944,26 +987,63 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 
           {/* Jenis Font */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Jenis Font</h3>
-            <div className="grid grid-cols-1 gap-2">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+              Jenis Font
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
               {[
-                { key: 'default', label: 'Default' },
-                { key: 'serif', label: 'Serif' },
-                { key: 'dyslexic', label: 'Open Dyslexic' }
+                { 
+                  key: 'default', 
+                  label: 'Inter (Default)', 
+                  description: 'Font modern dan mudah dibaca',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  icon: '🔤'
+                },
+                { 
+                  key: 'serif', 
+                  label: 'Georgia (Serif)', 
+                  description: 'Font klasik untuk bacaan panjang',
+                  fontFamily: 'Georgia, "Times New Roman", serif',
+                  icon: '📚'
+                },
+                { 
+                  key: 'dyslexic', 
+                  label: 'Open Dyslexic', 
+                  description: 'Dirancang khusus untuk disleksia',
+                  fontFamily: 'OpenDyslexic, Arial, sans-serif',
+                  icon: '♿'
+                }
               ].map((font) => (
                 <button
                   key={font.key}
                   onClick={() => onUpdate('fontType', font.key)}
-                  className={`relative p-3 rounded-lg border-2 transition-all ${
+                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 group ${
                     settings.fontType === font.key 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg scale-[1.02]' 
+                      : 'border-gray-200 hover:border-green-300 hover:shadow-md hover:scale-[1.01] bg-white'
                   }`}
                 >
                   {settings.fontType === font.key && (
-                    <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    <div className="absolute top-3 right-3 w-7 h-7 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
                   )}
-                  <span className="text-sm font-medium text-gray-900">{font.label}</span>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-xl">
+                      {font.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h4 className="text-base font-bold text-gray-900 mb-1">{font.label}</h4>
+                      <p className="text-sm text-gray-600 mb-2">{font.description}</p>
+                      <div 
+                        className="text-sm font-medium text-gray-700"
+                        style={{ fontFamily: font.fontFamily }}
+                      >
+                        Contoh teks dengan font ini
+                      </div>
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -971,26 +1051,39 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 
           {/* Ukuran Font */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Ukuran Font</h3>
-            <div className="grid grid-cols-3 gap-2">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
+              Ukuran Font
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { key: 'small', label: 'Kecil' },
-                { key: 'medium', label: 'Sedang' },
-                { key: 'large', label: 'Besar' }
+                { key: 'small', label: 'Kecil', size: '14px', icon: 'A' },
+                { key: 'medium', label: 'Sedang', size: '16px', icon: 'A' },
+                { key: 'large', label: 'Besar', size: '18px', icon: 'A' }
               ].map((size) => (
                 <button
                   key={size.key}
                   onClick={() => onUpdate('fontSize', size.key)}
-                  className={`relative p-3 rounded-lg border-2 transition-all ${
+                  className={`relative p-4 rounded-2xl border-2 transition-all duration-300 group ${
                     settings.fontSize === size.key 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-red-50 shadow-lg scale-105' 
+                      : 'border-gray-200 hover:border-orange-300 hover:shadow-md hover:scale-105 bg-white'
                   }`}
                 >
                   {settings.fontSize === size.key && (
-                    <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
                   )}
-                  <span className="text-sm font-medium text-gray-900">{size.label}</span>
+                  <div className="text-center">
+                    <div 
+                      className="text-4xl font-bold text-gray-900 mb-2"
+                      style={{ fontSize: size.size }}
+                    >
+                      {size.icon}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{size.label}</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -998,31 +1091,62 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 
           {/* Lebar Bacaan */}
           <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Lebar Bacaan</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
+              Lebar Bacaan
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
               {[
-                { key: 'medium', label: 'Medium-width' },
-                { key: 'full', label: 'Full-width' }
+                { 
+                  key: 'medium', 
+                  label: 'Medium', 
+                  description: 'Lebar optimal untuk fokus',
+                  width: '60%',
+                  icon: '📖'
+                },
+                { 
+                  key: 'full', 
+                  label: 'Full-width', 
+                  description: 'Menggunakan seluruh lebar layar',
+                  width: '100%',
+                  icon: '📄'
+                }
               ].map((width) => (
                 <button
                   key={width.key}
                   onClick={() => onUpdate('readingWidth', width.key)}
-                  className={`relative p-4 rounded-lg border-2 transition-all ${
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${
                     settings.readingWidth === width.key 
-                      ? 'border-green-500 bg-green-50' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg scale-[1.02]' 
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md hover:scale-[1.01] bg-white'
                   }`}
                 >
                   {settings.readingWidth === width.key && (
-                    <Check className="absolute top-2 left-2 w-4 h-4 text-green-600" />
+                    <div className="absolute top-3 right-3 w-7 h-7 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
                   )}
                   <div className="text-center">
-                    <div className="w-full h-6 bg-gray-200 rounded mb-2"></div>
-                    <span className="text-xs text-gray-600">{width.label}</span>
+                    <div className="text-3xl mb-3">{width.icon}</div>
+                    <h4 className="text-base font-bold text-gray-900 mb-1">{width.label}</h4>
+                    <p className="text-xs text-gray-600 mb-3">{width.description}</p>
+                    <div className="w-full bg-gray-200 rounded-lg h-3 relative">
+                      <div 
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg h-3 transition-all duration-300"
+                        style={{ width: width.width }}
+                      ></div>
+                    </div>
                   </div>
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+          <div className="text-center text-sm text-gray-500">
+            Pengaturan akan disimpan otomatis
           </div>
         </div>
       </div>
