@@ -157,38 +157,59 @@ export function MyEnrollments() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Kelas Terdaftar</h3>
-        <Link 
-          href="/my-enrollments" 
-          className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center"
-        >
-          Lihat Semua
-          <ExternalLink className="w-3 h-3 ml-1" />
-        </Link>
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-gradient-to-r from-green-50 to-teal-50 px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Kelas Terdaftar</h3>
+              <p className="text-sm text-gray-600">Program yang sedang Anda ikuti</p>
+            </div>
+          </div>
+          <Link 
+            href="/my-enrollments" 
+            className="group flex items-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-green-600 hover:text-green-700 font-medium text-sm"
+          >
+            <span>Lihat Semua</span>
+            <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
       </div>
+      <div className="p-6">
 
       {loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-gray-200 rounded-lg p-4">
+            <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6">
               <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-3"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-gray-300 rounded-xl"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                  </div>
+                </div>
+                <div className="h-3 bg-gray-300 rounded w-1/4 mb-3"></div>
+                <div className="h-3 bg-gray-300 rounded w-1/3"></div>
               </div>
             </div>
           ))}
         </div>
       ) : enrollments.length === 0 ? (
-        <div className="text-center py-8">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 mb-4">Belum ada kelas terdaftar</p>
+        <div className="text-center py-12">
+          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada kelas terdaftar</h3>
+          <p className="text-gray-600 mb-6">Mulai perjalanan belajar Anda dengan mendaftar program yang menarik!</p>
           <Link 
             href="/programs" 
-            className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl hover:from-green-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
+            <BookOpen className="w-4 h-4 mr-2" />
             Lihat Program Tersedia
           </Link>
         </div>
@@ -199,46 +220,49 @@ export function MyEnrollments() {
             const StatusIcon = statusInfo.icon
 
             return (
-              <div key={enrollment.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{enrollment.program?.title}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-2">{enrollment.program?.description}</p>
+              <div key={enrollment.id} className="group bg-gradient-to-r from-white to-gray-50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-200">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-6 h-6 text-white" />
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                    <StatusIcon className="w-3 h-3 inline mr-1" />
-                    {statusInfo.label}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h4 className="font-bold text-gray-900 text-lg group-hover:text-green-600 transition-colors">{enrollment.program?.title}</h4>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}>
+                        <StatusIcon className="w-3 h-3 inline mr-1" />
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 line-clamp-2 leading-relaxed">{enrollment.program?.description}</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>Mulai: {formatDate(enrollment.program?.start_date)}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>Selesai: {formatDate(enrollment.program?.end_date)}</span>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Calendar className="w-4 h-4 text-blue-500" />
+                    <span className="font-medium">Mulai: {formatDate(enrollment.program?.start_date)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Calendar className="w-4 h-4 text-purple-500" />
+                    <span className="font-medium">Selesai: {formatDate(enrollment.program?.end_date)}</span>
                   </div>
                   {enrollment.program?.category && (
-                    <div className="flex items-center space-x-1 text-blue-600">
+                    <div className="flex items-center space-x-2 text-green-600">
                       <BookOpen className="w-4 h-4" />
-                      <span className="text-sm font-medium">{enrollment.program.category}</span>
+                      <span className="font-medium">{enrollment.program.category}</span>
                     </div>
                   )}
                 </div>
 
                 {enrollment.status === 'approved' && (
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-                      <span>Progress</span>
-                      <span>{Math.min(100, Math.max(0, enrollment.progress || 0))}%</span>
+                  <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-100">
+                    <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
+                      <span>Progress Pembelajaran</span>
+                      <span className="text-green-600">{Math.min(100, Math.max(0, enrollment.progress || 0))}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div 
-                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full transition-all duration-500 ease-out"
                         style={{ width: `${Math.min(100, Math.max(0, enrollment.progress || 0))}%` }}
                       ></div>
                     </div>
@@ -278,6 +302,7 @@ export function MyEnrollments() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

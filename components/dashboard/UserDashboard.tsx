@@ -117,96 +117,80 @@ export function UserDashboard() {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Saya</h1>
-          <p className="text-gray-600 mt-1">
-            Selamat datang, {profile?.full_name}! Kelola pembelajaran Anda
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className={`w-3 h-3 rounded-full ${
-            levelInfo.color === 'purple' ? 'bg-purple-500' :
-            levelInfo.color === 'blue' ? 'bg-blue-500' :
-            levelInfo.color === 'green' ? 'bg-green-500' : 'bg-gray-500'
-          }`}></div>
-          <span className="text-sm text-gray-600">{levelInfo.title}</span>
-        </div>
-      </div>
-
-      {/* User Level Badge */}
-      <div className={`bg-gradient-to-r ${
-        levelInfo.color === 'purple' ? 'from-purple-50 to-purple-100' :
-        levelInfo.color === 'blue' ? 'from-blue-50 to-blue-100' :
-        levelInfo.color === 'green' ? 'from-green-50 to-green-100' : 'from-gray-50 to-gray-100'
-      } rounded-xl p-6 border ${
-        levelInfo.color === 'purple' ? 'border-purple-200' :
-        levelInfo.color === 'blue' ? 'border-blue-200' :
-        levelInfo.color === 'green' ? 'border-green-200' : 'border-gray-200'
-      }`}>
-        <div className="flex items-center space-x-4">
-          <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${
-            levelInfo.color === 'purple' ? 'bg-purple-600' :
-            levelInfo.color === 'blue' ? 'bg-blue-600' :
-            levelInfo.color === 'green' ? 'bg-green-600' : 'bg-gray-600'
-          }`}>
-            <Icon className="w-8 h-8 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center space-x-3">
-              <h3 className="text-xl font-bold text-gray-900">{levelInfo.title}</h3>
-              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                levelInfo.color === 'purple' ? 'bg-purple-200 text-purple-800' :
-                levelInfo.color === 'blue' ? 'bg-blue-200 text-blue-800' :
-                levelInfo.color === 'green' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'
-              }`}>
-                {levelInfo.badge}
-              </span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100">
+      {/* Header with modern gradient */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-700 to-red-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative z-10">
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <div className="flex-1">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Dashboard Saya</h1>
+              <p className="text-red-100 text-base sm:text-lg">
+                Selamat datang kembali, <span className="font-semibold">{profile?.full_name}</span>! 👋
+              </p>
+              <p className="text-red-200 text-sm mt-1">
+                Kelola pembelajaran dan tingkatkan skill Anda
+              </p>
             </div>
-            <p className="text-gray-600 mt-1">{levelInfo.description}</p>
-            {(profile as any)?.trainer_specializations && (profile as any).trainer_specializations.length > 0 && (
-              <div className="mt-3">
-                <p className="text-sm font-medium text-gray-700 mb-2">Spesialisasi:</p>
-                <div className="flex flex-wrap gap-2">
-                  {(profile as any).trainer_specializations.map((spec: any, index: number) => (
-                    <span key={index} className="px-2 py-1 bg-white rounded-md text-sm text-gray-700">
-                      {spec}
-                    </span>
-                  ))}
-                </div>
+            <div className="flex items-center justify-center sm:justify-end">
+              <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
+                <div className={`w-4 h-4 rounded-full ${
+                  levelInfo.color === 'purple' ? 'bg-purple-400' :
+                  levelInfo.color === 'blue' ? 'bg-blue-400' :
+                  levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
+                }`}></div>
+                <span className="text-white font-medium text-sm sm:text-base">{levelInfo.title}</span>
               </div>
-            )}
+            </div>
           </div>
         </div>
+        {/* Decorative elements */}
+        <div className="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full"></div>
+        <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
       </div>
 
-      {/* User Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+      {/* User Stats - Modern Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
         {userStats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+            <div key={index} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
+              <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
+              <div className="relative z-10 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 space-y-3 sm:space-y-0">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
+                    stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                    stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                    stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                    stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
+                  }`}>
+                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
+                  </div>
                 </div>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  stat.color === 'blue' ? 'bg-blue-100' :
-                  stat.color === 'green' ? 'bg-green-100' :
-                  stat.color === 'orange' ? 'bg-orange-100' :
-                  stat.color === 'purple' ? 'bg-purple-100' : 'bg-gray-100'
-                }`}>
-                  <Icon className={`w-6 h-6 ${
-                    stat.color === 'blue' ? 'text-blue-600' :
-                    stat.color === 'green' ? 'text-green-600' :
-                    stat.color === 'orange' ? 'text-orange-600' :
-                    stat.color === 'purple' ? 'text-purple-600' : 'text-gray-600'
-                  }`} />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      stat.color === 'blue' ? 'bg-blue-500' :
+                      stat.color === 'green' ? 'bg-green-500' :
+                      stat.color === 'orange' ? 'bg-orange-500' :
+                      stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
+                    }`}></div>
+                    <span className="text-xs text-gray-500 font-medium">Aktif</span>
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {stat.title === 'Program Diikuti' ? 'Total' : 
+                     stat.title === 'Sertifikat' ? 'Earned' :
+                     stat.title === 'Program Dijadwalkan' ? 'Upcoming' : 'Completed'}
+                  </div>
                 </div>
               </div>
+              {/* Hover effect overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           )
         })}
@@ -214,17 +198,41 @@ export function UserDashboard() {
 
       {/* Quick Actions removed as requested */}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AvailablePrograms />
+      {/* Kelas Terdaftar - Full Width */}
+      <div className="space-y-6 mb-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+          <h2 className="text-2xl font-bold text-gray-900">Kelas Terdaftar</h2>
+        </div>
         <MyEnrollments />
+      </div>
+
+      {/* Program Tersedia - Full Width */}
+      <div className="space-y-6 mb-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+          <h2 className="text-2xl font-bold text-gray-900">Program Tersedia</h2>
+        </div>
+        <AvailablePrograms />
       </div>
 
       {/* Trainer Profile & Certificates */}
       {((profile as any)?.trainer_level && (profile as any).trainer_level !== 'user') && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TrainerProfile />
-          <MyCertificates />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+              <h2 className="text-2xl font-bold text-gray-900">Profil Trainer</h2>
+            </div>
+            <TrainerProfile />
+          </div>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+              <h2 className="text-2xl font-bold text-gray-900">Sertifikat Saya</h2>
+            </div>
+            <MyCertificates />
+          </div>
         </div>
       )}
     </div>
