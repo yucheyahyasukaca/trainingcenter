@@ -7,10 +7,14 @@ import { ArrowLeft, Reply, ThumbsUp, CheckCircle, Pin, Lock, Send, MessageCircle
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
+import { ConfirmDialog, useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export default function ThreadDetailPage({ params }: { params: { id: string, threadId: string } }) {
   const router = useRouter()
   const { profile } = useAuth()
+  const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
+  const { dialog: confirmDialog, confirm: confirmAction, close: closeConfirm } = useConfirmDialog()
   const [thread, setThread] = useState<any>(null)
   const [replies, setReplies] = useState<any[]>([])
   const [userProfiles, setUserProfiles] = useState<Record<string, any>>({})
@@ -234,10 +238,19 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   async function deleteThread() {
     if (!thread) return
     if (profile?.id !== thread.author_id) {
-      alert('Anda tidak memiliki izin untuk menghapus thread ini.')
+      error('Akses Ditolak', 'Anda tidak memiliki izin untuk menghapus thread ini.')
       return
     }
-    if (!confirm('Hapus thread ini beserta semua balasan?')) return
+    
+    const confirmed = await confirmAction(
+      'Hapus Thread',
+      'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
+      'danger',
+      'Hapus',
+      'Batal'
+    )
+    
+    if (!confirmed) return
     try {
       setDeleting(true)
       // Delete replies first to avoid FK issues
@@ -247,9 +260,13 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       // Delete the thread
       const { error } = await (supabase as any).from('forum_threads').delete().eq('id', params.threadId)
       if (error) throw error
-      router.push(`/programs/${params.id}/forum`)
+      
+      success('Thread Berhasil Dihapus', 'Thread telah dihapus dari forum', 2000)
+      setTimeout(() => {
+        router.push(`/programs/${params.id}/forum`)
+      }, 1000)
     } catch (err: any) {
-      alert(err?.message || 'Gagal menghapus thread')
+      error('Error', err?.message || 'Gagal menghapus thread')
     } finally {
       setDeleting(false)
     }
@@ -304,10 +321,12 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       setReplyAttachment(null)
       setReplyAttachmentPreview(null)
       setReplyingTo(null)
+      
+      forum('Reply Berhasil Ditambahkan!', 'Balasan Anda telah dipublikasikan', 3000)
       fetchData()
     } catch (error: any) {
       console.error('Error submitting reply:', error)
-      alert(`Gagal mengirim balasan: ${error?.message || 'Unknown error'}`)
+      error('Error', `Gagal mengirim balasan: ${error?.message || 'Unknown error'}`)
     } finally {
       setSubmitting(false)
     }
@@ -414,7 +433,20 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+      />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-6">
       {errorMessage && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
@@ -675,6 +707,8 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   )
 }

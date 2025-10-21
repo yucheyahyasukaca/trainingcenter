@@ -388,14 +388,6 @@ export default function MyEnrollmentsPage() {
                         <ChevronRight className="w-4 h-4 ml-2 opacity-80 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
                       
-                      <Link
-                        href={`/programs/${enrollment.program?.id}/forum`}
-                        className="group w-full px-4 py-3 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors text-center flex items-center justify-center"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        <span>Forum Diskusi</span>
-                        <ChevronRight className="w-4 h-4 ml-2 opacity-80 group-hover:translate-x-0.5 transition-transform" />
-                      </Link>
 
                       {enrollment.program?.whatsapp_group_url && (
                         <a

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, MessageCircle, Pin, Lock, Eye, Reply, Upload, X, FileText, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Plus, MessageCircle, Pin, Lock, Eye, Reply, Upload, X, FileText, Image as ImageIcon, Paperclip } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -250,7 +250,7 @@ export default function ClassForumPage({
         {/* Header */}
         <div className="mb-8">
           <Link 
-            href={`/programs/${params.id}/classes/${params.classId}`}
+            href={`/programs/${params.id}/classes`}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-700 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -525,6 +525,12 @@ export default function ClassForumPage({
                           <Reply className="h-4 w-4 mr-1" />
                           {thread.reply_count}
                         </span>
+                        {thread.attachment_url && (
+                          <span className="flex items-center bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
+                            <Paperclip className="h-4 w-4 mr-1" />
+                            File
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

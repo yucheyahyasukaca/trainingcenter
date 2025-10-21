@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send, Pin, Lock, Eye, ThumbsUp, MoreVertical, Trash2, Edit2 } from 'lucide-react'
+import { ArrowLeft, Send, Pin, Lock, Eye, ThumbsUp, MoreVertical, Trash2, Edit2, FileText, Image as ImageIcon, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
+import { ConfirmDialog, useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface ThreadData {
   id: string
@@ -40,6 +41,7 @@ export default function ThreadDetailPage({
   const router = useRouter()
   const { profile } = useAuth()
   const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
+  const { dialog: confirmDialog, confirm: confirmAction, close: closeConfirm } = useConfirmDialog()
   
   const [classData, setClassData] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
@@ -53,6 +55,9 @@ export default function ThreadDetailPage({
   const [replyContent, setReplyContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [attachment, setAttachment] = useState<File | null>(null)
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null)
+  const [openAttachment, setOpenAttachment] = useState<string | null>(null)
   
   useEffect(() => {
     fetchData()
@@ -171,13 +176,35 @@ export default function ThreadDetailPage({
     try {
       setSubmitting(true)
 
+      let attachmentUrl = null
+
+      // Upload attachment if exists
+      if (attachment) {
+        const fileExt = attachment.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+        const filePath = `forum-attachments/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('public')
+          .upload(filePath, attachment)
+
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('public')
+          .getPublicUrl(filePath)
+
+        attachmentUrl = publicUrl
+      }
+
       const { error: replyError } = await supabase
         .from('forum_replies')
         .insert({
           thread_id: params.threadId,
           author_id: profile.id,
           content: replyContent.trim(),
-          parent_reply_id: replyingTo
+          parent_reply_id: replyingTo,
+          attachment_url: attachmentUrl
         })
 
       if (replyError) throw replyError
@@ -185,6 +212,8 @@ export default function ThreadDetailPage({
       // Reset form
       setReplyContent('')
       setReplyingTo(null)
+      setAttachment(null)
+      setAttachmentPreview(null)
 
       // Refresh data
       await fetchData()
@@ -199,9 +228,15 @@ export default function ThreadDetailPage({
   }
 
   async function handleDeleteThread() {
-    if (!confirm('Apakah Anda yakin ingin menghapus thread ini?')) {
-      return
-    }
+    const confirmed = await confirmAction(
+      'Hapus Thread',
+      'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
+      'danger',
+      'Hapus',
+      'Batal'
+    )
+    
+    if (!confirmed) return
 
     try {
       const { error } = await supabase
@@ -222,9 +257,15 @@ export default function ThreadDetailPage({
   }
 
   async function handleDeleteReply(replyId: string) {
-    if (!confirm('Apakah Anda yakin ingin menghapus reply ini?')) {
-      return
-    }
+    const confirmed = await confirmAction(
+      'Hapus Balasan',
+      'Apakah Anda yakin ingin menghapus balasan ini?',
+      'warning',
+      'Hapus',
+      'Batal'
+    )
+    
+    if (!confirmed) return
 
     try {
       const { error } = await supabase
@@ -274,7 +315,7 @@ export default function ThreadDetailPage({
               Kembali ke Forum
             </Link>
             <Link 
-              href={`/programs/${params.id}/classes/${params.classId}`} 
+              href={`/programs/${params.id}/classes`} 
               className="block text-sm text-gray-500 hover:text-gray-700"
             >
               Kembali ke Kelas
@@ -293,6 +334,16 @@ export default function ThreadDetailPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -367,6 +418,37 @@ export default function ThreadDetailPage({
             {/* Thread Content */}
             <div className="prose max-w-none text-gray-700">
               <p className="whitespace-pre-wrap">{thread.content}</p>
+              
+              {/* Thread Attachment */}
+              {thread.attachment_url && (
+                <div className="mt-4">
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Lampiran:</h4>
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <button
+                        onClick={() => window.open(thread.attachment_url, '_blank')}
+                        className="text-indigo-600 hover:text-indigo-700 text-sm underline"
+                      >
+                        {thread.attachment_url.split('/').pop()}
+                      </button>
+                    </div>
+                    
+                    {/* Image Preview */}
+                    {thread.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                      <div className="mt-3">
+                        <img
+                          src={thread.attachment_url}
+                          alt="Lampiran thread"
+                          className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setOpenAttachment(thread.attachment_url)}
+                          style={{ maxHeight: '300px' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -424,7 +506,38 @@ export default function ThreadDetailPage({
                         </button>
                       )}
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{reply.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-3">{reply.content}</p>
+                    
+                    {/* Reply Attachment */}
+                    {reply.attachment_url && (
+                      <div className="mt-3">
+                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          <h5 className="text-xs font-medium text-gray-700 mb-2">Lampiran:</h5>
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-3 w-3 text-gray-500" />
+                            <button
+                              onClick={() => window.open(reply.attachment_url, '_blank')}
+                              className="text-indigo-600 hover:text-indigo-700 text-xs underline"
+                            >
+                              {reply.attachment_url.split('/').pop()}
+                            </button>
+                          </div>
+                          
+                          {/* Image Preview */}
+                          {reply.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                            <div className="mt-2">
+                              <img
+                                src={reply.attachment_url}
+                                alt="Lampiran balasan"
+                                className="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => setOpenAttachment(reply.attachment_url)}
+                                style={{ maxHeight: '200px' }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -462,6 +575,67 @@ export default function ThreadDetailPage({
                     rows={4}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4 resize-none"
                   />
+                  
+                  {/* Attachment Upload */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lampiran (Opsional)
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setAttachment(file)
+                            const reader = new FileReader()
+                            reader.onload = (e) => setAttachmentPreview(e.target?.result as string)
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                        accept="image/*,.pdf,.doc,.docx,.txt"
+                        className="hidden"
+                        id="attachment-upload"
+                      />
+                      <label
+                        htmlFor="attachment-upload"
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+                      >
+                        <ImageIcon className="h-4 w-4 mr-2" />
+                        Pilih File
+                      </label>
+                      {attachment && (
+                        <button
+                          onClick={() => {
+                            setAttachment(null)
+                            setAttachmentPreview(null)
+                          }}
+                          className="text-red-600 hover:text-red-700 text-sm"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Attachment Preview */}
+                    {attachmentPreview && attachment?.type.startsWith('image/') && (
+                      <div className="mt-2">
+                        <img
+                          src={attachmentPreview}
+                          alt="Preview"
+                          className="max-w-full h-auto rounded border border-gray-200"
+                          style={{ maxHeight: '200px' }}
+                        />
+                      </div>
+                    )}
+                    
+                    {attachment && !attachment.type.startsWith('image/') && (
+                      <div className="mt-2 flex items-center space-x-2 text-sm text-gray-600">
+                        <FileText className="h-4 w-4" />
+                        <span>{attachment.name}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-end">
                     <button
                       onClick={handleSubmitReply}
@@ -487,6 +661,25 @@ export default function ThreadDetailPage({
           </div>
         </div>
       </div>
+      
+      {/* Image Preview Modal */}
+      {openAttachment && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-75">
+          <div className="relative max-w-4xl max-h-full p-4">
+            <button
+              onClick={() => setOpenAttachment(null)}
+              className="absolute top-2 right-2 text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img
+              src={openAttachment}
+              alt="Preview"
+              className="max-w-full max-h-full rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
