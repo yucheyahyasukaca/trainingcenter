@@ -76,6 +76,8 @@ export default function MyEnrollmentsPage() {
       }
 
       // Then fetch enrollments for this participant
+      console.log('Fetching enrollments for participant ID:', (participant as any).id)
+      
       const { data, error } = await supabase
         .from('enrollments')
         .select(`
@@ -107,6 +109,7 @@ export default function MyEnrollmentsPage() {
       }
 
       console.log('Raw enrollments from database:', data)
+      console.log('Number of enrollments found:', data?.length || 0)
       
       // Filter out sample/test enrollments that might have been created by setup scripts
       const validEnrollments = (data || []).filter((enrollment: any) => {
@@ -124,12 +127,18 @@ export default function MyEnrollmentsPage() {
         
         // Skip enrollments that were created very recently (within last 5 minutes) 
         // and have approved status - likely sample data
+        // BUT only if they are not free programs (free programs should auto-approve immediately)
         const enrollmentTime = new Date(enrollment.created_at)
         const now = new Date()
         const timeDiff = now.getTime() - enrollmentTime.getTime()
         const minutesDiff = timeDiff / (1000 * 60)
         
         if (enrollment.status === 'approved' && minutesDiff < 5) {
+          // Check if this is a free program - if so, don't filter it out
+          if (enrollment.program && enrollment.program.price === 0) {
+            console.log('Keeping recent approved enrollment for free program:', enrollment)
+            return true
+          }
           console.log('Filtering out recent approved enrollment (likely sample):', enrollment)
           return false
         }
@@ -138,6 +147,7 @@ export default function MyEnrollmentsPage() {
       })
       
       console.log('Valid enrollments after filtering:', validEnrollments)
+      console.log('Number of valid enrollments:', validEnrollments.length)
       
       // Additional check: if this is a new user and they have enrollments, 
       // but all enrollments are very recent (within 1 hour), they might be sample data
@@ -158,14 +168,23 @@ export default function MyEnrollmentsPage() {
       let finalEnrollments = validEnrollments
       
       // For new users, be very aggressive about filtering
+      // BUT keep free program enrollments as they should be immediately visible
       if (participant && participant.created_at) {
         const participantTime = new Date(participant.created_at)
         if (participantTime > oneHourAgo) {
           console.log('New participant detected - filtering out all enrollments as likely sample data')
-          finalEnrollments = []
+          // Keep only free program enrollments for new users
+          finalEnrollments = validEnrollments.filter((enrollment: any) => 
+            enrollment.program && enrollment.program.price === 0
+          )
+          console.log('Kept free program enrollments for new user:', finalEnrollments)
         } else if (hasRecentEnrollments && !hasOldEnrollments) {
           console.log('Filtering out all recent enrollments for participant with no old enrollments (likely all sample data)')
-          finalEnrollments = []
+          // Keep only free program enrollments
+          finalEnrollments = validEnrollments.filter((enrollment: any) => 
+            enrollment.program && enrollment.program.price === 0
+          )
+          console.log('Kept free program enrollments:', finalEnrollments)
         }
       }
       

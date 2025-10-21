@@ -91,6 +91,8 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           return
         }
 
+        console.log('Checking enrollment for participant:', participant.id, 'program:', params.id)
+        
         const { data: enrollmentData, error: enrollmentError } = await supabase
           .from('enrollments')
           .select(`
@@ -102,10 +104,55 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           .eq('status', 'approved')
           .maybeSingle()
 
+        console.log('Enrollment query result:', { enrollmentData, enrollmentError })
+
         if (enrollmentError && enrollmentError.code !== 'PGRST116') {
           console.error('Enrollment error:', enrollmentError)
           setEnrollment(null)
           return
+        }
+
+        // If no approved enrollment found, check for any enrollment (including pending)
+        if (!enrollmentData) {
+          console.log('No approved enrollment found, checking for any enrollment...')
+          const { data: anyEnrollmentData, error: anyEnrollmentError } = await supabase
+            .from('enrollments')
+            .select(`
+              *,
+              class:classes(*)
+            `)
+            .eq('participant_id', participant.id)
+            .eq('program_id', params.id)
+            .maybeSingle()
+
+          console.log('Any enrollment query result:', { anyEnrollmentData, anyEnrollmentError })
+          
+          if (anyEnrollmentData) {
+            console.log('Found enrollment with status:', anyEnrollmentData.status)
+            // For free programs, if enrollment exists but not approved, manually approve it
+            if (anyEnrollmentData.status === 'pending' && programData.price === 0) {
+              console.log('Free program with pending enrollment - manually approving...')
+              
+              // Manually update the enrollment to approved
+              const { error: updateError } = await supabase
+                .from('enrollments')
+                .update({ 
+                  status: 'approved', 
+                  payment_status: 'paid',
+                  amount_paid: 0
+                })
+                .eq('id', anyEnrollmentData.id)
+
+              if (updateError) {
+                console.error('Error updating enrollment:', updateError)
+              } else {
+                console.log('Enrollment manually approved')
+                // Set the enrollment as approved for immediate access
+                setEnrollment({ ...anyEnrollmentData, status: 'approved', payment_status: 'paid' })
+                return
+              }
+            }
+          }
         }
 
         setEnrollment(enrollmentData)

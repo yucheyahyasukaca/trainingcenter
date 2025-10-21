@@ -199,6 +199,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       console.log('Creating enrollment with data:', enrollmentData)
+      console.log('Program price:', program.price, 'Is free:', program.price === 0)
 
       const { data: enrollmentResult, error: enrollError } = await (supabase as any)
         .from('enrollments')
@@ -211,6 +212,18 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       console.log('Enrollment created successfully:', enrollmentResult)
+      
+      // Verify the enrollment was created with correct status
+      if (enrollmentResult && enrollmentResult.length > 0) {
+        const createdEnrollment = enrollmentResult[0]
+        console.log('Created enrollment status:', createdEnrollment.status)
+        console.log('Created enrollment payment_status:', createdEnrollment.payment_status)
+        
+        // If it's a free program but enrollment is not approved, there might be an issue
+        if (program.price === 0 && createdEnrollment.status !== 'approved') {
+          console.warn('Free program enrollment was not auto-approved! Status:', createdEnrollment.status)
+        }
+      }
 
       // Show success notification
       addNotification({
@@ -222,11 +235,16 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         duration: 6000
       })
 
-      // Redirect via pendaftaran saya dulu untuk memastikan status konsisten,
-      // lalu otomatis kembali ke daftar program.
+      // Redirect based on program type
       setTimeout(() => {
-        const returnUrl = `/programs`
-        router.push(`/my-enrollments?return=${encodeURIComponent(returnUrl)}`)
+        if (program.price === 0) {
+          // For free programs, redirect directly to classes
+          router.push(`/programs/${program.id}/classes`)
+        } else {
+          // For paid programs, redirect to my enrollments
+          const returnUrl = `/programs`
+          router.push(`/my-enrollments?return=${encodeURIComponent(returnUrl)}`)
+        }
       }, 1200)
     } catch (error: any) {
       console.error('Error enrolling:', error)
