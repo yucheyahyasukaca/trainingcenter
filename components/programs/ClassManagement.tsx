@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ClassWithTrainers, ClassInsert, ClassTrainerInsert, Trainer } from '@/types'
-import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
 
 interface ClassManagementProps {

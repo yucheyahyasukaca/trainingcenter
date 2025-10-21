@@ -14,19 +14,28 @@ export default function ClassContentManagementPage({
   params: { id: string; classId: string } 
 }) {
   const router = useRouter()
-  const { profile } = useAuth()
+  const { profile, loading: authLoading } = useAuth()
   const [classData, setClassData] = useState<any>(null)
   const [programData, setProgramData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasAccess, setHasAccess] = useState(false)
 
   useEffect(() => {
-    checkAccessAndFetchData()
-  }, [params.id, params.classId, profile])
+    // Wait for auth to finish loading
+    if (!authLoading) {
+      checkAccessAndFetchData()
+    }
+  }, [params.id, params.classId, profile, authLoading])
 
   async function checkAccessAndFetchData() {
-    if (!profile) {
+    // If auth is done loading and still no profile, redirect to login
+    if (!authLoading && !profile) {
       router.push('/login')
+      return
+    }
+    
+    // If still loading auth, don't proceed
+    if (authLoading || !profile) {
       return
     }
 
@@ -99,7 +108,7 @@ export default function ClassContentManagementPage({
     }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
