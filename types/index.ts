@@ -8,6 +8,10 @@ export type Program = Database['public']['Tables']['programs']['Row']
 export type ProgramInsert = Database['public']['Tables']['programs']['Insert']
 export type ProgramUpdate = Database['public']['Tables']['programs']['Update']
 
+export type ProgramCategory = Database['public']['Tables']['program_categories']['Row']
+export type ProgramCategoryInsert = Database['public']['Tables']['program_categories']['Insert']
+export type ProgramCategoryUpdate = Database['public']['Tables']['program_categories']['Update']
+
 export type Participant = Database['public']['Tables']['participants']['Row']
 export type ParticipantInsert = Database['public']['Tables']['participants']['Insert']
 export type ParticipantUpdate = Database['public']['Tables']['participants']['Update']

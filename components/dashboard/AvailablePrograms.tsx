@@ -372,7 +372,12 @@ export function AvailablePrograms() {
                 <div className="flex items-center space-x-4 lg:min-w-[300px]">
                   <div className="text-right">
                     <p className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">{formatCurrency(program.price)}</p>
-                    <p className="text-xs text-gray-500 mt-1">Mulai {formatDate(program.start_date)}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {program.registration_type === 'lifetime' 
+                        ? 'Pendaftaran Lifetime' 
+                        : `Mulai ${formatDate(program.registration_start_date)}`
+                      }
+                    </p>
                   </div>
                   <div className="flex-shrink-0">
                     {(() => {
@@ -439,12 +444,19 @@ export function AvailablePrograms() {
               <div className="flex flex-wrap items-center gap-4 text-sm mb-4">
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Calendar className="w-4 h-4 text-red-500" />
-                  <span className="font-medium">{formatDate(program.start_date)}</span>
+                  <span className="font-medium">
+                    {program.registration_type === 'lifetime' 
+                      ? 'Lifetime' 
+                      : `${formatDate(program.registration_start_date)} - ${formatDate(program.registration_end_date)}`
+                    }
+                  </span>
                 </div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Users className="w-4 h-4 text-green-500" />
-                  <span className="font-medium">{program.max_participants} peserta</span>
-                </div>
+                {program.max_participants && (
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Users className="w-4 h-4 text-green-500" />
+                    <span className="font-medium">{program.max_participants} peserta</span>
+                  </div>
+                )}
                 {program.classes && program.classes.length > 0 && (
                   <div className="flex items-center space-x-2 text-gray-600">
                     <BookOpen className="w-4 h-4 text-purple-500" />

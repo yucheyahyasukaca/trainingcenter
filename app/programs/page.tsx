@@ -563,12 +563,19 @@ export default function ProgramsPage() {
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                      <span>{formatDate(program.start_date)} - {formatDate(program.end_date)}</span>
+                      <span>
+                        {program.registration_type === 'lifetime' 
+                          ? 'Lifetime' 
+                          : `${formatDate(program.registration_start_date)} - ${formatDate(program.registration_end_date)}`
+                        }
+                      </span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2 text-red-500" />
-                      <span>Max {program.max_participants} peserta</span>
-                    </div>
+                    {program.max_participants && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="w-4 h-4 mr-2 text-red-500" />
+                        <span>Max {program.max_participants} peserta</span>
+                      </div>
+                    )}
                     {program.classes && program.classes.length > 0 && (
                       <div className="flex items-center text-sm text-gray-600">
                         <BookOpen className="w-4 h-4 mr-2 text-red-500" />

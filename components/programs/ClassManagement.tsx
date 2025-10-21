@@ -25,13 +25,15 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
     description: '',
     start_date: '',
     end_date: '',
-    start_time: '',
-    end_time: '',
-    max_participants: 10,
-    location: '',
-    room: '',
+    start_time: null,
+    end_time: null,
+    max_participants: undefined,
+    location: null,
+    room: null,
     status: 'scheduled'
   })
+  const [participantLimitType, setParticipantLimitType] = useState<'unlimited' | 'limited'>('unlimited')
+  const [participantLimit, setParticipantLimit] = useState(100)
   const [selectedTrainers, setSelectedTrainers] = useState<string[]>([])
   const [primaryTrainer, setPrimaryTrainer] = useState('')
 
@@ -105,12 +107,22 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
     setLoading(true)
 
     try {
-      console.log('🔄 Adding new class:', newClass)
+      // Prepare class data with correct max_participants
+      const classData = {
+        ...newClass,
+        max_participants: participantLimitType === 'unlimited' ? undefined : participantLimit,
+        start_time: null,
+        end_time: null,
+        location: null,
+        room: null
+      }
+      
+      console.log('🔄 Adding new class:', classData)
       
       // Insert class
-      const { data: classData, error: classError } = await (supabase as any)
+      const { data: insertedClass, error: classError } = await (supabase as any)
         .from('classes')
-        .insert([newClass])
+        .insert([classData])
         .select()
 
       if (classError) {
@@ -118,9 +130,9 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         throw classError
       }
 
-      console.log('✅ Class inserted successfully:', classData)
+      console.log('✅ Class inserted successfully:', insertedClass)
 
-      const classId = classData[0].id
+      const classId = insertedClass[0].id
 
       // Insert class trainers
       if (selectedTrainers.length > 0) {
@@ -154,13 +166,15 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         description: '',
         start_date: '',
         end_date: '',
-        start_time: '',
-        end_time: '',
-        max_participants: 10,
-        location: '',
-        room: '',
-        status: 'active'
+        start_time: null,
+        end_time: null,
+        max_participants: undefined,
+        location: null,
+        room: null,
+        status: 'scheduled'
       })
+      setParticipantLimitType('unlimited')
+      setParticipantLimit(100)
       setSelectedTrainers([])
       setPrimaryTrainer('')
       setShowAddModal(false)
@@ -201,7 +215,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
       if (!editingClass.start_date || !editingClass.end_date) {
         throw new Error('Tanggal mulai dan selesai harus diisi')
       }
-      if (editingClass.max_participants < 1) {
+      if (editingClass.max_participants !== undefined && editingClass.max_participants !== null && editingClass.max_participants < 1) {
         throw new Error('Maksimal peserta harus lebih dari 0')
       }
       
@@ -211,11 +225,11 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         description: editingClass.description?.trim() || null,
         start_date: editingClass.start_date,
         end_date: editingClass.end_date,
-        start_time: editingClass.start_time || null,
-        end_time: editingClass.end_time || null,
+        start_time: null,
+        end_time: null,
         max_participants: editingClass.max_participants,
-        location: editingClass.location?.trim() || null,
-        room: editingClass.room?.trim() || null,
+        location: null,
+        room: null,
         status: editingClass.status === 'active' ? 'scheduled' : editingClass.status
       }
       
@@ -410,29 +424,13 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   <Calendar className="w-4 h-4 mr-2" />
                   <span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Clock className="w-4 h-4 mr-2" />
-                  <span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span>
-                </div>
-                {classItem.location && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span>{classItem.location}</span>
-                  </div>
-                )}
-                {classItem.room && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>Ruang {classItem.room}</span>
-                  </div>
-                )}
               </div>
 
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600">Peserta</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {classItem.current_participants} / {classItem.max_participants}
+                    {classItem.current_participants} / {classItem.max_participants || 'Unlimited'}
                   </span>
                 </div>
                 
@@ -481,27 +479,70 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Tambah Kelas Baru</h3>
             <form onSubmit={handleAddClass} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Kelas</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.name}
-                    onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Maksimal Peserta</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.max_participants}
-                    onChange={(e) => setNewClass({ ...newClass, max_participants: parseInt(e.target.value) })}
-                    min="1"
-                    required
-                  />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Kelas</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  value={newClass.name}
+                  onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maksimal Peserta</label>
+                <div className="space-y-3">
+                  <div className="flex space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="participantLimitType"
+                        value="unlimited"
+                        checked={participantLimitType === 'unlimited'}
+                        onChange={(e) => {
+                          setParticipantLimitType(e.target.value as 'unlimited')
+                          setNewClass({ ...newClass, max_participants: undefined })
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Unlimited</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="participantLimitType"
+                        value="limited"
+                        checked={participantLimitType === 'limited'}
+                        onChange={(e) => {
+                          setParticipantLimitType(e.target.value as 'limited')
+                          setNewClass({ ...newClass, max_participants: participantLimit })
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Kuota</span>
+                    </label>
+                  </div>
+                  
+                  {participantLimitType === 'limited' && (
+                    <div>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        value={participantLimit}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1
+                          setParticipantLimit(value)
+                          setNewClass({ ...newClass, max_participants: value })
+                        }}
+                        min="1"
+                        placeholder="Masukkan jumlah maksimal peserta"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Hanya {participantLimit} peserta yang bisa bergabung
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -534,50 +575,6 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                     value={newClass.end_date}
                     onChange={(e) => setNewClass({ ...newClass, end_date: e.target.value })}
                     required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jam Mulai</label>
-                  <input
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.start_time || ''}
-                    onChange={(e) => setNewClass({ ...newClass, start_time: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jam Selesai</label>
-                  <input
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.end_time || ''}
-                    onChange={(e) => setNewClass({ ...newClass, end_time: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.location || ''}
-                    onChange={(e) => setNewClass({ ...newClass, location: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ruang</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={newClass.room || ''}
-                    onChange={(e) => setNewClass({ ...newClass, room: e.target.value })}
                   />
                 </div>
               </div>
@@ -618,27 +615,60 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-6">Edit Kelas</h3>
             <form onSubmit={handleUpdateClass} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama Kelas</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.name}
-                    onChange={(e) => setEditingClass({ ...editingClass, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Maksimal Peserta</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.max_participants}
-                    onChange={(e) => setEditingClass({ ...editingClass, max_participants: parseInt(e.target.value) })}
-                    min="1"
-                    required
-                  />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Kelas</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  value={editingClass.name}
+                  onChange={(e) => setEditingClass({ ...editingClass, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maksimal Peserta</label>
+                <div className="space-y-3">
+                  <div className="flex space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="editParticipantLimitType"
+                        value="unlimited"
+                        checked={editingClass.max_participants === undefined || editingClass.max_participants === null}
+                        onChange={() => setEditingClass({ ...editingClass, max_participants: undefined as any })}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Unlimited</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="editParticipantLimitType"
+                        value="limited"
+                        checked={editingClass.max_participants !== undefined && editingClass.max_participants !== null}
+                        onChange={() => setEditingClass({ ...editingClass, max_participants: editingClass.max_participants || 100 })}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Kuota</span>
+                    </label>
+                  </div>
+                  
+                  {editingClass.max_participants !== undefined && editingClass.max_participants !== null && (
+                    <div>
+                      <input
+                        type="number"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        value={editingClass.max_participants}
+                        onChange={(e) => setEditingClass({ ...editingClass, max_participants: parseInt(e.target.value) || 1 })}
+                        min="1"
+                        placeholder="Masukkan jumlah maksimal peserta"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Hanya {editingClass.max_participants} peserta yang bisa bergabung
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -675,49 +705,6 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jam Mulai</label>
-                  <input
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.start_time || ''}
-                    onChange={(e) => setEditingClass({ ...editingClass, start_time: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jam Selesai</label>
-                  <input
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.end_time || ''}
-                    onChange={(e) => setEditingClass({ ...editingClass, end_time: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.location || ''}
-                    onChange={(e) => setEditingClass({ ...editingClass, location: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ruang</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    value={editingClass.room || ''}
-                    onChange={(e) => setEditingClass({ ...editingClass, room: e.target.value })}
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>

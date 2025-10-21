@@ -5,70 +5,55 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { Trainer } from '@/types'
+import { useToastContext } from '@/components/ToastProvider'
+import CategorySelector from '@/components/programs/CategorySelector'
 
 export default function EditProgramPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { success, error } = useToastContext()
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
-  const [trainers, setTrainers] = useState<Trainer[]>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    duration_days: 1,
-    max_participants: 20,
+    price_type: 'gratis' as 'gratis' | 'berbayar',
     price: 0,
     status: 'draft' as 'draft' | 'published' | 'archived',
-    start_date: '',
-    end_date: '',
-    trainer_id: '',
+    registration_type: 'lifetime' as 'lifetime' | 'limited',
+    registration_start_date: '',
+    registration_end_date: '',
+    program_type: 'regular' as 'tot' | 'regular',
   })
 
   useEffect(() => {
-    fetchTrainers()
     fetchProgram()
   }, [])
 
-  async function fetchTrainers() {
-    try {
-      const { data, error } = await supabase
-        .from('trainers')
-        .select('*')
-        .eq('status', 'active')
-        .order('name')
-
-      if (error) throw error
-      setTrainers(data || [])
-    } catch (error) {
-      console.error('Error fetching trainers:', error)
-    }
-  }
-
   async function fetchProgram() {
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('programs')
         .select('*')
         .eq('id', params.id)
         .single()
 
-      if (error) throw error
+      if (fetchError) throw fetchError
 
       setFormData({
         title: data.title || '',
         description: data.description || '',
         category: data.category || '',
-        duration_days: data.duration_days || 1,
-        max_participants: data.max_participants || 20,
+        price_type: data.is_free || data.price === 0 ? 'gratis' : 'berbayar',
         price: data.price || 0,
         status: data.status || 'draft',
-        start_date: data.start_date ? data.start_date.split('T')[0] : '',
-        end_date: data.end_date ? data.end_date.split('T')[0] : '',
-        trainer_id: data.trainer_id || '',
+        registration_type: data.registration_type || 'lifetime',
+        registration_start_date: data.registration_start_date ? data.registration_start_date.split('T')[0] : '',
+        registration_end_date: data.registration_end_date ? data.registration_end_date.split('T')[0] : '',
+        program_type: data.program_type || 'regular',
       })
-    } catch (error) {
-      console.error('Error fetching program:', error)
+    } catch (err) {
+      console.error('Error fetching program:', err)
       router.push('/programs')
     } finally {
       setFetching(false)
@@ -80,29 +65,49 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
     setLoading(true)
 
     try {
-      const { error } = await supabase
+      // Validate registration dates for limited type
+      if (formData.registration_type === 'limited') {
+        if (!formData.registration_start_date || !formData.registration_end_date) {
+          error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
+          setLoading(false)
+          return
+        }
+
+        const regStart = new Date(formData.registration_start_date)
+        const regEnd = new Date(formData.registration_end_date)
+        
+        if (regEnd < regStart) {
+          error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
+          setLoading(false)
+          return
+        }
+      }
+
+      const { error: updateError } = await supabase
         .from('programs')
         .update({
           title: formData.title.trim(),
           description: formData.description.trim(),
           category: formData.category.trim(),
-          duration_days: formData.duration_days,
-          max_participants: formData.max_participants,
-          price: formData.price,
+          price: formData.price_type === 'gratis' ? 0 : formData.price,
+          is_free: formData.price_type === 'gratis',
           status: formData.status,
-          start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
-          end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
-          trainer_id: formData.trainer_id || null,
+          registration_type: formData.registration_type,
+          registration_start_date: formData.registration_type === 'limited' ? new Date(formData.registration_start_date).toISOString() : null,
+          registration_end_date: formData.registration_type === 'limited' ? new Date(formData.registration_end_date).toISOString() : null,
+          program_type: formData.program_type,
+          auto_approved: formData.price_type === 'gratis',
           updated_at: new Date().toISOString(),
         })
         .eq('id', params.id)
 
-      if (error) throw error
+      if (updateError) throw updateError
 
+      success('Program berhasil diupdate!', 'Berhasil')
       router.push('/programs')
-    } catch (error) {
-      console.error('Error updating program:', error)
-      alert('Gagal mengupdate program')
+    } catch (err: any) {
+      console.error('Error updating program:', err)
+      error('Gagal mengupdate program: ' + err.message, 'Error')
     } finally {
       setLoading(false)
     }
@@ -144,6 +149,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
 
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
+          {/* Judul Program */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Judul Program <span className="text-red-500">*</span>
@@ -158,6 +164,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
             />
           </div>
 
+          {/* Deskripsi */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Deskripsi <span className="text-red-500">*</span>
@@ -172,92 +179,146 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Kategori <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Contoh: Technology, Business"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Durasi (hari) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.duration_days}
-                onChange={(e) => setFormData({ ...formData, duration_days: parseInt(e.target.value) || 1 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
+          {/* Kategori */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Kategori <span className="text-red-500">*</span>
+            </label>
+            <CategorySelector
+              value={formData.category}
+              onChange={(category) => setFormData({ ...formData, category })}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tipe Harga */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Max Peserta <span className="text-red-500">*</span>
+                Tipe Harga <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.max_participants}
-                onChange={(e) => setFormData({ ...formData, max_participants: parseInt(e.target.value) || 1 })}
+              <select
+                value={formData.price_type}
+                onChange={(e) => {
+                  const newPriceType = e.target.value as 'gratis' | 'berbayar'
+                  setFormData({
+                    ...formData,
+                    price_type: newPriceType,
+                    price: newPriceType === 'gratis' ? 0 : formData.price
+                  })
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
+              >
+                <option value="gratis">Gratis (Otomatis Aktif)</option>
+                <option value="berbayar">Berbayar</option>
+              </select>
             </div>
 
+            {/* Harga (hanya jika berbayar) */}
+            {formData.price_type === 'berbayar' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Harga (IDR) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            )}
+
+            {/* Tipe Program */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Harga (IDR) <span className="text-red-500">*</span>
+                Tipe Program <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                required
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+              <select
+                value={formData.program_type}
+                onChange={(e) => setFormData({ ...formData, program_type: e.target.value as 'tot' | 'regular' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
+              >
+                <option value="regular">Regular</option>
+                <option value="tot">TOT (Training of Trainers)</option>
+              </select>
+              {formData.program_type === 'tot' && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Peserta yang lulus akan otomatis menjadi Trainer Level 0
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Mulai
-              </label>
-              <input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Selesai
-              </label>
-              <input
-                type="date"
-                value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
+          {/* Tipe Pendaftaran */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Periode Pendaftaran <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.registration_type}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  registration_type: e.target.value as 'lifetime' | 'limited',
+                  // Clear dates if switching to lifetime
+                  registration_start_date: e.target.value === 'lifetime' ? '' : formData.registration_start_date,
+                  registration_end_date: e.target.value === 'lifetime' ? '' : formData.registration_end_date,
+                })
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="lifetime">Lifetime (Tanpa Batas Waktu)</option>
+              <option value="limited">Berbatas Waktu</option>
+            </select>
           </div>
 
+          {/* Tanggal Pendaftaran - hanya muncul jika limited */}
+          {formData.registration_type === 'limited' && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Batas Waktu Pendaftaran</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Mulai Pendaftaran
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.registration_start_date}
+                    onChange={(e) => setFormData({ ...formData, registration_start_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Selesai Pendaftaran
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.registration_end_date}
+                    onChange={(e) => setFormData({ ...formData, registration_end_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Pendaftaran hanya dapat dilakukan dalam periode ini
+              </p>
+            </div>
+          )}
+
+          {formData.registration_type === 'lifetime' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Pendaftaran Lifetime:</strong> Peserta dapat mendaftar kapan saja tanpa batasan waktu.
+              </p>
+            </div>
+          )}
+
+          {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Status
@@ -273,23 +334,14 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trainer Utama
-            </label>
-            <select
-              value={formData.trainer_id}
-              onChange={(e) => setFormData({ ...formData, trainer_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Pilih Trainer</option>
-              {trainers.map((trainer) => (
-                <option key={trainer.id} value={trainer.id}>
-                  {trainer.name} - {trainer.specialization}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Info untuk program gratis */}
+          {formData.price_type === 'gratis' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-800">
+                <strong>Program Gratis:</strong> Peserta yang mendaftar akan otomatis disetujui tanpa perlu konfirmasi admin.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end space-x-3 mt-8">

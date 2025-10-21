@@ -76,17 +76,21 @@ export interface Database {
           title: string
           description: string
           category: string
-          duration_days: number
-          max_participants: number
+          duration_days: number | null
+          max_participants: number | null
           price: number
           status: 'draft' | 'published' | 'archived'
-          start_date: string
-          end_date: string
           trainer_id: string | null
           created_by: string | null
           requirements: string | null
           learning_objectives: string[] | null
           prerequisites: string[] | null
+          program_type: 'tot' | 'regular'
+          is_free: boolean
+          registration_type: 'lifetime' | 'limited'
+          registration_start_date: string | null
+          registration_end_date: string | null
+          auto_approved: boolean
         }
         Insert: {
           id?: string
@@ -95,17 +99,21 @@ export interface Database {
           title: string
           description: string
           category: string
-          duration_days: number
-          max_participants: number
+          duration_days?: number | null
+          max_participants?: number | null
           price: number
           status?: 'draft' | 'published' | 'archived'
-          start_date: string
-          end_date: string
           trainer_id?: string | null
           created_by?: string | null
           requirements?: string | null
           learning_objectives?: string[] | null
           prerequisites?: string[] | null
+          program_type?: 'tot' | 'regular'
+          is_free?: boolean
+          registration_type?: 'lifetime' | 'limited'
+          registration_start_date?: string | null
+          registration_end_date?: string | null
+          auto_approved?: boolean
         }
         Update: {
           id?: string
@@ -114,17 +122,44 @@ export interface Database {
           title?: string
           description?: string
           category?: string
-          duration_days?: number
-          max_participants?: number
+          duration_days?: number | null
+          max_participants?: number | null
           price?: number
           status?: 'draft' | 'published' | 'archived'
-          start_date?: string
-          end_date?: string
           trainer_id?: string | null
           created_by?: string | null
           requirements?: string | null
           learning_objectives?: string[] | null
           prerequisites?: string[] | null
+          program_type?: 'tot' | 'regular'
+          is_free?: boolean
+          registration_type?: 'lifetime' | 'limited'
+          registration_start_date?: string | null
+          registration_end_date?: string | null
+          auto_approved?: boolean
+        }
+      }
+      program_categories: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          created_at?: string
+          updated_at?: string
         }
       }
       participants: {

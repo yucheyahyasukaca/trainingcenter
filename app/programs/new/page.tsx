@@ -1,79 +1,78 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { Trainer } from '@/types'
 import { useToastContext } from '@/components/ToastProvider'
+import CategorySelector from '@/components/programs/CategorySelector'
 
 export default function NewProgramPage() {
   const router = useRouter()
   const { success, error } = useToastContext()
   const [loading, setLoading] = useState(false)
-  const [trainers, setTrainers] = useState<Trainer[]>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    duration_days: 1,
-    max_participants: 20,
+    price_type: 'gratis' as 'gratis' | 'berbayar',
     price: 0,
     status: 'draft' as 'draft' | 'published' | 'archived',
-    start_date: '',
-    end_date: '',
-    trainer_id: '',
+    registration_type: 'lifetime' as 'lifetime' | 'limited',
+    registration_start_date: '',
+    registration_end_date: '',
+    program_type: 'regular' as 'tot' | 'regular',
   })
-
-  useEffect(() => {
-    fetchTrainers()
-  }, [])
-
-  async function fetchTrainers() {
-    try {
-      const { data, error } = await supabase
-        .from('trainers')
-        .select('*')
-        .eq('status', 'active')
-        .order('name')
-
-      if (error) throw error
-      setTrainers(data || [])
-    } catch (error) {
-      console.error('Error fetching trainers:', error)
-    }
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
     try {
+      // Validate registration dates for limited type
+      if (formData.registration_type === 'limited') {
+        if (!formData.registration_start_date || !formData.registration_end_date) {
+          error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
+          setLoading(false)
+          return
+        }
+
+        const regStart = new Date(formData.registration_start_date)
+        const regEnd = new Date(formData.registration_end_date)
+        
+        if (regEnd < regStart) {
+          error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
+          setLoading(false)
+          return
+        }
+      }
+
       const dataToInsert = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        max_participants: formData.max_participants,
-        price: formData.price,
+        price: formData.price_type === 'gratis' ? 0 : formData.price,
+        is_free: formData.price_type === 'gratis',
         status: formData.status,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        trainer_id: formData.trainer_id || null,
-        // duration_days: formData.duration_days, // Temporarily disabled due to schema issue
+        registration_type: formData.registration_type,
+        registration_start_date: formData.registration_type === 'limited' ? formData.registration_start_date : null,
+        registration_end_date: formData.registration_type === 'limited' ? formData.registration_end_date : null,
+        program_type: formData.program_type,
+        auto_approved: formData.price_type === 'gratis',
       }
 
-      const { error } = await (supabase as any)
+      const { error: insertError } = await supabase
         .from('programs')
         .insert([dataToInsert])
 
-      if (error) throw error
+      if (insertError) throw insertError
 
       success('Program berhasil ditambahkan!', 'Berhasil')
       router.push('/programs')
-    } catch (error: any) {
-      console.error('Error creating program:', error)
-      error('Gagal menambahkan program: ' + error.message, 'Error')
+    } catch (err: any) {
+      console.error('Error creating program:', err)
+      error('Gagal menambahkan program: ' + err.message, 'Error')
     } finally {
       setLoading(false)
     }
@@ -83,9 +82,7 @@ export default function NewProgramPage() {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: ['duration_days', 'max_participants', 'price'].includes(name) 
-        ? (name === 'duration_days' ? parseInt(value) || 1 : parseFloat(value) || 0)
-        : value,
+      [name]: name === 'price' ? parseFloat(value) || 0 : value,
     }))
   }
 
@@ -102,6 +99,7 @@ export default function NewProgramPage() {
 
       <form onSubmit={handleSubmit} className="card max-w-3xl">
         <div className="space-y-6">
+          {/* Judul Program */}
           <div>
             <label className="label">Judul Program *</label>
             <input
@@ -115,6 +113,7 @@ export default function NewProgramPage() {
             />
           </div>
 
+          {/* Deskripsi */}
           <div>
             <label className="label">Deskripsi *</label>
             <textarea
@@ -128,115 +127,163 @@ export default function NewProgramPage() {
             />
           </div>
 
+          {/* Kategori */}
+          <div>
+            <label className="label">Kategori *</label>
+            <CategorySelector
+              value={formData.category}
+              onChange={(category) => setFormData({ ...formData, category })}
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Tipe Harga */}
             <div>
-              <label className="label">Kategori *</label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                className="input"
-                placeholder="Leadership, Marketing, Technology, dll"
-              />
-            </div>
-
-            <div>
-              <label className="label">Durasi (hari) *</label>
-              <input
-                type="number"
-                name="duration_days"
-                value={formData.duration_days}
-                onChange={handleChange}
-                required
-                min="1"
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">Max Peserta *</label>
-              <input
-                type="number"
-                name="max_participants"
-                value={formData.max_participants}
-                onChange={handleChange}
-                required
-                min="1"
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">Harga (IDR) *</label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                required
-                min="0"
-                className="input"
-                placeholder="5000000"
-              />
-            </div>
-
-            <div>
-              <label className="label">Tanggal Mulai *</label>
-              <input
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleChange}
-                required
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">Tanggal Selesai *</label>
-              <input
-                type="date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleChange}
-                required
-                className="input"
-              />
-            </div>
-
-            <div>
-              <label className="label">Trainer</label>
+              <label className="label">Tipe Harga *</label>
               <select
-                name="trainer_id"
-                value={formData.trainer_id}
-                onChange={handleChange}
+                name="price_type"
+                value={formData.price_type}
+                onChange={(e) => {
+                  const newPriceType = e.target.value as 'gratis' | 'berbayar'
+                  setFormData({
+                    ...formData,
+                    price_type: newPriceType,
+                    price: newPriceType === 'gratis' ? 0 : formData.price
+                  })
+                }}
                 className="input"
               >
-                <option value="">Pilih Trainer (Opsional)</option>
-                {trainers.map((trainer) => (
-                  <option key={trainer.id} value={trainer.id}>
-                    {trainer.name} - {trainer.specialization}
-                  </option>
-                ))}
+                <option value="gratis">Gratis (Otomatis Aktif)</option>
+                <option value="berbayar">Berbayar</option>
               </select>
             </div>
 
+            {/* Harga (hanya jika berbayar) */}
+            {formData.price_type === 'berbayar' && (
+              <div>
+                <label className="label">Harga (IDR) *</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="input"
+                  placeholder="5000000"
+                />
+              </div>
+            )}
+
+            {/* Tipe Program */}
             <div>
-              <label className="label">Status *</label>
+              <label className="label">Tipe Program *</label>
               <select
-                name="status"
-                value={formData.status}
+                name="program_type"
+                value={formData.program_type}
                 onChange={handleChange}
                 className="input"
               >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                <option value="regular">Regular</option>
+                <option value="tot">TOT (Training of Trainers)</option>
               </select>
+              {formData.program_type === 'tot' && (
+                <p className="text-sm text-blue-600 mt-1">
+                  Peserta yang lulus akan otomatis menjadi Trainer Level 0
+                </p>
+              )}
             </div>
           </div>
+
+          {/* Tipe Pendaftaran */}
+          <div>
+            <label className="label">Periode Pendaftaran *</label>
+            <select
+              name="registration_type"
+              value={formData.registration_type}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  registration_type: e.target.value as 'lifetime' | 'limited',
+                  // Clear dates if switching to lifetime
+                  registration_start_date: e.target.value === 'lifetime' ? '' : formData.registration_start_date,
+                  registration_end_date: e.target.value === 'lifetime' ? '' : formData.registration_end_date,
+                })
+              }}
+              className="input"
+            >
+              <option value="lifetime">Lifetime (Tanpa Batas Waktu)</option>
+              <option value="limited">Berbatas Waktu</option>
+            </select>
+          </div>
+
+          {/* Tanggal Pendaftaran - hanya muncul jika limited */}
+          {formData.registration_type === 'limited' && (
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Batas Waktu Pendaftaran</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="label">Tanggal Mulai Pendaftaran *</label>
+                  <input
+                    type="date"
+                    name="registration_start_date"
+                    value={formData.registration_start_date}
+                    onChange={handleChange}
+                    required
+                    className="input"
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Tanggal Selesai Pendaftaran *</label>
+                  <input
+                    type="date"
+                    name="registration_end_date"
+                    value={formData.registration_end_date}
+                    onChange={handleChange}
+                    required
+                    className="input"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                Pendaftaran hanya dapat dilakukan dalam periode ini
+              </p>
+            </div>
+          )}
+
+          {formData.registration_type === 'lifetime' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Pendaftaran Lifetime:</strong> Peserta dapat mendaftar kapan saja tanpa batasan waktu.
+              </p>
+            </div>
+          )}
+
+          {/* Status */}
+          <div>
+            <label className="label">Status *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+
+          {/* Info untuk program gratis */}
+          {formData.price_type === 'gratis' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-800">
+                <strong>Program Gratis:</strong> Peserta yang mendaftar akan otomatis disetujui tanpa perlu konfirmasi admin.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center space-x-4 pt-4">
             <button
@@ -255,4 +302,3 @@ export default function NewProgramPage() {
     </div>
   )
 }
-
