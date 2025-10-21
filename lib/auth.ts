@@ -82,23 +82,62 @@ export async function signOut() {
   }
 }
 
-// Sign up new user
+// Sign up new user using API route (bypass email confirmation)
 export async function signUp(email: string, password: string, fullName: string) {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
-    },
-  })
+  console.log('🚀 Starting sign up for:', email)
   
-  if (error) {
+  try {
+    // Use API route to bypass email confirmation
+    const response = await fetch('/api/signup-without-email-confirmation', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        fullName
+      })
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to create user')
+    }
+
+    console.log('✅ User created successfully via API route:', result.user.email)
+    console.log('📧 Email confirmed:', !!result.user.confirmed_at)
+    console.log('✅ User profile created:', !!result.profile)
+    console.log('✅ Participant created:', !!result.participant)
+
+    // Return data in same format as original signUp
+    return {
+      user: result.user,
+      session: null // User needs to login after registration
+    }
+
+  } catch (error: any) {
+    console.error('❌ Sign up error:', error)
+    
+    // Better error handling for common issues
+    if (error.message.includes('email') || error.message.includes('already registered')) {
+      throw new Error('Email sudah terdaftar. Jika Anda sudah pernah registrasi sebelumnya, silakan coba login. Jika tidak, hubungi administrator untuk reset email.')
+    }
+    if (error.message.includes('password')) {
+      throw new Error('Password terlalu lemah. Gunakan minimal 8 karakter.')
+    }
+    if (error.message.includes('confirmation') || error.message.includes('sending')) {
+      throw new Error('Gagal mengirim email konfirmasi. Email confirmation mungkin masih aktif di Supabase. Hubungi administrator untuk disable email confirmation.')
+    }
+    if (error.message.includes('rate limit')) {
+      throw new Error('Terlalu banyak percobaan. Silakan tunggu beberapa menit.')
+    }
+    if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+      throw new Error('Server error. Kemungkinan email confirmation masih aktif di Supabase. Hubungi administrator.')
+    }
     throw new Error(error.message)
   }
-  
-  return data
 }
 
 // Check if user is authenticated

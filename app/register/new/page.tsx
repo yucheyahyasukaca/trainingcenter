@@ -3,16 +3,40 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { signUp } from '@/lib/auth'
 
 export default function NewRegisterPage() {
+  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // Here we would call the actual signup API. For now, keep as UI only per request.
-    alert('Akun Garuda Academy berhasil dibuat (contoh).')
+    setLoading(true)
+    setError('')
+    setSuccess(false)
+
+    try {
+      // Call the actual signUp function
+      await signUp(email, password, name)
+      
+      setSuccess(true)
+      
+      // Redirect to login page after successful registration
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } catch (err: any) {
+      console.error('Registration error:', err)
+      setError(err.message || 'Gagal membuat akun. Silakan coba lagi.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -86,7 +110,25 @@ export default function NewRegisterPage() {
                 <p className="text-gray-500 text-sm mt-2">Gunakan setidaknya 8 karakter, termasuk kombinasi huruf dan angka.</p>
               </div>
 
-              <button type="submit" className="w-full btn-primary py-3">Buat akun baru</button>
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">❌ {error}</p>
+                </div>
+              )}
+
+              {success && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-800">✅ Akun berhasil dibuat! Mengalihkan ke halaman login...</p>
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading || success}
+                className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Membuat akun...' : success ? 'Berhasil!' : 'Buat akun baru'}
+              </button>
             </form>
 
             <p className="text-sm text-gray-600 mt-6">
