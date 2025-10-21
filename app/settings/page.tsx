@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
+import { useToastContext } from '@/components/ToastProvider'
 import { 
   User, 
   Bell, 
@@ -19,6 +20,7 @@ import {
 
 export default function SettingsPage() {
   const { profile } = useAuth()
+  const { success } = useToastContext()
   const [activeTab, setActiveTab] = useState('profile')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,7 +38,7 @@ export default function SettingsPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     setLoading(false)
-    alert('Pengaturan berhasil disimpan!')
+    success('Pengaturan berhasil disimpan!', 'Berhasil')
   }
 
   return (

@@ -5,11 +5,25 @@ import { supabase } from '@/lib/supabase'
 import { Participant } from '@/types'
 import { Plus, Search, Edit, Trash2, Users } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { useToastContext } from '@/components/ToastProvider'
 
 export default function ParticipantsPage() {
+  const { error } = useToastContext()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    participantId: string | null
+    participantName: string
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    participantId: null,
+    participantName: '',
+    isLoading: false
+  })
 
   useEffect(() => {
     fetchParticipants()
@@ -31,20 +45,43 @@ export default function ParticipantsPage() {
     }
   }
 
-  async function deleteParticipant(id: string) {
-    if (!confirm('Apakah Anda yakin ingin menghapus peserta ini?')) return
+  function openDeleteModal(id: string, name: string) {
+    setDeleteModal({
+      isOpen: true,
+      participantId: id,
+      participantName: name,
+      isLoading: false
+    })
+  }
+
+  function closeDeleteModal() {
+    setDeleteModal({
+      isOpen: false,
+      participantId: null,
+      participantName: '',
+      isLoading: false
+    })
+  }
+
+  async function confirmDeleteParticipant() {
+    if (!deleteModal.participantId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
       const { error } = await supabase
         .from('participants')
         .delete()
-        .eq('id', id)
+        .eq('id', deleteModal.participantId)
 
       if (error) throw error
+      
       fetchParticipants()
+      closeDeleteModal()
     } catch (error) {
       console.error('Error deleting participant:', error)
-      alert('Gagal menghapus peserta')
+      error('Gagal menghapus peserta', 'Error')
+      setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -139,7 +176,7 @@ export default function ParticipantsPage() {
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
-                          onClick={() => deleteParticipant(participant.id)}
+                          onClick={() => openDeleteModal(participant.id, participant.name)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -153,6 +190,19 @@ export default function ParticipantsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteParticipant}
+        title="Hapus Peserta"
+        message={`Apakah Anda yakin ingin menghapus peserta "${deleteModal.participantName}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteModal.isLoading}
+      />
     </div>
   )
 }

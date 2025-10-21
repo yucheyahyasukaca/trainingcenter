@@ -9,9 +9,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { useToastContext } from '@/components/ToastProvider'
 
 export default function ProgramsPage() {
   const { profile } = useAuth()
+  const { error } = useToastContext()
   const router = useRouter()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,6 +24,17 @@ export default function ProgramsPage() {
   const [participantId, setParticipantId] = useState<string | null>(null)
   const [enrollmentsLoading, setEnrollmentsLoading] = useState<boolean>(true)
   const [enrollmentMap, setEnrollmentMap] = useState<Record<string, string>>({})
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    programId: string | null
+    programTitle: string
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    programId: null,
+    programTitle: '',
+    isLoading: false
+  })
   
   const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
@@ -276,20 +290,43 @@ export default function ProgramsPage() {
     }
   }
 
-  async function deleteProgram(id: string) {
-    if (!confirm('Apakah Anda yakin ingin menghapus program ini?')) return
+  function openDeleteModal(id: string, title: string) {
+    setDeleteModal({
+      isOpen: true,
+      programId: id,
+      programTitle: title,
+      isLoading: false
+    })
+  }
+
+  function closeDeleteModal() {
+    setDeleteModal({
+      isOpen: false,
+      programId: null,
+      programTitle: '',
+      isLoading: false
+    })
+  }
+
+  async function confirmDeleteProgram() {
+    if (!deleteModal.programId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
       const { error } = await supabase
         .from('programs')
         .delete()
-        .eq('id', id)
+        .eq('id', deleteModal.programId)
 
       if (error) throw error
+      
       fetchPrograms()
+      closeDeleteModal()
     } catch (error) {
       console.error('Error deleting program:', error)
-      alert('Gagal menghapus program')
+      error('Gagal menghapus program', 'Error')
+      setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -453,7 +490,7 @@ export default function ProgramsPage() {
                             <Edit className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => deleteProgram(program.id)}
+                            onClick={() => openDeleteModal(program.id, program.title)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Hapus Program"
                           >
@@ -565,6 +602,19 @@ export default function ProgramsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteProgram}
+        title="Hapus Program"
+        message={`Apakah Anda yakin ingin menghapus program "${deleteModal.programTitle}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteModal.isLoading}
+      />
     </div>
   )
 }

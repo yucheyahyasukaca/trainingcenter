@@ -5,11 +5,25 @@ import { supabase } from '@/lib/supabase'
 import { Trainer } from '@/types'
 import { Plus, Search, Edit, Trash2, UserCog } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { useToastContext } from '@/components/ToastProvider'
 
 export default function TrainersPage() {
+  const { error } = useToastContext()
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    trainerId: string | null
+    trainerName: string
+    isLoading: boolean
+  }>({
+    isOpen: false,
+    trainerId: null,
+    trainerName: '',
+    isLoading: false
+  })
 
   useEffect(() => {
     fetchTrainers()
@@ -31,20 +45,43 @@ export default function TrainersPage() {
     }
   }
 
-  async function deleteTrainer(id: string) {
-    if (!confirm('Apakah Anda yakin ingin menghapus trainer ini?')) return
+  function openDeleteModal(id: string, name: string) {
+    setDeleteModal({
+      isOpen: true,
+      trainerId: id,
+      trainerName: name,
+      isLoading: false
+    })
+  }
+
+  function closeDeleteModal() {
+    setDeleteModal({
+      isOpen: false,
+      trainerId: null,
+      trainerName: '',
+      isLoading: false
+    })
+  }
+
+  async function confirmDeleteTrainer() {
+    if (!deleteModal.trainerId) return
+
+    setDeleteModal(prev => ({ ...prev, isLoading: true }))
 
     try {
       const { error } = await supabase
         .from('trainers')
         .delete()
-        .eq('id', id)
+        .eq('id', deleteModal.trainerId)
 
       if (error) throw error
+      
       fetchTrainers()
+      closeDeleteModal()
     } catch (error) {
       console.error('Error deleting trainer:', error)
-      alert('Gagal menghapus trainer')
+      error('Gagal menghapus trainer', 'Error')
+      setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -141,7 +178,7 @@ export default function TrainersPage() {
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
-                          onClick={() => deleteTrainer(trainer.id)}
+                          onClick={() => openDeleteModal(trainer.id, trainer.name)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -155,6 +192,19 @@ export default function TrainersPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteTrainer}
+        title="Hapus Trainer"
+        message={`Apakah Anda yakin ingin menghapus trainer "${deleteModal.trainerName}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteModal.isLoading}
+      />
     </div>
   )
 }

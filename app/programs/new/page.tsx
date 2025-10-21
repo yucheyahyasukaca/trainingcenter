@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Trainer } from '@/types'
+import { useToastContext } from '@/components/ToastProvider'
 
 export default function NewProgramPage() {
   const router = useRouter()
+  const { success, error } = useToastContext()
   const [loading, setLoading] = useState(false)
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [formData, setFormData] = useState({
@@ -67,11 +69,11 @@ export default function NewProgramPage() {
 
       if (error) throw error
 
-      alert('Program berhasil ditambahkan!')
+      success('Program berhasil ditambahkan!', 'Berhasil')
       router.push('/programs')
     } catch (error: any) {
       console.error('Error creating program:', error)
-      alert('Gagal menambahkan program: ' + error.message)
+      error('Gagal menambahkan program: ' + error.message, 'Error')
     } finally {
       setLoading(false)
     }

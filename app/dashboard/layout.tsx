@@ -37,6 +37,12 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 py-4 px-4 lg:px-6">
+          <div className="text-center text-sm text-gray-600">
+            © {new Date().getFullYear()} <span className="font-semibold text-primary-600">GARUDA-21</span>. All rights reserved.
+          </div>
+        </footer>
       </div>
     </div>
   )
