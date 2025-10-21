@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Video, FileText, Download } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, MapPin, Users, Video, FileText, Download, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -418,9 +418,18 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                   <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span></div>
                 </div>
 
-                <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">
-                  Lanjut Belajar
-                </Link>
+                <div className="space-y-2">
+                  <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">
+                    Lanjut Belajar
+                  </Link>
+                  <Link 
+                    href={`/programs/${params.id}/classes/${classItem.id}/forum`} 
+                    className="w-full inline-flex px-4 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors items-center justify-center"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Forum Diskusi
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
