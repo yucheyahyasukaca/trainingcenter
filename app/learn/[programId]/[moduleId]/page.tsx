@@ -46,6 +46,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enrollment, setEnrollment] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
+  const [unlockedContents, setUnlockedContents] = useState<Set<string>>(new Set())
   
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
@@ -140,12 +142,20 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             setProgress(progressMap)
 
             // Calculate overall progress
-            const completed = progressData.filter((p: any) => p.status === 'completed').length
-            const total = contentsData.filter((c: any) => c.is_required).length
+            const completed = contentsData.filter((content: any) => {
+              const contentProgress = progressData.find((p: any) => p.content_id === content.id)
+              return (contentProgress as any)?.status === 'completed'
+            }).length
+            const total = contentsData.length
             setOverallProgress(total > 0 ? Math.round((completed / total) * 100) : 0)
           }
         }
       }
+      
+      // Update unlocked contents after all data is loaded
+      setTimeout(() => {
+        updateUnlockedContents()
+      }, 100)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -162,12 +172,17 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       
       if (existing) {
         // Update existing
-        const { error } = await (supabase as any)
+        const { data, error } = await (supabase as any)
           .from('learning_progress')
           .update(updates)
           .eq('id', (existing as any).id)
+          .select()
+          .single()
         
         if (error) throw error
+        if (data) {
+          setProgress(prev => ({ ...prev, [contentId]: data }))
+        }
       } else {
         // Create new
         const { data, error } = await supabase
@@ -187,19 +202,192 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         }
       }
 
-      // Refresh progress
-      fetchData()
+      // Update overall progress
+      updateOverallProgress()
     } catch (error) {
       console.error('Error updating progress:', error)
     }
   }
 
   async function markAsComplete(contentId: string) {
-    await updateProgress(contentId, {
-      status: 'completed',
-      progress_percentage: 100,
-      completed_at: new Date().toISOString()
+    try {
+      console.log('Marking as complete:', contentId)
+      
+      if (!profile?.id) {
+        throw new Error('User not authenticated')
+      }
+      
+      // First check if table exists by trying to select from it
+      const { error: tableError } = await supabase
+        .from('learning_progress')
+        .select('id')
+        .limit(1)
+      
+      if (tableError) {
+        console.error('Table learning_progress does not exist:', tableError)
+        showNotification('error', 'Tabel progress belum tersedia. Silakan hubungi administrator.')
+        return
+      }
+      
+      // Update progress in database
+      const { data, error } = await supabase
+        .from('learning_progress')
+        .upsert([{
+          user_id: profile.id,
+          content_id: contentId,
+          enrollment_id: enrollment?.id,
+          status: 'completed',
+          progress_percentage: 100,
+          completed_at: new Date().toISOString()
+        }] as any)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        throw error
+      }
+      
+      // Update local state immediately
+      setProgress(prev => ({
+        ...prev,
+        [contentId]: {
+          ...prev[contentId],
+          status: 'completed',
+          progress_percentage: 100,
+          completed_at: new Date().toISOString()
+        }
+      }))
+      
+      // Also mark all sub-materials as completed if this is a main material
+      const currentContent = contents.find(c => c.id === contentId)
+      if (currentContent && ((currentContent as any).material_type === 'main' || !(currentContent as any).material_type)) {
+        const subMaterials = contents.filter(c => (c as any).parent_id === contentId)
+        
+        // Mark sub-materials as completed in database
+        if (subMaterials.length > 0) {
+          const subMaterialIds = subMaterials.map(sub => sub.id)
+          
+          // Update sub-materials in database
+          const { error: subError } = await supabase
+            .from('learning_progress')
+            .upsert(subMaterialIds.map(subId => ({
+              user_id: profile.id,
+              content_id: subId,
+              enrollment_id: enrollment?.id,
+              status: 'completed',
+              progress_percentage: 100,
+              completed_at: new Date().toISOString()
+            })) as any)
+          
+          if (!subError) {
+            // Update local state for sub-materials
+            setProgress(prev => {
+              const newProgress = { ...prev }
+              subMaterials.forEach(sub => {
+                newProgress[sub.id] = {
+                  ...newProgress[sub.id],
+                  status: 'completed',
+                  progress_percentage: 100,
+                  completed_at: new Date().toISOString()
+                }
+              })
+              return newProgress
+            })
+          }
+        }
+      }
+      
+      // Update overall progress
+      updateOverallProgress()
+      
+      // Update unlocked contents
+      updateUnlockedContents()
+      
+      // Show success notification
+      const content = contents.find(c => c.id === contentId)
+      if (content) {
+        showNotification('success', `Materi "${content.title}" berhasil ditandai selesai!`)
+      }
+    } catch (error: any) {
+      console.error('Error marking as complete:', error)
+      const errorMessage = error?.message || 'Terjadi kesalahan yang tidak diketahui'
+      showNotification('error', `Gagal menandai materi sebagai selesai: ${errorMessage}`)
+    }
+  }
+
+  function updateOverallProgress() {
+    // Count all contents (main + sub materials)
+    const totalCount = contents.length
+    
+    // Count completed contents
+    const completedCount = contents.filter(content => {
+      const contentProgress = progress[content.id]
+      return contentProgress?.status === 'completed'
+    }).length
+    
+    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+    setOverallProgress(percentage)
+    
+    console.log('Progress calculation:', {
+      totalCount,
+      completedCount,
+      percentage,
+      progress: Object.keys(progress).length,
+      contents: contents.length
     })
+  }
+
+  function showNotification(type: 'success' | 'error', message: string) {
+    setNotification({ type, message })
+    setTimeout(() => {
+      setNotification(null)
+    }, 4000)
+  }
+
+  function updateUnlockedContents() {
+    const unlocked = new Set<string>()
+    
+    // First content is always unlocked
+    if (contents.length > 0) {
+      unlocked.add(contents[0].id)
+    }
+    
+    // Check each content to see if it should be unlocked
+    for (let i = 1; i < contents.length; i++) {
+      const currentContent = contents[i]
+      const previousContent = contents[i - 1]
+      
+      // Check if previous content is completed
+      const previousProgress = progress[previousContent.id]
+      const isPreviousCompleted = previousProgress?.status === 'completed'
+      
+      if (isPreviousCompleted) {
+        unlocked.add(currentContent.id)
+      } else {
+        // If previous is not completed, stop unlocking further content
+        break
+      }
+    }
+    
+    setUnlockedContents(unlocked)
+  }
+
+  function isContentUnlocked(contentId: string): boolean {
+    return unlockedContents.has(contentId)
+  }
+
+  function canAccessContent(contentId: string): boolean {
+    const contentIndex = contents.findIndex(c => c.id === contentId)
+    if (contentIndex === -1) return false
+    
+    // First content is always accessible
+    if (contentIndex === 0) return true
+    
+    // Check if previous content is completed
+    const previousContent = contents[contentIndex - 1]
+    const previousProgress = progress[previousContent.id]
+    return previousProgress?.status === 'completed'
   }
 
   function navigateToContent(direction: 'prev' | 'next') {
@@ -360,7 +548,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       </div>
 
       {/* Content layout */}
-      <div className="max-w-6xl mx-auto w-full px-4 py-6 pb-20">
+      <div className="max-w-4xl mx-auto w-full px-4 py-6 pb-20">
         {currentContent && (
           <ContentRenderer
             content={currentContent}
@@ -391,6 +579,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         currentContentId={currentContent?.id || ''}
         onSelectContent={selectContent}
         getContentIcon={getContentIcon}
+        isContentUnlocked={isContentUnlocked}
+        canAccessContent={canAccessContent}
       />
 
       {/* Bottom navigation */}
@@ -401,7 +591,40 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         onNavigate={navigateToContent}
         theme={currentTheme}
         readingSettings={readingSettings}
+        contents={contents}
       />
+
+      {/* Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm">
+          <div className={`p-4 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ${
+            notification.type === 'success' 
+              ? 'bg-green-50 border-green-500 text-green-800' 
+              : 'bg-red-50 border-red-500 text-red-800'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {notification.type === 'success' ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <X className="w-4 h-4 text-red-600" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">{notification.message}</p>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   )
@@ -444,41 +667,46 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
                  'Inter, system-ui, sans-serif',
       fontSize: readingSettings.fontSize === 'small' ? '14px' : 
                readingSettings.fontSize === 'large' ? '18px' : '16px',
-      maxWidth: readingSettings.readingWidth === 'medium' ? '800px' : '100%',
-      margin: readingSettings.readingWidth === 'medium' ? '0 auto' : '0',
-      padding: '2rem',
-      borderRadius: '8px',
-      transition: 'all 0.3s ease'
+      maxWidth: readingSettings.readingWidth === 'medium' ? '800px' : '900px',
+      margin: '0 auto',
+      padding: '3rem 2rem',
+      borderRadius: '12px',
+      transition: 'all 0.3s ease',
+      textAlign: 'left',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      lineHeight: '1.7'
     }}>
       {/* Content Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: theme.text }}>
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight" style={{ color: theme.text }}>
           {content.title}
         </h1>
         {content.description && (
-          <p className="text-lg opacity-75" style={{ color: theme.text }}>
+          <p className="text-xl opacity-80 max-w-2xl mx-auto" style={{ color: theme.text }}>
             {content.description}
           </p>
         )}
         {progress?.status === 'completed' && (
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg">
+          <div className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-full">
             <CheckCircle className="w-5 h-5" />
-            <span className="font-medium">Selesai</span>
+            <span className="font-semibold">Selesai</span>
           </div>
         )}
       </div>
 
       {/* Content Body */}
-      {renderContent()}
+      <div className="max-w-3xl mx-auto">
+        {renderContent()}
+      </div>
 
       {/* Complete Button */}
       {progress?.status !== 'completed' && content.content_type !== 'quiz' && (
-        <div className="mt-8 flex justify-end">
+        <div className="mt-12 flex justify-center">
           <button
             onClick={onComplete}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-lg font-medium"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl hover:from-green-700 hover:to-green-800 text-xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1"
           >
-            <Check className="w-5 h-5" />
+            <Check className="w-7 h-7" />
             Tandai Selesai
           </button>
         </div>
@@ -803,7 +1031,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 }
 
 // Content Drawer Component
-function ContentDrawer({ open, onClose, contents, progress, overallProgress, currentContentId, onSelectContent, getContentIcon }: any) {
+function ContentDrawer({ open, onClose, contents, progress, overallProgress, currentContentId, onSelectContent, getContentIcon, isContentUnlocked, canAccessContent }: any) {
   if (!open) return null
 
   // Organize contents into main materials and sub-materials
@@ -853,15 +1081,20 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
               const contentProgress = progress[content.id]
               const isCompleted = contentProgress?.status === 'completed'
               const isCurrent = content.id === currentContentId
+              const isUnlocked = isContentUnlocked(content.id)
+              const canAccess = canAccessContent(content.id)
               const relatedSubMaterials = subMaterials.filter((sub: any) => sub.parent_id === content.id)
 
               return (
                 <div key={content.id} className="space-y-2">
                   {/* Main Material */}
                   <button
-                    onClick={() => onSelectContent(content, index)}
+                    onClick={() => canAccess ? onSelectContent(content, index) : null}
+                    disabled={!canAccess}
                     className={`w-full text-left p-3 rounded-lg border transition-all duration-200 group ${
-                      isCompleted
+                      !canAccess
+                        ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-60'
+                        : isCompleted
                         ? 'border-green-300 bg-green-50 hover:bg-green-100'
                         : isCurrent 
                         ? 'border-blue-500 bg-blue-50 shadow-md' 
@@ -870,18 +1103,26 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                   >
                     <div className="flex items-center gap-3">
                       <div className={`p-1.5 rounded-md ${
-                        isCompleted 
+                        !canAccess
+                          ? 'bg-gray-200 text-gray-400'
+                          : isCompleted 
                           ? 'bg-green-100 text-green-600' 
                           : isCurrent 
                           ? 'bg-blue-100 text-blue-600' 
                           : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
                       }`}>
-                        {getContentIcon(content.content_type)}
+                        {!canAccess ? (
+                          <X className="w-4 h-4" />
+                        ) : (
+                          getContentIcon(content.content_type)
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className={`font-medium text-sm ${
-                            isCompleted 
+                            !canAccess
+                              ? 'text-gray-500'
+                              : isCompleted 
                               ? 'text-green-900 line-through' 
                               : isCurrent 
                               ? 'text-blue-900' 
@@ -889,28 +1130,40 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                           }`}>
                             {content.title}
                           </h4>
-                          {isCompleted && (
+                          {!canAccess && (
+                            <div className="flex items-center gap-1">
+                              <X className="w-3 h-3 text-gray-400" />
+                              <span className="text-xs text-gray-400">Terkunci</span>
+                            </div>
+                          )}
+                          {isCompleted && canAccess && (
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="capitalize">{content.content_type}</span>
-                          {content.estimated_duration && (
+                          {!canAccess ? (
+                            <span className="text-gray-400">Selesaikan materi sebelumnya untuk membuka</span>
+                          ) : (
                             <>
-                              <span>•</span>
-                              <span>{content.estimated_duration}m</span>
-                            </>
-                          )}
-                          {isCurrent && !isCompleted && (
-                            <>
-                              <span>•</span>
-                              <span className="text-blue-600 font-medium">Sedang dipelajari</span>
-                            </>
-                          )}
-                          {isCompleted && (
-                            <>
-                              <span>•</span>
-                              <span className="text-green-600 font-medium">Selesai</span>
+                              <span className="capitalize">{content.content_type}</span>
+                              {content.estimated_duration && (
+                                <>
+                                  <span>•</span>
+                                  <span>{content.estimated_duration}m</span>
+                                </>
+                              )}
+                              {isCurrent && !isCompleted && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-blue-600 font-medium">Sedang dipelajari</span>
+                                </>
+                              )}
+                              {isCompleted && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-green-600 font-medium">Selesai</span>
+                                </>
+                              )}
                             </>
                           )}
                         </div>
@@ -919,19 +1172,23 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                   </button>
 
                   {/* Sub Materials */}
-                  {relatedSubMaterials.length > 0 && (
+                  {relatedSubMaterials.length > 0 && canAccess && (
                     <div className="ml-4 space-y-1">
                       {relatedSubMaterials.map((subContent: any, subIndex: number) => {
                         const subProgress = progress[subContent.id]
                         const isSubCompleted = subProgress?.status === 'completed'
                         const isSubCurrent = subContent.id === currentContentId
+                        const canAccessSub = canAccessContent(subContent.id)
 
                         return (
                           <button
                             key={subContent.id}
-                            onClick={() => onSelectContent(subContent, contents.indexOf(subContent))}
+                            onClick={() => canAccessSub ? onSelectContent(subContent, contents.indexOf(subContent)) : null}
+                            disabled={!canAccessSub}
                             className={`w-full text-left p-2 rounded-md border transition-all duration-200 group ${
-                              isSubCompleted
+                              !canAccessSub
+                                ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                                : isSubCompleted
                                 ? 'border-green-200 bg-green-25 hover:bg-green-50'
                                 : isSubCurrent 
                                 ? 'border-indigo-300 bg-indigo-50' 
@@ -940,14 +1197,18 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                           >
                             <div className="flex items-center gap-2">
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                isSubCompleted 
+                                !canAccessSub
+                                  ? 'bg-gray-300'
+                                  : isSubCompleted 
                                   ? 'bg-green-400' 
                                   : 'bg-indigo-400'
                               }`}></div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <h5 className={`text-xs font-medium ${
-                                    isSubCompleted 
+                                    !canAccessSub
+                                      ? 'text-gray-400'
+                                      : isSubCompleted 
                                       ? 'text-green-800 line-through' 
                                       : isSubCurrent 
                                       ? 'text-indigo-900' 
@@ -955,7 +1216,10 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                                   }`}>
                                     {subContent.title}
                                   </h5>
-                                  {isSubCompleted && (
+                                  {!canAccessSub && (
+                                    <X className="w-3 h-3 text-gray-400" />
+                                  )}
+                                  {isSubCompleted && canAccessSub && (
                                     <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
                                   )}
                                 </div>
@@ -993,7 +1257,7 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
 }
 
 // Bottom Navigation Component
-function BottomNavigation({ currentIndex, totalContents, currentContent, onNavigate, theme, readingSettings }: any) {
+function BottomNavigation({ currentIndex, totalContents, currentContent, onNavigate, theme, readingSettings, contents }: any) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur border-t" style={{
       backgroundColor: `${theme.headerBg}f2`,
@@ -1010,7 +1274,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
           >
             <div className="text-xs mb-1 font-medium" style={{ color: theme.text, opacity: 0.7 }}>Materi Sebelumnya</div>
             <div className="text-sm truncate" style={{ color: theme.text }}>
-              {currentIndex > 0 ? '← Prev' : 'Tidak ada'}
+              {currentIndex > 0 ? contents[currentIndex - 1]?.title || '← Prev' : 'Tidak ada'}
             </div>
           </button>
           <div className="text-center flex flex-col justify-center">
@@ -1026,7 +1290,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
           >
             <div className="text-xs mb-1 font-medium" style={{ color: theme.text, opacity: 0.7 }}>Materi Selanjutnya</div>
             <div className="text-sm truncate" style={{ color: theme.text }}>
-              {currentIndex < totalContents - 1 ? 'Next →' : 'Tidak ada'}
+              {currentIndex < totalContents - 1 ? contents[currentIndex + 1]?.title || 'Next →' : 'Tidak ada'}
             </div>
           </button>
         </div>
