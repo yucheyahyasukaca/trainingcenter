@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useNotification } from '@/components/ui/Notification'
+import { AdminNotificationTemplates } from '@/components/admin/AdminNotificationUtils'
 import { 
   Plus, 
   Edit, 
@@ -45,6 +47,7 @@ const divisions: Division[] = [
 ]
 
 export function ManagerManagement() {
+  const { addNotification } = useNotification()
   const [managers, setManagers] = useState<Manager[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingManager, setEditingManager] = useState<Manager | null>(null)
@@ -124,27 +127,65 @@ export function ManagerManagement() {
     
     setManagers([...managers, newManager])
     setShowAddForm(false)
+    
+    // Show success notification
+    const divisionInfo = getDivisionInfo(newManager.division)
+    addNotification({
+      type: 'success',
+      title: 'Manager Berhasil Ditambahkan',
+      message: `${newManager.name} telah berhasil ditambahkan ke divisi ${divisionInfo.name}`,
+      duration: 5000
+    })
   }
 
   const handleEditManager = (managerData: Partial<Manager>) => {
     if (editingManager) {
+      const updatedManager = { ...editingManager, ...managerData }
       setManagers(managers.map(m => 
-        m.id === editingManager.id ? { ...m, ...managerData } : m
+        m.id === editingManager.id ? updatedManager : m
       ))
       setEditingManager(null)
+      
+      // Show success notification
+      addNotification({
+        type: 'success',
+        title: 'Manager Berhasil Diperbarui',
+        message: `Data ${updatedManager.name} telah berhasil diperbarui`,
+        duration: 5000
+      })
     }
   }
 
   const handleDeleteManager = (managerId: string) => {
+    const manager = managers.find(m => m.id === managerId)
     if (confirm('Apakah Anda yakin ingin menghapus manager ini?')) {
       setManagers(managers.filter(m => m.id !== managerId))
+      
+      // Show success notification
+      addNotification({
+        type: 'success',
+        title: 'Manager Berhasil Dihapus',
+        message: `${manager?.name} telah berhasil dihapus dari sistem`,
+        duration: 5000
+      })
     }
   }
 
   const handleToggleStatus = (managerId: string) => {
+    const manager = managers.find(m => m.id === managerId)
+    const newStatus = manager?.status === 'active' ? 'inactive' : 'active'
+    
     setManagers(managers.map(m => 
-      m.id === managerId ? { ...m, status: m.status === 'active' ? 'inactive' : 'active' } : m
+      m.id === managerId ? { ...m, status: newStatus } : m
     ))
+    
+    // Show status change notification
+    addNotification({
+      type: newStatus === 'active' ? 'success' : 'warning',
+      title: `Manager ${newStatus === 'active' ? 'Diaktifkan' : 'Dinonaktifkan'}`,
+      message: `${manager?.name} telah ${newStatus === 'active' ? 'diaktifkan' : 'dinonaktifkan'} dari sistem`,
+      duration: 5000
+    })
   }
 
   if (loading) {
@@ -335,6 +376,43 @@ export function ManagerManagement() {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
               const data = Object.fromEntries(formData.entries())
+              
+              // Basic validation
+              if (!data.name || !data.email || !data.phone) {
+                addNotification({
+                  type: 'error',
+                  title: 'Data Tidak Lengkap',
+                  message: 'Mohon lengkapi semua field yang wajib diisi',
+                  duration: 5000
+                })
+                return
+              }
+              
+              // Email validation
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+              if (!emailRegex.test(data.email as string)) {
+                addNotification({
+                  type: 'error',
+                  title: 'Email Tidak Valid',
+                  message: 'Mohon masukkan alamat email yang valid',
+                  duration: 5000
+                })
+                return
+              }
+              
+              // Check for duplicate email
+              const isDuplicate = managers.some(m => 
+                m.email === data.email && m.id !== editingManager?.id
+              )
+              if (isDuplicate) {
+                addNotification({
+                  type: 'error',
+                  title: 'Email Sudah Digunakan',
+                  message: 'Alamat email ini sudah digunakan oleh manager lain',
+                  duration: 5000
+                })
+                return
+              }
               
               if (editingManager) {
                 handleEditManager(data)

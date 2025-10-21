@@ -23,18 +23,38 @@ export const NotificationContext = React.createContext<NotificationContextType |
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationProps[]>([])
+  const MAX_NOTIFICATIONS = 5 // Limit maximum notifications
 
   const addNotification = (notification: Omit<NotificationProps, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9)
     const newNotification = { ...notification, id }
     
-    setNotifications(prev => [...prev, newNotification])
+    setNotifications(prev => {
+      // Check for duplicate notifications (same title and message)
+      const isDuplicate = prev.some(notif => 
+        notif.title === notification.title && 
+        notif.message === notification.message &&
+        notif.type === notification.type
+      )
+      
+      if (isDuplicate) {
+        return prev // Don't add duplicate
+      }
+      
+      const updated = [...prev, newNotification]
+      // Keep only the latest MAX_NOTIFICATIONS
+      return updated.slice(-MAX_NOTIFICATIONS)
+    })
 
     // Auto remove after duration
     if (notification.duration !== 0) {
-      setTimeout(() => {
-        removeNotification(id)
-      }, notification.duration || 5000)
+      const duration = notification.duration || 5000
+      const timeoutId = setTimeout(() => {
+        setNotifications(prev => prev.filter(notif => notif.id !== id))
+      }, duration)
+      
+      // Store timeout ID for cleanup if needed
+      return () => clearTimeout(timeoutId)
     }
   }
 
@@ -82,12 +102,21 @@ function NotificationItem({
   onClose: () => void 
 }) {
   const [isVisible, setIsVisible] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
 
   useEffect(() => {
     // Trigger animation
     const timer = setTimeout(() => setIsVisible(true), 100)
     return () => clearTimeout(timer)
   }, [])
+
+  const handleClose = () => {
+    setIsClosing(true)
+    // Wait for animation to complete before removing
+    setTimeout(() => {
+      onClose()
+    }, 300)
+  }
 
   const getIcon = () => {
     switch (notification.type) {
@@ -123,7 +152,7 @@ function NotificationItem({
     <div
       className={`
         w-full bg-white rounded-lg shadow-lg border-l-4 p-4 transform transition-all duration-300 ease-in-out
-        ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
+        ${isClosing ? 'translate-x-full opacity-0' : isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${getStyles()}
       `}
     >
@@ -143,8 +172,9 @@ function NotificationItem({
         </div>
         <div className="flex-shrink-0">
           <button
-            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors p-1"
-            onClick={onClose}
+            className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100"
+            onClick={handleClose}
+            type="button"
           >
             <X className="w-4 h-4" />
           </button>

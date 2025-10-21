@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
+import { useNotification } from '@/components/ui/Notification'
+import { AdminNotificationProvider, useAdminNotifications } from '@/components/admin/AdminNotificationSystem'
+import { NotificationTestPanel } from '@/components/admin/NotificationTestPanel'
 import { DashboardStats } from './DashboardStats'
 import { RecentEnrollments } from './RecentEnrollments'
 import { ProgramsChart } from './ProgramsChart'
@@ -12,14 +15,62 @@ import { ManagerManagement } from './ManagerManagement'
 import { 
   BarChart3,
   LayoutDashboard,
-  UserCog
+  UserCog,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react'
 
-export function AdminDashboard() {
+function AdminDashboardContent() {
   const { profile } = useAuth()
+  const { addNotification } = useAdminNotifications()
   const [activeTab, setActiveTab] = useState('overview')
 
   // Admin stats will be handled by DashboardStats component
+
+  // Initialize admin notifications
+  useEffect(() => {
+    // Only add notifications once when component mounts
+    const hasInitialized = sessionStorage.getItem('admin-notifications-initialized')
+    
+    if (!hasInitialized) {
+      // Add initial system notifications
+      addNotification({
+        type: 'system',
+        priority: 'medium',
+        title: 'Selamat Datang di Admin Dashboard',
+        message: `Halo ${profile?.full_name}, sistem GARUDA-21 berjalan dengan baik!`,
+        actionRequired: false
+      })
+
+      // Add some sample notifications
+      addNotification({
+        type: 'user',
+        priority: 'high',
+        title: 'Pendaftaran Baru',
+        message: '15 peserta baru mendaftar program AI Fundamentals hari ini',
+        actionRequired: true
+      })
+
+      addNotification({
+        type: 'program',
+        priority: 'medium',
+        title: 'Program Mendekati Deadline',
+        message: 'Program "Digital Marketing" akan berakhir dalam 3 hari',
+        actionRequired: true
+      })
+
+      addNotification({
+        type: 'payment',
+        priority: 'low',
+        title: 'Pembayaran Diterima',
+        message: 'Pembayaran Rp 2.500.000 dari John Doe telah diterima',
+        actionRequired: false
+      })
+
+      // Mark as initialized
+      sessionStorage.setItem('admin-notifications-initialized', 'true')
+    }
+  }, [profile?.full_name, addNotification])
 
 
   const tabs = [
@@ -39,10 +90,12 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          {/* System Status */}
           <div className="w-3 h-3 bg-green-500 rounded-full"></div>
           <span className="text-sm text-gray-600">System Online</span>
         </div>
       </div>
+
 
       {/* Tab Navigation */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
@@ -93,15 +146,29 @@ export function AdminDashboard() {
       )}
 
       {activeTab === 'analytics' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <UsersChart />
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Segera Hadir</h3>
-            <p className="text-gray-600">Fitur analisis lanjutan akan segera tersedia.</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <UsersChart />
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Segera Hadir</h3>
+              <p className="text-gray-600">Fitur analisis lanjutan akan segera tersedia.</p>
+            </div>
           </div>
+          
+          {/* Notification Test Panel - Remove in production */}
+          <NotificationTestPanel />
         </div>
       )}
 
     </div>
+  )
+}
+
+// Wrapper component with AdminNotificationProvider
+export function AdminDashboard() {
+  return (
+    <AdminNotificationProvider>
+      <AdminDashboardContent />
+    </AdminNotificationProvider>
   )
 }
