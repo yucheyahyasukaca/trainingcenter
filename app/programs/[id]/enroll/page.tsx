@@ -384,7 +384,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Tanggal:</span>
                   <span>
-                    {(program as any).registration_type === 'lifetime' 
+                    {(program as any).registration_type === 'lifetime' || 
+                     (program.start_date === program.end_date)
                       ? 'Lifetime' 
                       : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
                     }

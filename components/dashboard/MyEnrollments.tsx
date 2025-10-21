@@ -240,11 +240,13 @@ export function MyEnrollments() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4">
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Calendar className="w-4 h-4 text-blue-500" />
-                    <span className="font-medium">Mulai: {formatDate(enrollment.program?.start_date)}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Calendar className="w-4 h-4 text-purple-500" />
-                    <span className="font-medium">Selesai: {formatDate(enrollment.program?.end_date)}</span>
+                    <span className="font-medium">
+                      {(enrollment.program as any)?.registration_type === 'lifetime' || 
+                       (enrollment.program?.start_date === enrollment.program?.end_date)
+                        ? 'Lifetime' 
+                        : `${formatDate(enrollment.program?.start_date)} - ${formatDate(enrollment.program?.end_date)}`
+                      }
+                    </span>
                   </div>
                   {enrollment.program?.category && (
                     <div className="flex items-center space-x-2 text-green-600">

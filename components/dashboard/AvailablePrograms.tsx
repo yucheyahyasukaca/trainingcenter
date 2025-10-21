@@ -445,9 +445,10 @@ export function AvailablePrograms() {
                 <div className="flex items-center space-x-2 text-gray-600">
                   <Calendar className="w-4 h-4 text-red-500" />
                   <span className="font-medium">
-                    {program.registration_type === 'lifetime' 
+                    {program.registration_type === 'lifetime' || 
+                     (program.start_date === program.end_date)
                       ? 'Lifetime' 
-                      : `${formatDate(program.registration_start_date)} - ${formatDate(program.registration_end_date)}`
+                      : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
                     }
                   </span>
                 </div>

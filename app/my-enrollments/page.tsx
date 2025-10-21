@@ -334,7 +334,8 @@ export default function MyEnrollmentsPage() {
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
                     <span>
-                      {(enrollment.program as any)?.registration_type === 'lifetime' 
+                      {(enrollment.program as any)?.registration_type === 'lifetime' || 
+                       (enrollment.program?.start_date === enrollment.program?.end_date)
                         ? 'Lifetime' 
                         : `${formatDate(enrollment.program?.start_date)} - ${formatDate(enrollment.program?.end_date)}`
                       }

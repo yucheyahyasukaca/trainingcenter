@@ -180,21 +180,47 @@ export default function ThreadDetailPage({
 
       // Upload attachment if exists
       if (attachment) {
-        const fileExt = attachment.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-        const filePath = `forum-attachments/${fileName}`
+        try {
+          // Try to upload to Supabase storage
+          const fileExt = attachment.name.split('.').pop()
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+          const filePath = `forum-attachments/${fileName}`
 
-        const { error: uploadError } = await supabase.storage
-          .from('public')
-          .upload(filePath, attachment)
+          const { error: uploadError } = await supabase.storage
+            .from('forum-attachments')
+            .upload(filePath, attachment)
 
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('public')
-          .getPublicUrl(filePath)
-
-        attachmentUrl = publicUrl
+          if (uploadError) {
+            console.warn('Storage upload failed, using base64:', uploadError)
+            // Fallback: use base64 for small images
+            if (attachment.type.startsWith('image/') && attachment.size < 500000) { // 500KB limit
+              attachmentUrl = await new Promise((resolve) => {
+                const reader = new FileReader()
+                reader.onload = (e) => resolve(e.target?.result as string)
+                reader.readAsDataURL(attachment)
+              })
+            } else {
+              throw new Error('File terlalu besar untuk upload. Maksimal 500KB untuk gambar.')
+            }
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('forum-attachments')
+              .getPublicUrl(filePath)
+            attachmentUrl = publicUrl
+          }
+        } catch (storageError) {
+          console.warn('Storage error, using base64 fallback:', storageError)
+          // Fallback: use base64 for small images
+          if (attachment.type.startsWith('image/') && attachment.size < 500000) {
+            attachmentUrl = await new Promise((resolve) => {
+              const reader = new FileReader()
+              reader.onload = (e) => resolve(e.target?.result as string)
+              reader.readAsDataURL(attachment)
+            })
+          } else {
+            throw new Error('File terlalu besar untuk upload. Maksimal 500KB untuk gambar.')
+          }
+        }
       }
 
       const { error: replyError } = await supabase

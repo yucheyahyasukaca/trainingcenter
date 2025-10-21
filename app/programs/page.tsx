@@ -564,9 +564,10 @@ export default function ProgramsPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2 text-red-500" />
                       <span>
-                        {program.registration_type === 'lifetime' 
+                        {program.registration_type === 'lifetime' || 
+                         (program.start_date === program.end_date)
                           ? 'Lifetime' 
-                          : `${formatDate(program.registration_start_date)} - ${formatDate(program.registration_end_date)}`
+                          : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
                         }
                       </span>
                     </div>
