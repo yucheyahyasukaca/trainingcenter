@@ -57,7 +57,7 @@ export function MyEnrollments() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Pendaftaran Saya</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Kelas Terdaftar</h3>
         <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
           Lihat Semua
         </button>

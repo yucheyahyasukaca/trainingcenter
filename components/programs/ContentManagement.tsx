@@ -23,6 +23,11 @@ interface LearningContent {
   status: 'draft' | 'published' | 'archived'
   is_required: boolean
   estimated_duration: number | null
+  parent_id?: string | null
+  material_type: 'main' | 'sub'
+  level: number
+  is_expanded: boolean
+  sub_materials?: LearningContent[]
 }
 
 interface ContentManagementProps {
@@ -48,8 +53,12 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     is_free: false,
     status: 'draft',
     is_required: true,
-    estimated_duration: 10
+    estimated_duration: 10,
+    material_type: 'main',
+    level: 0,
+    is_expanded: true
   })
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchContents()
@@ -57,14 +66,15 @@ export function ContentManagement({ classId, className, programId }: ContentMana
 
   async function fetchContents() {
     try {
+      // Use the hierarchical function to get structured data
       const { data, error } = await supabase
-        .from('learning_contents')
-        .select('*')
-        .eq('class_id', classId)
-        .order('order_index', { ascending: true })
+        .rpc('get_content_hierarchy', { class_uuid: classId })
 
       if (error) throw error
-      setContents(data || [])
+      
+      // Organize data into hierarchical structure
+      const hierarchicalData = organizeHierarchicalData(data || [])
+      setContents(hierarchicalData)
     } catch (error) {
       console.error('Error fetching contents:', error)
     } finally {
@@ -72,21 +82,53 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     }
   }
 
+  function organizeHierarchicalData(data: LearningContent[]): LearningContent[] {
+    const mainMaterials: LearningContent[] = []
+    const subMaterialsMap = new Map<string, LearningContent[]>()
+    
+    // Separate main materials and sub materials
+    data.forEach(item => {
+      if (item.material_type === 'main') {
+        mainMaterials.push({ ...item, sub_materials: [] })
+      } else if (item.parent_id) {
+        if (!subMaterialsMap.has(item.parent_id)) {
+          subMaterialsMap.set(item.parent_id, [])
+        }
+        subMaterialsMap.get(item.parent_id)!.push(item)
+      }
+    })
+    
+    // Attach sub materials to their parents
+    mainMaterials.forEach(main => {
+      const subMaterials = subMaterialsMap.get(main.id) || []
+      main.sub_materials = subMaterials.sort((a, b) => a.order_index - b.order_index)
+    })
+    
+    return mainMaterials.sort((a, b) => a.order_index - b.order_index)
+  }
+
   async function handleAddContent() {
     try {
+      const contentData = {
+        ...newContent,
+        created_by: profile?.id,
+        parent_id: selectedParentId,
+        material_type: selectedParentId ? 'sub' : 'main',
+        level: selectedParentId ? 1 : 0
+      }
+
       const { data, error } = await supabase
         .from('learning_contents')
-        .insert([{
-          ...newContent,
-          created_by: profile?.id
-        }])
+        .insert([contentData])
         .select()
 
       if (error) throw error
       
-      setContents([...contents, data[0]])
+      // Refresh the contents to get the hierarchical structure
+      fetchContents()
       setShowAddModal(false)
       resetForm()
+      setSelectedParentId(null)
     } catch (error) {
       console.error('Error adding content:', error)
       alert('Gagal menambahkan materi')
@@ -185,8 +227,12 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       is_free: false,
       status: 'draft',
       is_required: true,
-      estimated_duration: 10
+      estimated_duration: 10,
+      material_type: 'main',
+      level: 0,
+      is_expanded: true
     })
+    setSelectedParentId(null)
   }
 
   function openEditModal(content: LearningContent) {
@@ -256,95 +302,189 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {contents.map((content, index) => (
-            <div
-              key={content.id}
-              className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="mt-1">
-                    {getContentIcon(content.content_type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-900">{content.title}</h3>
-                      {getStatusBadge(content.status)}
-                      {content.is_free && (
-                        <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
-                          Gratis
-                        </span>
-                      )}
-                      {content.is_required && (
-                        <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
-                          Wajib
-                        </span>
-                      )}
+            <div key={content.id} className="space-y-2">
+              {/* Main Material */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="mt-1">
+                      {getContentIcon(content.content_type)}
                     </div>
-                    {content.description && (
-                      <p className="text-sm text-gray-600 mb-2">{content.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span className="capitalize">{content.content_type}</span>
-                      {content.estimated_duration && (
-                        <span>{content.estimated_duration} menit</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-900 text-lg">{content.title}</h3>
+                        {getStatusBadge(content.status)}
+                        {content.is_free && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                            Gratis
+                          </span>
+                        )}
+                        {content.is_required && (
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                            Wajib
+                          </span>
+                        )}
+                      </div>
+                      {content.description && (
+                        <p className="text-sm text-gray-600 mb-2">{content.description}</p>
                       )}
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span className="capitalize">{content.content_type}</span>
+                        {content.estimated_duration && (
+                          <span>{content.estimated_duration} menit</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => handleReorder(content.id, 'up')}
-                    disabled={index === 0}
-                    className={`p-2 rounded hover:bg-gray-100 ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    title="Pindah ke atas"
-                  >
-                    <ChevronUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleReorder(content.id, 'down')}
-                    disabled={index === contents.length - 1}
-                    className={`p-2 rounded hover:bg-gray-100 ${index === contents.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    title="Pindah ke bawah"
-                  >
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                  <a
-                    href={`/learn/${programId}/${classId}?content=${content.id}`}
-                    target="_blank"
-                    className="p-2 rounded hover:bg-gray-100"
-                    title="Preview"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </a>
-                  {content.content_type === 'quiz' && (
-                    <a
-                      href={`/programs/${programId}/classes/${classId}/content/${content.id}/quiz`}
-                      className="p-2 rounded hover:bg-gray-100 text-green-600"
-                      title="Kelola Quiz"
+                  {/* Main Material Actions */}
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => handleReorder(content.id, 'up')}
+                      disabled={index === 0}
+                      className={`p-2 rounded hover:bg-gray-100 ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                      title="Pindah ke atas"
                     >
-                      <HelpCircle className="w-4 h-4" />
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleReorder(content.id, 'down')}
+                      disabled={index === contents.length - 1}
+                      className={`p-2 rounded hover:bg-gray-100 ${index === contents.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                      title="Pindah ke bawah"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="p-2 rounded hover:bg-gray-100 text-green-600"
+                      title="Tambah Sub Materi"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={`/learn/${programId}/${classId}?content=${content.id}`}
+                      target="_blank"
+                      className="p-2 rounded hover:bg-gray-100"
+                      title="Preview"
+                    >
+                      <Eye className="w-4 h-4" />
                     </a>
-                  )}
-                  <button
-                    onClick={() => openEditModal(content)}
-                    className="p-2 rounded hover:bg-gray-100 text-blue-600"
-                    title="Edit"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteContent(content.id)}
-                    className="p-2 rounded hover:bg-gray-100 text-red-600"
-                    title="Hapus"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={() => openEditModal(content)}
+                      className="p-2 rounded hover:bg-gray-100 text-blue-600"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteContent(content.id)}
+                      className="p-2 rounded hover:bg-gray-100 text-red-600"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {/* Sub Materials */}
+              {content.sub_materials && content.sub_materials.length > 0 && (
+                <div className="ml-6 space-y-2">
+                  {content.sub_materials.map((subMaterial, subIndex) => (
+                    <div
+                      key={subMaterial.id}
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="mt-1">
+                            {getContentIcon(subMaterial.content_type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-gray-800">{subMaterial.title}</h4>
+                              {getStatusBadge(subMaterial.status)}
+                              {subMaterial.is_free && (
+                                <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
+                                  Gratis
+                                </span>
+                              )}
+                              {subMaterial.is_required && (
+                                <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700">
+                                  Wajib
+                                </span>
+                              )}
+                            </div>
+                            {subMaterial.description && (
+                              <p className="text-sm text-gray-600 mb-1">{subMaterial.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span className="capitalize">{subMaterial.content_type}</span>
+                              {subMaterial.estimated_duration && (
+                                <span>{subMaterial.estimated_duration} menit</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Sub Material Actions */}
+                        <div className="flex items-center gap-1 ml-4">
+                          <button
+                            onClick={() => handleReorder(subMaterial.id, 'up')}
+                            disabled={subIndex === 0}
+                            className={`p-1 rounded hover:bg-gray-200 ${subIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            title="Pindah ke atas"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleReorder(subMaterial.id, 'down')}
+                            disabled={subIndex === content.sub_materials!.length - 1}
+                            className={`p-1 rounded hover:bg-gray-200 ${subIndex === content.sub_materials!.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            title="Pindah ke bawah"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                          <a
+                            href={`/learn/${programId}/${classId}?content=${subMaterial.id}`}
+                            target="_blank"
+                            className="p-1 rounded hover:bg-gray-200"
+                            title="Preview"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </a>
+                          {subMaterial.content_type === 'quiz' && (
+                            <a
+                              href={`/programs/${programId}/classes/${classId}/content/${subMaterial.id}/quiz`}
+                              className="p-1 rounded hover:bg-gray-200 text-green-600"
+                              title="Kelola Quiz"
+                            >
+                              <HelpCircle className="w-3 h-3" />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => openEditModal(subMaterial)}
+                            className="p-1 rounded hover:bg-gray-200 text-blue-600"
+                            title="Edit"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteContent(subMaterial.id)}
+                            className="p-1 rounded hover:bg-gray-200 text-red-600"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -361,6 +501,9 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           }}
           title="Tambah Materi Baru"
           onChange={setNewContent}
+          selectedParentId={selectedParentId}
+          setSelectedParentId={setSelectedParentId}
+          contents={contents}
         />
       )}
 
@@ -375,6 +518,9 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           }}
           title="Edit Materi"
           onChange={setEditingContent}
+          selectedParentId={editingContent.parent_id || null}
+          setSelectedParentId={(id) => setEditingContent({ ...editingContent, parent_id: id })}
+          contents={contents}
         />
       )}
     </div>
@@ -388,9 +534,12 @@ interface ContentFormModalProps {
   onClose: () => void
   title: string
   onChange: (content: Partial<LearningContent>) => void
+  selectedParentId: string | null
+  setSelectedParentId: (id: string | null) => void
+  contents: LearningContent[]
 }
 
-function ContentFormModal({ content, onSave, onClose, title, onChange }: ContentFormModalProps) {
+function ContentFormModal({ content, onSave, onClose, title, onChange, selectedParentId, setSelectedParentId, contents }: ContentFormModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -404,6 +553,37 @@ function ContentFormModal({ content, onSave, onClose, title, onChange }: Content
 
         {/* Form */}
         <div className="p-6 space-y-4">
+          {/* Material Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Jenis Materi <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="materialType"
+                  value="main"
+                  checked={selectedParentId === null}
+                  onChange={() => setSelectedParentId(null)}
+                  className="mr-2"
+                />
+                <span className="text-sm">Materi Utama</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="materialType"
+                  value="sub"
+                  checked={selectedParentId !== null}
+                  onChange={() => setSelectedParentId('')}
+                  className="mr-2"
+                />
+                <span className="text-sm">Sub Materi</span>
+              </label>
+            </div>
+          </div>
+
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -431,6 +611,27 @@ function ContentFormModal({ content, onSave, onClose, title, onChange }: Content
               placeholder="Deskripsi singkat tentang materi ini..."
             />
           </div>
+
+          {/* Parent Material Selection (only for sub-materials) */}
+          {selectedParentId !== null && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Materi Induk
+              </label>
+              <select
+                value={selectedParentId || ''}
+                onChange={(e) => setSelectedParentId(e.target.value || null)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              >
+                <option value="">Pilih Materi Induk</option>
+                {contents.map((mainContent) => (
+                  <option key={mainContent.id} value={mainContent.id}>
+                    {mainContent.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Content Type */}
           <div>

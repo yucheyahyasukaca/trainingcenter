@@ -53,7 +53,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     const userItems = [
       ...baseItems,
       { icon: GraduationCap, label: 'Program', href: '/programs', roles: ['user'] },
-      { icon: Calendar, label: 'Pendaftaran Saya', href: '/my-enrollments', roles: ['user'] },
+      { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
     ]
 
     // Add trainer-specific items if user is a trainer

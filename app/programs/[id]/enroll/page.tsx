@@ -163,7 +163,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         addNotification({
           type: 'warning',
           title: 'Sudah Terdaftar',
-          message: `Anda sudah terdaftar di program ini dengan status ${statusText}. Silakan cek halaman "Pendaftaran Saya".`,
+          message: `Anda sudah terdaftar di program ini dengan status ${statusText}. Silakan cek halaman "Kelas Terdaftar".`,
           duration: 8000
         })
         return

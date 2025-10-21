@@ -268,7 +268,7 @@ export default function MyEnrollmentsPage() {
       })()}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pendaftaran Saya</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Kelas Terdaftar</h1>
           <p className="text-gray-600 mt-1">Kelola program yang sudah Anda daftar</p>
         </div>
       </div>
@@ -306,7 +306,7 @@ export default function MyEnrollmentsPage() {
         ) : filteredEnrollments.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Belum ada pendaftaran program</p>
+            <p className="text-gray-600">Belum ada kelas terdaftar</p>
             <Link 
               href="/programs" 
               className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors mt-4"
@@ -420,7 +420,7 @@ export default function MyEnrollmentsPage() {
                   {enrollment.status === 'rejected' && (
                     <div className="w-full px-3 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center flex items-center justify-center">
                       <XCircle className="w-4 h-4 mr-2" />
-                      Pendaftaran Ditolak
+                      Kelas Ditolak
                     </div>
                   )}
                 </div>

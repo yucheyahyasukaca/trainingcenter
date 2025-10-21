@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { ClassWithTrainers, ClassInsert, ClassTrainerInsert, Trainer } from '@/types'
 import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
+import { MultiSelectTrainer } from '@/components/ui/MultiSelectTrainer'
 
 interface ClassManagementProps {
   programId: string
@@ -29,7 +30,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
     max_participants: 10,
     location: '',
     room: '',
-    status: 'active'
+    status: 'scheduled'
   })
   const [selectedTrainers, setSelectedTrainers] = useState<string[]>([])
   const [primaryTrainer, setPrimaryTrainer] = useState('')
@@ -128,7 +129,7 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
         const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
           class_id: classId,
           trainer_id: trainerId,
-          role: 'instructor',
+          role: 'assistant',
           is_primary: trainerId === primaryTrainer
         }))
 
@@ -189,46 +190,95 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
     setLoading(true)
 
     try {
+      console.log('🔄 Updating class:', editingClass)
+      console.log('🔄 Selected trainers:', selectedTrainers)
+      console.log('🔄 Primary trainer:', primaryTrainer)
+      
+      // Validate required fields
+      if (!editingClass.name.trim()) {
+        throw new Error('Nama kelas harus diisi')
+      }
+      if (!editingClass.start_date || !editingClass.end_date) {
+        throw new Error('Tanggal mulai dan selesai harus diisi')
+      }
+      if (editingClass.max_participants < 1) {
+        throw new Error('Maksimal peserta harus lebih dari 0')
+      }
+      
+      // Prepare update data
+      const updateData = {
+        name: editingClass.name.trim(),
+        description: editingClass.description?.trim() || null,
+        start_date: editingClass.start_date,
+        end_date: editingClass.end_date,
+        start_time: editingClass.start_time || null,
+        end_time: editingClass.end_time || null,
+        max_participants: editingClass.max_participants,
+        location: editingClass.location?.trim() || null,
+        room: editingClass.room?.trim() || null,
+        status: editingClass.status === 'active' ? 'scheduled' : editingClass.status
+      }
+      
+      console.log('🔄 Update data prepared:', updateData)
+      
       // Update class
-      const { error: classError } = await (supabase as any)
+      const { data: updateResult, error: classError } = await (supabase as any)
         .from('classes')
-        .update({
-          name: editingClass.name,
-          description: editingClass.description,
-          start_date: editingClass.start_date,
-          end_date: editingClass.end_date,
-          start_time: editingClass.start_time,
-          end_time: editingClass.end_time,
-          max_participants: editingClass.max_participants,
-          location: editingClass.location,
-          room: editingClass.room,
-          status: editingClass.status
-        })
+        .update(updateData)
         .eq('id', editingClass.id)
+        .select()
 
-      if (classError) throw classError
+      if (classError) {
+        console.error('❌ Class update error:', classError)
+        throw classError
+      }
+
+      console.log('✅ Class updated successfully:', updateResult)
 
       // Update trainers
+      console.log('🔄 Updating trainers for class:', editingClass.id)
+      
       // First, delete existing trainers
-      await supabase
+      const { error: deleteError } = await supabase
         .from('class_trainers')
         .delete()
         .eq('class_id', editingClass.id)
 
+      if (deleteError) {
+        console.error('❌ Delete trainers error:', deleteError)
+        throw deleteError
+      }
+
+      console.log('✅ Existing trainers deleted')
+
       // Then insert new trainers
       if (selectedTrainers.length > 0) {
+        // Validate primary trainer is in selected trainers
+        if (primaryTrainer && !selectedTrainers.includes(primaryTrainer)) {
+          console.warn('⚠️ Primary trainer not in selected trainers, clearing primary')
+          setPrimaryTrainer('')
+        }
+        
         const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
           class_id: editingClass.id,
           trainer_id: trainerId,
-          role: 'instructor',
+          role: 'assistant',
           is_primary: trainerId === primaryTrainer
         }))
 
-        const { error: trainersError } = await (supabase as any)
+        console.log('🔄 Inserting new trainers:', classTrainers)
+
+        const { data: trainersData, error: trainersError } = await (supabase as any)
           .from('class_trainers')
           .insert(classTrainers)
+          .select()
 
-        if (trainersError) throw trainersError
+        if (trainersError) {
+          console.error('❌ Insert trainers error:', trainersError)
+          throw trainersError
+        }
+
+        console.log('✅ Trainers inserted successfully:', trainersData)
       }
 
       setEditingClass(null)
@@ -237,8 +287,15 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
       setPrimaryTrainer('')
       fetchClasses()
     } catch (error) {
-      console.error('Error updating class:', error)
-      alert('Gagal mengupdate kelas')
+      console.error('❌ Error updating class:', error)
+      
+      // Show detailed error message
+      let errorMessage = 'Gagal mengupdate kelas'
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`
+      }
+      
+      alert(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -273,10 +330,14 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
 
   function getStatusBadge(status: string) {
     const badges: Record<string, string> = {
+      scheduled: 'px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full',
+      ongoing: 'px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full',
+      completed: 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full',
+      cancelled: 'px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full',
+      // Legacy status support
       active: 'px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full',
       inactive: 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full',
       full: 'px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full',
-      completed: 'px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full',
     }
     return badges[status] || 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'
   }
@@ -521,39 +582,14 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trainer</label>
-                <div className="space-y-2">
-                  {trainers.map((trainer) => (
-                    <label key={trainer.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTrainers.includes(trainer.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTrainers([...selectedTrainers, trainer.id])
-                          } else {
-                            setSelectedTrainers(selectedTrainers.filter(id => id !== trainer.id))
-                            if (primaryTrainer === trainer.id) {
-                              setPrimaryTrainer('')
-                            }
-                          }
-                        }}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <input
-                        type="radio"
-                        name="primaryTrainer"
-                        checked={primaryTrainer === trainer.id}
-                        onChange={() => setPrimaryTrainer(trainer.id)}
-                        disabled={!selectedTrainers.includes(trainer.id)}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-gray-700">{trainer.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <MultiSelectTrainer
+                trainers={trainers}
+                selectedTrainers={selectedTrainers}
+                onSelectionChange={setSelectedTrainers}
+                primaryTrainer={primaryTrainer}
+                onPrimaryChange={setPrimaryTrainer}
+                label="Trainer"
+              />
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button
@@ -690,45 +726,21 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                   value={editingClass.status}
                   onChange={(e) => setEditingClass({ ...editingClass, status: e.target.value as any })}
                 >
-                  <option value="active">Aktif</option>
-                  <option value="inactive">Tidak Aktif</option>
+                  <option value="scheduled">Dijadwalkan</option>
+                  <option value="ongoing">Berlangsung</option>
                   <option value="completed">Selesai</option>
+                  <option value="cancelled">Dibatalkan</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trainer</label>
-                <div className="space-y-2">
-                  {trainers.map((trainer) => (
-                    <label key={trainer.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedTrainers.includes(trainer.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTrainers([...selectedTrainers, trainer.id])
-                          } else {
-                            setSelectedTrainers(selectedTrainers.filter(id => id !== trainer.id))
-                            if (primaryTrainer === trainer.id) {
-                              setPrimaryTrainer('')
-                            }
-                          }
-                        }}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <input
-                        type="radio"
-                        name="primaryTrainer"
-                        checked={primaryTrainer === trainer.id}
-                        onChange={() => setPrimaryTrainer(trainer.id)}
-                        disabled={!selectedTrainers.includes(trainer.id)}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      <span className="text-sm text-gray-700">{trainer.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <MultiSelectTrainer
+                trainers={trainers}
+                selectedTrainers={selectedTrainers}
+                onSelectionChange={setSelectedTrainers}
+                primaryTrainer={primaryTrainer}
+                onPrimaryChange={setPrimaryTrainer}
+                label="Trainer"
+              />
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button

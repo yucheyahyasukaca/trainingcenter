@@ -47,33 +47,70 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
       if (classesError) throw classesError
 
-      // Resolve participant for current user, then fetch enrollment by participant_id
-      const { data: participant, error: participantError } = await supabase
-        .from('participants')
-        .select('id')
-        .eq('user_id', profile?.id || '')
-        .single()
-
-      if (participantError) throw participantError
-
-      const { data: enrollmentData, error: enrollmentError } = await supabase
-        .from('enrollments')
-        .select(`
-          *,
-          class:classes(*)
-        `)
-        .eq('program_id', params.id)
-        .eq('participant_id', (participant as any).id)
-        .eq('status', 'approved')
-        .maybeSingle()
-
-      if (enrollmentError && enrollmentError.code !== 'PGRST116') {
-        throw enrollmentError
-      }
-
       setProgram(programData)
       setClasses(classesData || [])
-      setEnrollment(enrollmentData)
+
+      // Check access based on user role
+      if (profile?.role === 'admin' || profile?.role === 'manager') {
+        // Admin and manager have full access
+        setEnrollment({ id: 'admin-access', status: 'approved' })
+      } else if (profile?.role === 'trainer') {
+        // Check if trainer is assigned to this program
+        const { data: trainerData } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('user_id', profile.id)
+          .single()
+
+        if (trainerData && programData.trainer_id === trainerData.id) {
+          setEnrollment({ id: 'trainer-access', status: 'approved' })
+        } else {
+          // Check if assigned to any class in this program
+          const { data: classTrainer } = await supabase
+            .from('class_trainers')
+            .select('id')
+            .eq('trainer_id', trainerData?.id)
+            .in('class_id', (classesData || []).map(c => c.id))
+            .single()
+
+          if (classTrainer) {
+            setEnrollment({ id: 'trainer-access', status: 'approved' })
+          }
+        }
+      } else {
+        // Regular user - check enrollment by participant_id
+        const { data: participant, error: participantError } = await supabase
+          .from('participants')
+          .select('id')
+          .eq('user_id', profile?.id || '')
+          .single()
+
+        if (participantError) {
+          console.log('No participant found for user:', profile?.id)
+          setEnrollment(null)
+          return
+        }
+
+        const { data: enrollmentData, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .select(`
+            *,
+            class:classes(*)
+          `)
+          .eq('participant_id', participant.id)
+          .eq('program_id', params.id)
+          .eq('status', 'approved')
+          .maybeSingle()
+
+        if (enrollmentError && enrollmentError.code !== 'PGRST116') {
+          console.error('Enrollment error:', enrollmentError)
+          setEnrollment(null)
+          return
+        }
+
+        setEnrollment(enrollmentData)
+        console.log('User enrollment check:', enrollmentData ? 'Found' : 'Not found')
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
       router.push('/programs')
