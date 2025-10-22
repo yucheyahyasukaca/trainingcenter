@@ -273,8 +273,29 @@ export default function NewMaterialPage({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Modern Breadcrumb */}
-        <div className="mb-8">
-          <nav className="flex items-center space-x-2 text-sm">
+        <div className="mb-6 sm:mb-8">
+          {/* Mobile Breadcrumb - Simplified */}
+          <nav className="flex items-center gap-1 text-xs sm:hidden">
+            <Link 
+              href="/programs" 
+              className="text-slate-500 hover:text-blue-600 transition-colors duration-200"
+            >
+              Programs
+            </Link>
+            <span className="text-slate-400">/</span>
+            <Link 
+              href={`/programs/${params.id}`} 
+              className="text-slate-500 hover:text-blue-600 transition-colors duration-200 truncate max-w-[100px]"
+              title={programData?.title || 'Program'}
+            >
+              {programData?.title || 'Program'}
+            </Link>
+            <span className="text-slate-400">/</span>
+            <span className="text-slate-700 font-medium">Tambah Materi</span>
+          </nav>
+
+          {/* Desktop Breadcrumb - Full */}
+          <nav className="hidden sm:flex items-center gap-2 text-sm">
             {[
               { name: 'Dashboard', href: '/dashboard' },
               { name: 'Programs', href: '/programs' },
@@ -283,14 +304,19 @@ export default function NewMaterialPage({
               { name: 'Materi', href: `/programs/${params.id}/classes/${params.classId}/content` },
               { name: 'Tambah Materi', href: '#' }
             ].map((item, index) => (
-              <div key={item.name} className="flex items-center space-x-2">
-                {index > 0 && <span className="text-slate-400">/</span>}
+              <div key={item.name} className="flex items-center gap-2">
+                {index > 0 && (
+                  <span className="text-slate-400">/</span>
+                )}
                 {index === 5 ? (
-                  <span className="text-slate-700 font-medium">{item.name}</span>
+                  <span className="text-slate-700 font-medium">
+                    {item.name}
+                  </span>
                 ) : (
                   <Link 
                     href={item.href} 
-                    className="text-slate-500 hover:text-blue-600 transition-colors duration-200"
+                    className="text-slate-500 hover:text-blue-600 transition-colors duration-200 truncate max-w-[150px] lg:max-w-none"
+                    title={item.name}
                   >
                     {item.name}
                   </Link>
@@ -301,37 +327,37 @@ export default function NewMaterialPage({
         </div>
 
         {/* Modern Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Link
             href={`/programs/${params.id}/classes/${params.classId}/content`}
-            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-6 group transition-all duration-200"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4 group transition-all duration-200"
           >
             <div className="p-1 rounded-lg bg-slate-100 group-hover:bg-slate-200 transition-colors duration-200">
               <ArrowLeft className="w-4 h-4" />
             </div>
-            <span className="font-medium">Kembali ke Materi Pembelajaran</span>
+            <span className="font-medium text-sm sm:text-base">Kembali ke Materi Pembelajaran</span>
           </Link>
           
-          <div className="relative overflow-hidden bg-white rounded-2xl shadow-xl border border-slate-200">
+          <div className="relative overflow-hidden bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl border border-slate-200">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-5"></div>
-            <div className="relative p-8">
-              <div className="flex items-start gap-6">
-                <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
-                  <Sparkles className="w-8 h-8 text-white" />
+            <div className="relative p-4 sm:p-6 lg:p-8">
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl shadow-lg">
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <div className="flex-1">
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2 sm:mb-3 leading-tight">
                     Buat Materi Pembelajaran Baru
                   </h1>
-                  <p className="text-slate-600 text-lg mb-2">
+                  <p className="text-slate-600 text-sm sm:text-base lg:text-lg mb-1 sm:mb-2">
                     Kelas: <span className="font-semibold text-slate-800">{classData?.name || 'Class'}</span>
                   </p>
-                  <p className="text-slate-500">
+                  <p className="text-slate-500 text-sm sm:text-base">
                     Program: <span className="font-medium">{programData?.title}</span>
                   </p>
                 </div>
                 <div className="hidden lg:block">
-                  <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full opacity-50"></div>
+                  <div className="w-24 h-24 xl:w-32 xl:h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full opacity-50"></div>
                 </div>
               </div>
             </div>
@@ -339,21 +365,21 @@ export default function NewMaterialPage({
         </div>
 
         {/* Modern Form */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Form */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Material Type Selection */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                  <Layers className="w-5 h-5 text-white" />
+                  <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Jenis Materi</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Jenis Materi</h2>
                 <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">Wajib</span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className={`group relative p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <label className={`group relative p-4 sm:p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                   selectedParentId === null 
                     ? 'border-blue-500 bg-blue-50 shadow-md' 
                     : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
@@ -366,25 +392,25 @@ export default function NewMaterialPage({
                     onChange={() => setSelectedParentId(null)}
                     className="sr-only"
                   />
-                  <div className="flex items-start gap-4">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                       selectedParentId === null 
                         ? 'border-blue-500 bg-blue-500' 
                         : 'border-slate-300 group-hover:border-slate-400'
                     }`}>
-                      {selectedParentId === null && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                      {selectedParentId === null && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full"></div>}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Target className="w-5 h-5 text-blue-600" />
-                        <span className="font-semibold text-slate-800">Materi Utama</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        <span className="font-semibold text-slate-800 text-sm sm:text-base">Materi Utama</span>
                       </div>
-                      <p className="text-sm text-slate-600">Materi pembelajaran utama yang berdiri sendiri</p>
+                      <p className="text-xs sm:text-sm text-slate-600">Materi pembelajaran utama yang berdiri sendiri</p>
                     </div>
                   </div>
                 </label>
                 
-                <label className={`group relative p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                <label className={`group relative p-4 sm:p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                   selectedParentId !== null 
                     ? 'border-blue-500 bg-blue-50 shadow-md' 
                     : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
@@ -397,20 +423,20 @@ export default function NewMaterialPage({
                     onChange={() => setSelectedParentId('')}
                     className="sr-only"
                   />
-                  <div className="flex items-start gap-4">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                       selectedParentId !== null 
                         ? 'border-blue-500 bg-blue-500' 
                         : 'border-slate-300 group-hover:border-slate-400'
                     }`}>
-                      {selectedParentId !== null && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                      {selectedParentId !== null && <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full"></div>}
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Layers className="w-5 h-5 text-purple-600" />
-                        <span className="font-semibold text-slate-800">Sub Materi</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                        <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                        <span className="font-semibold text-slate-800 text-sm sm:text-base">Sub Materi</span>
                       </div>
-                      <p className="text-sm text-slate-600">Materi yang merupakan bagian dari materi utama</p>
+                      <p className="text-xs sm:text-sm text-slate-600">Materi yang merupakan bagian dari materi utama</p>
                     </div>
                   </div>
                 </label>
@@ -418,18 +444,18 @@ export default function NewMaterialPage({
             </div>
 
             {/* Basic Information */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                  <PenTool className="w-5 h-5 text-white" />
+                  <PenTool className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Informasi Dasar</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Informasi Dasar</h2>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 sm:mb-3">
                     Judul Materi <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -437,25 +463,25 @@ export default function NewMaterialPage({
                       type="text"
                       value={newContent.title || ''}
                       onChange={(e) => setNewContent({ ...newContent, title: e.target.value })}
-                      className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg font-medium"
+                      className="w-full px-3 sm:px-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base sm:text-lg font-medium"
                       placeholder="Contoh: Pengenalan Python untuk Pemula"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                      <BookOpen className="w-5 h-5 text-slate-400" />
+                    <div className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center">
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                     </div>
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 sm:mb-3">
                     Deskripsi
                   </label>
                   <textarea
                     value={newContent.description || ''}
                     onChange={(e) => setNewContent({ ...newContent, description: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none"
+                    rows={3}
+                    className="w-full px-3 sm:px-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none text-sm sm:text-base"
                     placeholder="Jelaskan secara singkat apa yang akan dipelajari dalam materi ini..."
                   />
                 </div>
@@ -464,12 +490,12 @@ export default function NewMaterialPage({
 
             {/* Parent Material Selection (only for sub-materials) */}
             {selectedParentId !== null && (
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                   <div className="p-2 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg">
-                    <Layers className="w-5 h-5 text-white" />
+                    <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  <h2 className="text-xl font-bold text-slate-800">Materi Induk</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-800">Materi Induk</h2>
                 </div>
                 
                 <div className="relative">
@@ -495,62 +521,42 @@ export default function NewMaterialPage({
             )}
 
             {/* Content Type */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                  <Zap className="w-5 h-5 text-white" />
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Tipe Konten</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Tipe Konten</h2>
                 <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">Wajib</span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { value: 'text', icon: FileText, label: 'Teks / Artikel', color: 'blue', desc: 'Konten berbentuk teks' },
-                  { value: 'video', icon: Video, label: 'Video', color: 'red', desc: 'Konten video pembelajaran' },
-                  { value: 'quiz', icon: HelpCircle, label: 'Quiz / Kuis', color: 'green', desc: 'Soal dan pertanyaan' },
-                  { value: 'document', icon: File, label: 'Dokumen', color: 'purple', desc: 'PDF, PPT, dll' },
-                  { value: 'assignment', icon: Upload, label: 'Tugas', color: 'orange', desc: 'Assignment / Project' }
-                ].map((type) => (
-                  <label
-                    key={type.value}
-                    className={`group relative p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                      newContent.content_type === type.value
-                        ? 'border-blue-500 bg-blue-50 shadow-md' 
-                        : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="contentType"
-                      value={type.value}
-                      checked={newContent.content_type === type.value}
-                      onChange={(e) => setNewContent({ ...newContent, content_type: e.target.value as any })}
-                      className="sr-only"
-                    />
-                    <div className="text-center">
-                      <div className={`w-12 h-12 mx-auto mb-3 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                        newContent.content_type === type.value
-                          ? `bg-${type.color}-500 text-white` 
-                          : `bg-${type.color}-100 text-${type.color}-600 group-hover:bg-${type.color}-200`
-                      }`}>
-                        <type.icon className="w-6 h-6" />
-                      </div>
-                      <h3 className="font-semibold text-slate-800 mb-1">{type.label}</h3>
-                      <p className="text-xs text-slate-600">{type.desc}</p>
-                    </div>
-                  </label>
-                ))}
+              <div className="relative">
+                <select
+                  value={newContent.content_type || 'text'}
+                  onChange={(e) => setNewContent({ ...newContent, content_type: e.target.value as any })}
+                  className="w-full px-3 sm:px-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-sm sm:text-base"
+                >
+                  <option value="text">📝 Teks / Artikel</option>
+                  <option value="video">🎥 Video</option>
+                  <option value="quiz">❓ Quiz / Kuis</option>
+                  <option value="document">📄 Dokumen (PDF, PPT, dll)</option>
+                  <option value="assignment">📋 Tugas / Assignment</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
 
             {/* Content Data based on type */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="p-2 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg">
-                  <FileText className="w-5 h-5 text-white" />
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Konten Materi</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Konten Materi</h2>
               </div>
               
               {newContent.content_type === 'text' && (
@@ -719,17 +725,17 @@ export default function NewMaterialPage({
             </div>
 
             {/* Additional Settings */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
-              <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6 lg:p-8">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                 <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
-                  <Clock className="w-5 h-5 text-white" />
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Pengaturan Tambahan</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-800">Pengaturan Tambahan</h2>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 sm:mb-3">
                     Durasi Estimasi (menit)
                   </label>
                   <div className="relative">
@@ -737,31 +743,31 @@ export default function NewMaterialPage({
                       type="number"
                       value={newContent.estimated_duration || 10}
                       onChange={(e) => setNewContent({ ...newContent, estimated_duration: parseInt(e.target.value) || 10 })}
-                      className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                      className="w-full px-3 sm:px-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                       min="1"
                     />
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-                      <Clock className="w-5 h-5 text-slate-400" />
+                    <div className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2 sm:mb-3">
                     Status
                   </label>
                   <div className="relative">
                     <select
                       value={newContent.status || 'draft'}
                       onChange={(e) => setNewContent({ ...newContent, status: e.target.value as any })}
-                      className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none bg-white"
+                      className="w-full px-3 sm:px-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 appearance-none bg-white"
                     >
                       <option value="draft">Draft</option>
                       <option value="published">Published</option>
                       <option value="archived">Archived</option>
                     </select>
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute inset-y-0 right-0 pr-3 sm:pr-4 flex items-center pointer-events-none">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
@@ -770,36 +776,36 @@ export default function NewMaterialPage({
               </div>
 
               {/* Checkboxes */}
-              <div className="mt-8 space-y-4">
-                <label className="flex items-start gap-4 p-4 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 cursor-pointer group">
+              <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
+                <label className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={newContent.is_free || false}
                     onChange={(e) => setNewContent({ ...newContent, is_free: e.target.checked })}
-                    className="mt-1 w-5 h-5 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500"
+                    className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500"
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-5 h-5 text-amber-500" />
-                      <span className="font-semibold text-slate-800">Materi Gratis</span>
+                      <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                      <span className="font-semibold text-slate-800 text-sm sm:text-base">Materi Gratis</span>
                     </div>
-                    <p className="text-sm text-slate-600">Materi ini dapat diakses tanpa pembayaran</p>
+                    <p className="text-xs sm:text-sm text-slate-600">Materi ini dapat diakses tanpa pembayaran</p>
                   </div>
                 </label>
                 
-                <label className="flex items-start gap-4 p-4 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 cursor-pointer group">
+                <label className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={newContent.is_required || false}
                     onChange={(e) => setNewContent({ ...newContent, is_required: e.target.checked })}
-                    className="mt-1 w-5 h-5 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500"
+                    className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-blue-600 border-2 border-slate-300 rounded focus:ring-blue-500"
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                      <span className="font-semibold text-slate-800">Materi Wajib</span>
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                      <span className="font-semibold text-slate-800 text-sm sm:text-base">Materi Wajib</span>
                     </div>
-                    <p className="text-sm text-slate-600">Peserta harus menyelesaikan materi ini</p>
+                    <p className="text-xs sm:text-sm text-slate-600">Peserta harus menyelesaikan materi ini</p>
                   </div>
                 </label>
               </div>
@@ -808,73 +814,73 @@ export default function NewMaterialPage({
 
           {/* Modern Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-8 space-y-6">
+            <div className="sticky top-4 sm:top-8 space-y-4 sm:space-y-6">
               {/* Progress Card */}
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Progress</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-3 sm:mb-4">Progress</h3>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-slate-600">Informasi Dasar</span>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-slate-600">Tipe Konten</span>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-slate-600">Konten Materi</span>
-                    <div className="w-4 h-4 border-2 border-slate-300 rounded-full"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-slate-600">Pengaturan</span>
-                    <div className="w-4 h-4 border-2 border-slate-300 rounded-full"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
                   </div>
                 </div>
               </div>
 
               {/* Quick Tips */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-blue-600" />
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl border border-blue-200 p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-3 sm:mb-4 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   Tips
                 </h3>
-                <div className="space-y-3 text-sm text-slate-600">
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-slate-600">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-2"></div>
                     <p>Gunakan judul yang jelas dan deskriptif</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-2"></div>
                     <p>Tambahkan deskripsi yang menarik</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-2"></div>
                     <p>Estimasi durasi yang realistis</p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full mt-1.5 sm:mt-2"></div>
                     <p>Pilih status yang sesuai</p>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <div className="space-y-3">
+              <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200 p-4 sm:p-6">
+                <div className="space-y-2 sm:space-y-3">
                   <button
                     onClick={handleSave}
                     disabled={saving || !newContent.title?.trim()}
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
-                    <Save className="w-5 h-5" />
+                    <Save className="w-4 h-4 sm:w-5 sm:h-5" />
                     {saving ? 'Menyimpan...' : 'Simpan Materi'}
                   </button>
                   
                   <Link
                     href={`/programs/${params.id}/classes/${params.classId}/content`}
-                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-slate-600 hover:text-slate-900 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 font-semibold"
+                    className="w-full inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 text-slate-600 hover:text-slate-900 border-2 border-slate-200 rounded-xl hover:border-slate-300 transition-all duration-200 font-semibold text-sm sm:text-base"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                     Batal
                   </Link>
                 </div>
