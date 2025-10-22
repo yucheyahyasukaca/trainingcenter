@@ -21,7 +21,7 @@ import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
 
 export default function TrainerClassesPage() {
-  const { profile } = useAuth()
+  const { profile, user, loading: authLoading } = useAuth()
   const [classes, setClasses] = useState<ClassWithTrainers[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -29,7 +29,7 @@ export default function TrainerClassesPage() {
 
   useEffect(() => {
     const fetchTrainerClasses = async () => {
-      if (!profile?.id) return
+      if (!profile?.id || !user) return
 
       try {
         setLoading(true)
@@ -80,7 +80,7 @@ export default function TrainerClassesPage() {
     }
 
     fetchTrainerClasses()
-  }, [profile?.id])
+  }, [profile?.id, user])
 
   function getStatusBadge(status: string) {
     const badges: Record<string, string> = {
@@ -117,10 +117,37 @@ export default function TrainerClassesPage() {
     { value: 'cancelled', label: 'Dibatalkan' }
   ]
 
+  // Show loading if auth is still loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Akses Ditolak</h1>
+          <p className="text-gray-600 mb-6">Silakan login untuk mengakses halaman ini.</p>
+          <a href="/login" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            Login
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6 rounded-xl shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link 
@@ -144,7 +171,7 @@ export default function TrainerClassesPage() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {/* Search and Filter */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex flex-col sm:flex-row gap-4">

@@ -260,9 +260,9 @@ export function TrainerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100">
+    <div className="space-y-8">
       {/* Header with modern gradient */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -297,7 +297,7 @@ export function TrainerDashboard() {
       </div>
 
       {/* Trainer Stats - Modern Cards */}
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12">
         {loading ? (
           // Loading skeleton
@@ -367,7 +367,7 @@ export function TrainerDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-8">
+      <div className="mb-8">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -407,7 +407,7 @@ export function TrainerDashboard() {
       </div>
 
       {/* Upcoming Classes */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-8">
+      <div className="mb-8">
         <div className="flex items-center space-x-3 mb-6">
           <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
           <h2 className="text-2xl font-bold text-gray-900">Kelas Mendatang</h2>
@@ -492,7 +492,7 @@ export function TrainerDashboard() {
       </div>
 
       {/* Recent Classes */}
-      <div className="px-4 sm:px-6 lg:px-8 mb-8">
+      <div className="mb-8">
         <div className="flex items-center space-x-3 mb-6">
           <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
           <h2 className="text-2xl font-bold text-gray-900">Kelas Terbaru</h2>
