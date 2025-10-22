@@ -501,6 +501,17 @@ export default function ProgramsPage() {
                         (() => {
                           const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
                           
+                          // Check if program has available classes
+                          const hasAvailableClasses = program.classes && program.classes.length > 0
+                          
+                          if (!hasAvailableClasses) {
+                            return (
+                              <div className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
+                                Belum ada kelas yang dibuka
+                              </div>
+                            )
+                          }
+                          
                           if (userEnrollments.length === 0) {
                             return (
                               <Link

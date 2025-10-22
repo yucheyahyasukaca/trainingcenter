@@ -383,6 +383,18 @@ export function AvailablePrograms() {
                     {(() => {
                       const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
                       
+                      // Check if program has available classes
+                      const hasAvailableClasses = program.classes && program.classes.length > 0
+                      
+                      if (!hasAvailableClasses) {
+                        return (
+                          <div className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium text-sm">
+                            <X className="w-4 h-4" />
+                            <span>Belum ada kelas yang dibuka</span>
+                          </div>
+                        )
+                      }
+                      
                       // Extra protection: if user has no enrollments at all, always show "Daftar Sekarang"
                       if (userEnrollments.length === 0) {
                         return (

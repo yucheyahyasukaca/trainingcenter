@@ -47,7 +47,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       if (!simpleData) {
         console.log('⚠️ No program found with ID:', params.id)
-        setError('Program tidak ditemukan')
+        setError('Belum ada Kelas')
         return
       }
 
@@ -78,14 +78,40 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       if (error) {
         console.error('❌ Full query error:', error)
-        // If full query fails, use simple data
+        // If full query fails, use simple data but check for classes
         console.log('⚠️ Using simple data due to full query error')
+        
+        // For simple data, we need to check classes separately
+        const { data: classesData } = await supabase
+          .from('classes')
+          .select('id')
+          .eq('program_id', params.id)
+        
+        if (!classesData || classesData.length === 0) {
+          console.log('⚠️ Program has no available classes (simple data)')
+          setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
+          return
+        }
+        
         setProgram(simpleData)
         return
       }
       
       if (!data) {
         console.log('⚠️ No data from full query, using simple data')
+        
+        // For simple data, we need to check classes separately
+        const { data: classesData } = await supabase
+          .from('classes')
+          .select('id')
+          .eq('program_id', params.id)
+        
+        if (!classesData || classesData.length === 0) {
+          console.log('⚠️ Program has no available classes (no data)')
+          setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
+          return
+        }
+        
         setProgram(simpleData)
         return
       }
@@ -93,10 +119,18 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       console.log('✅ Program found with classes:', (data as any).title)
       console.log('📚 Classes data:', (data as any).classes)
       console.log('📊 Classes count:', (data as any).classes?.length || 0)
+      
+      // Check if program has available classes
+      if (!(data as any).classes || (data as any).classes.length === 0) {
+        console.log('⚠️ Program has no available classes')
+        setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
+        return
+      }
+      
       setProgram(data)
     } catch (error) {
       console.error('❌ Error fetching program:', error)
-      setError('Program tidak ditemukan atau tidak tersedia')
+      setError('Belum ada Kelas')
     } finally {
       setLoading(false)
     }
@@ -328,8 +362,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       <div className="space-y-6">
         <div className="text-center py-12">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Program Tidak Ditemukan</h1>
-          <p className="text-gray-600 mb-4">Program yang Anda cari tidak tersedia atau sudah tidak aktif.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Belum ada Kelas</h1>
+          <p className="text-gray-600 mb-4">Program yang Anda cari belum memiliki kelas yang tersedia untuk pendaftaran.</p>
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 max-w-md mx-auto">
               <p className="text-sm text-red-600">Error: {error}</p>
