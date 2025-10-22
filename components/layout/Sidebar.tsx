@@ -72,7 +72,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     return [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/trainer/dashboard', roles: ['trainer'] },
       { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
-      { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['trainer'] },
+        { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },
       { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['trainer'] },
     ]
   }
