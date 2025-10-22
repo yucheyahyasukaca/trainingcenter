@@ -10,9 +10,11 @@ import { MultiSelectTrainer } from '@/components/ui/MultiSelectTrainer'
 interface ClassManagementProps {
   programId: string
   programTitle: string
+  currentUserId?: string // For auto-assigning trainer when creating from trainer dashboard
+  isTrainerMode?: boolean // To hide trainer selection for trainers
 }
 
-export function ClassManagement({ programId, programTitle }: ClassManagementProps) {
+export function ClassManagement({ programId, programTitle, currentUserId, isTrainerMode = false }: ClassManagementProps) {
   const [classes, setClasses] = useState<ClassWithTrainers[]>([])
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [loading, setLoading] = useState(true)
@@ -135,13 +137,44 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
       const classId = insertedClass[0].id
 
       // Insert class trainers
-      if (selectedTrainers.length > 0) {
+      if (isTrainerMode && currentUserId) {
+        // Auto-assign current trainer as primary when in trainer mode
+        console.log('🔄 Auto-assigning current trainer to class:', currentUserId)
+        
+        // First get trainer ID from trainers table
+        const { data: trainerData } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .single()
+
+        if (!trainerData) {
+          throw new Error('Trainer data not found')
+        }
+        
+        const { error: trainersError } = await (supabase as any)
+          .from('class_trainers')
+          .insert([{
+            class_id: classId,
+            trainer_id: (trainerData as any).id,
+            role: 'instructor',
+            is_primary: true
+          }])
+
+        if (trainersError) {
+          console.error('❌ Class trainers insert error:', trainersError)
+          throw trainersError
+        }
+
+        console.log('✅ Current trainer auto-assigned successfully')
+      } else if (selectedTrainers.length > 0) {
+        // Admin mode: use selected trainers
         console.log('🔄 Adding trainers to class:', selectedTrainers)
         
         const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
           class_id: classId,
           trainer_id: trainerId,
-          role: 'assistant',
+          role: trainerId === primaryTrainer ? 'instructor' : 'assistant',
           is_primary: trainerId === primaryTrainer
         }))
 
@@ -582,14 +615,23 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 </div>
               </div>
 
-              <MultiSelectTrainer
-                trainers={trainers}
-                selectedTrainers={selectedTrainers}
-                onSelectionChange={setSelectedTrainers}
-                primaryTrainer={primaryTrainer}
-                onPrimaryChange={setPrimaryTrainer}
-                label="Trainer"
-              />
+              {!isTrainerMode && (
+                <MultiSelectTrainer
+                  trainers={trainers}
+                  selectedTrainers={selectedTrainers}
+                  onSelectionChange={setSelectedTrainers}
+                  primaryTrainer={primaryTrainer}
+                  onPrimaryChange={setPrimaryTrainer}
+                  label="Trainer"
+                />
+              )}
+              {isTrainerMode && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Info:</strong> Anda akan otomatis ditetapkan sebagai trainer utama untuk kelas ini.
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button
@@ -726,14 +768,23 @@ export function ClassManagement({ programId, programTitle }: ClassManagementProp
                 </select>
               </div>
 
-              <MultiSelectTrainer
-                trainers={trainers}
-                selectedTrainers={selectedTrainers}
-                onSelectionChange={setSelectedTrainers}
-                primaryTrainer={primaryTrainer}
-                onPrimaryChange={setPrimaryTrainer}
-                label="Trainer"
-              />
+              {!isTrainerMode && (
+                <MultiSelectTrainer
+                  trainers={trainers}
+                  selectedTrainers={selectedTrainers}
+                  onSelectionChange={setSelectedTrainers}
+                  primaryTrainer={primaryTrainer}
+                  onPrimaryChange={setPrimaryTrainer}
+                  label="Trainer"
+                />
+              )}
+              {isTrainerMode && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Info:</strong> Anda akan otomatis ditetapkan sebagai trainer utama untuk kelas ini.
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button

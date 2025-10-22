@@ -6,6 +6,7 @@ import { ChevronDown, Search, X, Check, User } from 'lucide-react'
 interface Trainer {
   id: string
   name: string
+  full_name?: string
   email?: string
 }
 
@@ -39,7 +40,7 @@ export function MultiSelectTrainer({
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const filteredTrainers = trainers.filter(trainer =>
-    trainer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (trainer.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (trainer.email && trainer.email.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 

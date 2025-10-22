@@ -170,26 +170,23 @@ export default function NewMaterialPage({
       if (profile.role === 'admin' || profile.role === 'manager') {
         access = true
       } else if ((profile.role as string) === 'trainer') {
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', profile.id)
-          .single()
+        // Use profile.id directly since class_trainers.trainer_id references user_profiles.id
+        const trainerId = profile.id
 
-        if (trainerData) {
-          if ((programInfo as any).trainer_id === (trainerData as any).id) {
+        // Check if program trainer matches
+        if ((programInfo as any).trainer_id === trainerId) {
+          access = true
+        } else {
+          // Check if assigned to this class
+          const { data: classTrainer } = await supabase
+            .from('class_trainers')
+            .select('id')
+            .eq('class_id', params.classId)
+            .eq('trainer_id', trainerId)
+            .single()
+
+          if (classTrainer) {
             access = true
-          } else {
-            const { data: classTrainer } = await supabase
-              .from('class_trainers')
-              .select('id')
-              .eq('class_id', params.classId)
-              .eq('trainer_id', (trainerData as any).id)
-              .single()
-
-            if (classTrainer) {
-              access = true
-            }
           }
         }
       }
@@ -340,19 +337,24 @@ export default function NewMaterialPage({
 
           {/* Desktop Breadcrumb - Full */}
           <nav className="hidden sm:flex items-center gap-2 text-sm">
-            {[
+            {(profile?.role === 'trainer' ? [
+              { name: 'Dashboard', href: '/dashboard' },
+              { name: 'Kelas Saya', href: '/trainer/classes' },
+              { name: 'Materi', href: `/programs/${params.id}/classes/${params.classId}/content` },
+              { name: 'Tambah Materi', href: '#' }
+            ] : [
               { name: 'Dashboard', href: '/dashboard' },
               { name: 'Programs', href: '/programs' },
               { name: programData?.title || 'Program', href: `/programs/${params.id}` },
               { name: 'Classes', href: `/programs/${params.id}/classes` },
               { name: 'Materi', href: `/programs/${params.id}/classes/${params.classId}/content` },
               { name: 'Tambah Materi', href: '#' }
-            ].map((item, index) => (
+            ]).map((item, index) => (
               <div key={item.name} className="flex items-center gap-2">
                 {index > 0 && (
                   <span className="text-slate-400">/</span>
                 )}
-                {index === 5 ? (
+                {index === (profile?.role === 'trainer' ? 3 : 5) ? (
                   <span className="text-slate-700 font-medium">
                     {item.name}
                   </span>

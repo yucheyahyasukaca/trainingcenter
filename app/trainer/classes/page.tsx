@@ -34,44 +34,52 @@ export default function TrainerClassesPage() {
       try {
         setLoading(true)
         
-        // Get trainer ID from trainers table
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', profile.id)
-          .single()
+        // Use profile.id directly since class_trainers.trainer_id references user_profiles.id
+        const trainerId = profile.id
+        console.log('🔍 Looking for classes for trainer ID:', trainerId)
 
-        if (!trainerData) {
-          setLoading(false)
-          return
-        }
-
-        // Fetch assigned classes
+        // Try direct query from class_trainers with join
         const { data: classesData, error: classesError } = await supabase
-          .from('classes')
+          .from('class_trainers')
           .select(`
-            *,
-            programs(
-              id,
-              title,
-              description,
-              category,
-              min_trainer_level
-            ),
-            trainers:class_trainers(
+            class_id,
+            classes!inner(
               *,
-              trainer:trainers(*)
+              programs(
+                id,
+                title,
+                description,
+                category,
+                min_trainer_level
+              )
             )
           `)
-          .eq('trainers.trainer_id', trainerData.id)
-          .order('start_date', { ascending: false })
+          .eq('trainer_id', trainerId)
 
         if (classesError) {
           console.error('Error fetching classes:', classesError)
+          console.error('Error details:', {
+            message: classesError.message,
+            details: classesError.details,
+            hint: classesError.hint,
+            code: classesError.code
+          })
           return
         }
 
-        setClasses(classesData || [])
+        console.log('🔍 Fetched classes data:', classesData)
+
+        // Transform data to match expected format
+        const transformedClasses = classesData?.map(item => ({
+          ...item.classes,
+          trainers: [] // We'll add this later if needed
+        })) || []
+
+        // Sort by start_date descending
+        transformedClasses.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
+
+        console.log('🔍 Transformed classes:', transformedClasses)
+        setClasses(transformedClasses)
       } catch (error) {
         console.error('Error fetching trainer classes:', error)
       } finally {

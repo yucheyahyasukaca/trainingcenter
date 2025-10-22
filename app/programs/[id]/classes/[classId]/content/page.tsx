@@ -69,28 +69,35 @@ export default function ClassContentManagementPage({
         access = true
       } else if ((profile.role as string) === 'trainer') {
         // Check if trainer is assigned to this program or class
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', profile.id)
-          .single()
+        // Use profile.id directly since class_trainers.trainer_id references user_profiles.id
+        const trainerId = profile.id
+        console.log('🔍 Checking trainer access:', {
+          trainerId,
+          programId: params.id,
+          classId: params.classId,
+          programTrainerId: (programInfo as any).trainer_id
+        })
 
-        if (trainerData) {
-          // Check if program trainer matches
-          if ((programInfo as any).trainer_id === (trainerData as any).id) {
+        // Check if program trainer matches
+        if ((programInfo as any).trainer_id === trainerId) {
+          console.log('✅ Access granted: Program trainer match')
+          access = true
+        } else {
+          // Check if assigned to this class
+          const { data: classTrainer } = await supabase
+            .from('class_trainers')
+            .select('id')
+            .eq('class_id', params.classId)
+            .eq('trainer_id', trainerId)
+            .single()
+
+          console.log('🔍 Class trainer check result:', classTrainer)
+
+          if (classTrainer) {
+            console.log('✅ Access granted: Class trainer assignment')
             access = true
           } else {
-            // Check if assigned to this class
-            const { data: classTrainer } = await supabase
-              .from('class_trainers')
-              .select('id')
-              .eq('class_id', params.classId)
-              .eq('trainer_id', (trainerData as any).id)
-              .single()
-
-            if (classTrainer) {
-              access = true
-            }
+            console.log('❌ Access denied: No trainer assignment found')
           }
         }
       } else if (profile.role === 'user') {
@@ -145,22 +152,32 @@ export default function ClassContentManagementPage({
           <nav className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
             <Link href="/dashboard" className="hover:text-primary-600 whitespace-nowrap">Dashboard</Link>
             <span className="text-gray-400">/</span>
-            <Link href="/programs" className="hover:text-primary-600 whitespace-nowrap">Programs</Link>
-            <span className="text-gray-400">/</span>
-            <Link href={`/programs/${params.id}`} className="hover:text-primary-600 truncate max-w-[120px] sm:max-w-none">
-              {programData?.title || 'Program'}
-            </Link>
-            <span className="text-gray-400">/</span>
-            <Link href={`/programs/${params.id}/classes`} className="hover:text-primary-600 whitespace-nowrap">Classes</Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium whitespace-nowrap">Content Management</span>
+            {profile?.role === 'trainer' ? (
+              <>
+                <Link href="/trainer/classes" className="hover:text-primary-600 whitespace-nowrap">Kelas Saya</Link>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-900 font-medium whitespace-nowrap">Content Management</span>
+              </>
+            ) : (
+              <>
+                <Link href="/programs" className="hover:text-primary-600 whitespace-nowrap">Programs</Link>
+                <span className="text-gray-400">/</span>
+                <Link href={`/programs/${params.id}`} className="hover:text-primary-600 truncate max-w-[120px] sm:max-w-none">
+                  {programData?.title || 'Program'}
+                </Link>
+                <span className="text-gray-400">/</span>
+                <Link href={`/programs/${params.id}/classes`} className="hover:text-primary-600 whitespace-nowrap">Classes</Link>
+                <span className="text-gray-400">/</span>
+                <span className="text-gray-900 font-medium whitespace-nowrap">Content Management</span>
+              </>
+            )}
           </nav>
         </div>
 
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/programs"
+            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

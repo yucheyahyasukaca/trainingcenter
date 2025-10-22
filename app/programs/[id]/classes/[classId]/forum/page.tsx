@@ -283,8 +283,11 @@ export default function ClassForumPage({
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Kelas tidak ditemukan</p>
-          <Link href={`/programs/${params.id}`} className="text-indigo-600 hover:text-indigo-700 mt-4 inline-block">
-            Kembali ke Program
+          <Link 
+            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
+            className="text-indigo-600 hover:text-indigo-700 mt-4 inline-block"
+          >
+            {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Program'}
           </Link>
         </div>
       </div>
@@ -298,11 +301,11 @@ export default function ClassForumPage({
         {/* Header */}
         <div className="mb-8">
           <Link 
-            href={`/programs/${params.id}/classes`}
+            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-700 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Kembali ke Kelas
+            {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
           </Link>
           
           <div className="bg-white rounded-xl shadow-lg p-6">

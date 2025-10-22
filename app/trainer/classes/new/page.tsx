@@ -77,17 +77,9 @@ export default function NewClassPage() {
 
     setLoading(true)
     try {
-      // Get trainer ID from trainers table
-      const { data: trainerData } = await supabase
-        .from('trainers')
-        .select('id')
-        .eq('user_id', profile.id)
-        .single()
-
-      if (!trainerData) {
-        alert('Trainer data not found')
-        return
-      }
+      // Use profile.id directly since class_trainers might reference user_profiles.id
+      // This is a simpler approach that avoids RLS issues
+      const trainerId = profile.id
 
       // Prepare class data
       const classData = {
@@ -111,17 +103,45 @@ export default function NewClassPage() {
 
       if (classError) throw classError
 
-      // Assign trainer to class
+      // Validate data before insert
+      if (!insertedClass || !insertedClass[0] || !insertedClass[0].id) {
+        throw new Error('Class ID is missing')
+      }
+      
+      if (!trainerId) {
+        throw new Error('Trainer ID is missing')
+      }
+      
+      // Assign trainer to class (trainer automatically becomes primary trainer)
+      const classTrainerData = {
+        class_id: insertedClass[0].id,
+        trainer_id: trainerId, // Use trainer ID (either existing or newly created)
+        role: 'instructor', // Use 'instructor' as it's most common
+        is_primary: true
+      }
+      
+      console.log('🔄 Inserting class trainer data:', classTrainerData)
+      console.log('🔄 Data validation:', {
+        class_id_valid: !!classTrainerData.class_id,
+        trainer_id_valid: !!classTrainerData.trainer_id,
+        role_valid: classTrainerData.role === 'instructor',
+        is_primary_valid: classTrainerData.is_primary === true
+      })
+      
       const { error: trainerError } = await supabase
         .from('class_trainers')
-        .insert([{
-          class_id: insertedClass[0].id,
-          trainer_id: trainerData.id,
-          role: 'instructor',
-          is_primary: true
-        }])
+        .insert([classTrainerData])
 
-      if (trainerError) throw trainerError
+      if (trainerError) {
+        console.error('❌ Class trainer insert error:', trainerError)
+        console.error('❌ Error details:', {
+          message: trainerError.message,
+          details: trainerError.details,
+          hint: trainerError.hint,
+          code: trainerError.code
+        })
+        throw trainerError
+      }
 
       alert('Kelas berhasil dibuat!')
       router.push('/trainer/classes')

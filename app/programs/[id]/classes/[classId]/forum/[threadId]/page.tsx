@@ -341,10 +341,10 @@ export default function ThreadDetailPage({
               Kembali ke Forum
             </Link>
             <Link 
-              href={`/programs/${params.id}/classes`} 
+              href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`} 
               className="block text-sm text-gray-500 hover:text-gray-700"
             >
-              Kembali ke Kelas
+              {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
             </Link>
           </div>
         </div>
