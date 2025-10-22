@@ -20,12 +20,12 @@ export default function DashboardLayout({
 
       {/* Mobile Sidebar */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[9999] lg:hidden">
           <div 
             className="absolute inset-0 bg-gray-600 opacity-75"
             onClick={() => setSidebarOpen(false)}
           ></div>
-          <div className="relative z-50">
+          <div className="relative z-[9999]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </div>
         </div>

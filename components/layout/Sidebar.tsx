@@ -15,9 +15,7 @@ import {
   UserCheck,
   Award,
   CreditCard,
-  BookOpen,
-  FileText,
-  MessageSquare
+  BookOpen
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -74,8 +72,6 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     return [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/trainer/dashboard', roles: ['trainer'] },
       { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
-      { icon: FileText, label: 'Materi Pelatihan', href: '/trainer/materials', roles: ['trainer'] },
-      { icon: MessageSquare, label: 'Forum Diskusi', href: '/trainer/forum', roles: ['trainer'] },
       { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['trainer'] },
       { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['trainer'] },
     ]

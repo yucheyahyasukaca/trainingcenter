@@ -25,7 +25,7 @@ export default function ProgramsLayout({
             className="absolute inset-0 bg-gray-600 opacity-75"
             onClick={() => setSidebarOpen(false)}
           ></div>
-          <div className="relative z-[9999] flex">
+          <div className="relative z-[9999]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </div>
         </div>

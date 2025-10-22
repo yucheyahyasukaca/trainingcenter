@@ -10,6 +10,7 @@ interface AuthContextType {
   profile: UserProfile | null
   loading: boolean
   refreshUser: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   refreshUser: async () => {},
+  refreshProfile: async () => {},
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -111,11 +113,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  async function refreshProfile() {
+    if (user) {
+      try {
+        const userProfile = await getUserProfile(user.id)
+        if (userProfile) {
+          setProfile(userProfile)
+        }
+      } catch (error) {
+        console.error('Error refreshing profile:', error)
+      }
+    }
+  }
+
   const value = {
     user,
     profile,
     loading,
     refreshUser: loadUser,
+    refreshProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
