@@ -241,8 +241,8 @@ export function TrainerDashboard() {
               averageRating: 4.8
             })
 
-            setUpcomingClasses(activeClasses.slice(0, 3)) // Kelas aktif: dalam rentang tanggal pelaksanaan
-            setRecentClasses(allClasses.slice(0, 3)) // Kelas terbaru: semua kelas yang dibuat trainer
+            setUpcomingClasses(activeClasses.slice(0, 2)) // Kelas aktif: dalam rentang tanggal pelaksanaan (max 2)
+            setRecentClasses(allClasses.slice(0, 2)) // Kelas terbaru: semua kelas yang dibuat trainer (max 2)
             return
           }
         } else {
@@ -337,8 +337,8 @@ export function TrainerDashboard() {
           averageRating: 4.8
         })
 
-        setUpcomingClasses(activeClasses.slice(0, 3)) // Kelas aktif: dalam rentang tanggal pelaksanaan
-        setRecentClasses(uniqueClasses.slice(0, 3)) // Kelas terbaru: semua kelas yang dibuat trainer
+        setUpcomingClasses(activeClasses.slice(0, 2)) // Kelas aktif: dalam rentang tanggal pelaksanaan (max 2)
+        setRecentClasses(uniqueClasses.slice(0, 2)) // Kelas terbaru: semua kelas yang dibuat trainer (max 2)
 
       } catch (error) {
         console.error('Error fetching trainer data:', error)
@@ -535,8 +535,9 @@ export function TrainerDashboard() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingClasses.map((classItem) => (
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {upcomingClasses.map((classItem) => (
               <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <span className={getStatusBadge(classItem.status)}>
@@ -586,7 +587,19 @@ export function TrainerDashboard() {
                   </Link>
                 </div>
               </div>
-            ))}
+              ))}
+            </div>
+            
+            {/* View More Button */}
+            <div className="mt-6 text-center">
+              <Link
+                href="/trainer/classes"
+                className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Lihat Semua Kelas
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -618,9 +631,10 @@ export function TrainerDashboard() {
             <p className="text-gray-600">Belum ada kelas yang dibuat</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="space-y-4">
-              {recentClasses.map((classItem) => (
+          <div>
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="space-y-4">
+                {recentClasses.map((classItem) => (
                 <div key={classItem.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900">{classItem.name}</h4>
@@ -643,7 +657,19 @@ export function TrainerDashboard() {
                     </Link>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
+            </div>
+            
+            {/* View More Button */}
+            <div className="mt-4 text-center">
+              <Link
+                href="/trainer/classes"
+                className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Lihat Semua Kelas
+              </Link>
             </div>
           </div>
         )}
