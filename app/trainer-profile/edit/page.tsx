@@ -367,16 +367,17 @@ export default function EditTrainerProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Back Button */}
         <div className="mb-8">
           <Link 
             href="/trainer-profile/view" 
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali ke Profil
           </Link>
           
+          {/* Page Title */}
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
               <User className="w-8 h-8 text-primary-600" />

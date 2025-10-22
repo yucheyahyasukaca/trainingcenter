@@ -106,122 +106,82 @@ export function TrainerDashboard() {
           .eq('id', profile.id)
           .single()
 
-        if ((userProfile as any)?.trainer_level) {
-          setTrainerLevel((userProfile as any).trainer_level)
+        if (userProfile?.trainer_level) {
+          setTrainerLevel(userProfile.trainer_level)
         }
 
-        // Use the same query method as in "Kelas Saya" page
-        console.log('🔍 User ID:', profile.id)
-        console.log('🔍 User email:', profile.email)
+        // Try multiple ways to get classes
+        let allClasses: any[] = []
 
-        // Use profile.id directly since class_trainers.trainer_id references user_profiles.id
-        const trainerId = profile.id
-        console.log('🔍 Looking for classes for trainer ID:', trainerId)
-
-        // Try direct query from class_trainers with join (same as Kelas Saya page)
-        console.log('🔍 Querying class_trainers for trainer_id:', trainerId)
-        const { data: classesData, error: classesError } = await supabase
-          .from('class_trainers')
+        // Method 1: Get classes where user is the creator
+        const { data: createdClasses } = await supabase
+          .from('classes')
           .select(`
-            class_id,
-            classes!inner(
-              *,
-              programs(
-                id,
-                title,
-                description,
-                category,
-                min_trainer_level
-              )
+            *,
+            programs(
+              id,
+              title,
+              description,
+              category
             )
           `)
-          .eq('trainer_id', trainerId)
+          .eq('created_by', profile.id)
 
-        if (classesError) {
-          console.error('❌ Error fetching classes:', classesError)
-          console.error('Error details:', {
-            message: classesError.message,
-            details: classesError.details,
-            hint: classesError.hint,
-            code: classesError.code
-          })
-          
-          // Fallback: try to get classes directly
-          console.log('🔄 Trying fallback query...')
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('classes')
-            .select(`
-              *,
-              programs(
-                id,
-                title,
-                description,
-                category,
-                min_trainer_level
-              )
-            `)
-            .eq('trainer_id', trainerId)
-          
-          if (fallbackError) {
-            console.error('❌ Fallback query also failed:', fallbackError)
-          } else {
-            console.log('✅ Fallback query successful:', fallbackData)
-            // Use fallback data
-            const fallbackClasses = fallbackData?.map((item: any) => ({
-              ...item,
-              trainers: []
-            })) || []
-            console.log('📚 Using fallback classes:', fallbackClasses)
-            const allClasses = fallbackClasses
-            setAssignedClasses(allClasses)
-            
-            // Calculate stats with fallback data
-            const now = new Date()
-            const activeClasses = allClasses.filter((c: any) => {
-              const startDate = new Date(c.start_date)
-              const endDate = new Date(c.end_date)
-              return startDate <= now && endDate >= now && c.status === 'ongoing'
-            })
-
-            const completedClasses = allClasses.filter((c: any) => c.status === 'completed')
-            const upcomingClasses = allClasses.filter((c: any) => {
-              const startDate = new Date(c.start_date)
-              return startDate > now && c.status === 'scheduled'
-            })
-
-            const totalParticipants = allClasses.reduce((sum: any, c: any) => sum + (c.current_participants || 0), 0)
-
-            console.log('📈 Stats calculated (fallback):', {
-              totalClasses: allClasses.length,
-              activeClasses: activeClasses.length,
-              completedClasses: completedClasses.length,
-              totalParticipants
-            })
-
-            setTrainerStats({
-              totalClasses: allClasses.length,
-              activeClasses: activeClasses.length,
-              completedClasses: completedClasses.length,
-              totalParticipants,
-              averageRating: 4.8
-            })
-
-            setUpcomingClasses(upcomingClasses.slice(0, 3))
-            setRecentClasses(completedClasses.slice(0, 3))
-            return
-          }
-        } else {
-          console.log('📚 Fetched classes data:', classesData)
+        if (createdClasses) {
+          allClasses = [...allClasses, ...createdClasses]
+          console.log('📚 Created classes:', createdClasses)
         }
 
-        // Transform data to match expected format (same as Kelas Saya page)
-        const transformedClasses = classesData?.map((item: any) => ({
-          ...item.classes,
-          trainers: [] // We'll add this later if needed
-        })) || []
+        // Method 2: Get classes through class_trainers table
+        const { data: trainerRecord } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('user_id', profile.id)
+          .single()
 
-        console.log('📚 Transformed classes:', transformedClasses)
-        const allClasses = transformedClasses
+        if (trainerRecord) {
+          const { data: classTrainers } = await supabase
+            .from('class_trainers')
+            .select(`
+              classes(
+                *,
+                programs(
+                  id,
+                  title,
+                  description,
+                  category
+                )
+              )
+            `)
+            .eq('trainer_id', trainerRecord.id)
+
+          if (classTrainers) {
+            const classesFromTrainers = classTrainers
+              .map(ct => ct.classes)
+              .filter(Boolean)
+            allClasses = [...allClasses, ...classesFromTrainers]
+            console.log('📚 Classes from trainers:', classesFromTrainers)
+          }
+        }
+
+        // Method 3: Get classes where trainer_id matches user
+        const { data: directClasses } = await supabase
+          .from('classes')
+          .select(`
+            *,
+            programs(
+              id,
+              title,
+              description,
+              category
+            )
+          `)
+          .eq('trainer_id', profile.id)
+
+        if (directClasses) {
+          allClasses = [...allClasses, ...directClasses]
+          console.log('📚 Direct classes:', directClasses)
+        }
 
         // Remove duplicates
         const uniqueClasses = allClasses.filter((classItem, index, self) => 
