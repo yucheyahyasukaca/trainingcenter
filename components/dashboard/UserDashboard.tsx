@@ -29,7 +29,7 @@ export function UserDashboard() {
 
   const getTrainerLevelInfo = (level: string) => {
     switch (level) {
-      case 'master_trainer':
+      case 'master':
         return {
           title: 'Master Trainer',
           description: 'Dapat memberikan pelatihan di semua level',
@@ -37,21 +37,29 @@ export function UserDashboard() {
           icon: Star,
           badge: 'Master'
         }
-      case 'trainer_l2':
+      case 'expert':
         return {
-          title: 'Trainer Level 2',
-          description: 'Dapat memberikan pelatihan Level 1 & 2',
+          title: 'Expert Trainer',
+          description: 'Dapat memberikan pelatihan Junior, Senior & Expert',
           color: 'blue',
           icon: Award,
-          badge: 'L2'
+          badge: 'Expert'
         }
-      case 'trainer_l1':
+      case 'senior':
         return {
-          title: 'Trainer Level 1',
-          description: 'Dapat memberikan pelatihan Level 1',
+          title: 'Senior Trainer',
+          description: 'Dapat memberikan pelatihan Junior & Senior',
           color: 'green',
           icon: UserCheck,
-          badge: 'L1'
+          badge: 'Senior'
+        }
+      case 'junior':
+        return {
+          title: 'Junior Trainer',
+          description: 'Dapat memberikan pelatihan Junior',
+          color: 'yellow',
+          icon: UserCheck,
+          badge: 'Junior'
         }
       default:
         return {

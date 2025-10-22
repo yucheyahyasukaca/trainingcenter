@@ -16,7 +16,7 @@ export function TrainerManagement() {
       id: 1,
       name: 'Dr. Budi Santoso',
       email: 'budi.santoso@email.com',
-      level: 'master_trainer',
+      level: 'master',
       status: 'active',
       programs: 5,
       rating: 4.9,
@@ -26,7 +26,7 @@ export function TrainerManagement() {
       id: 2,
       name: 'Siti Nurhaliza',
       email: 'siti.nurhaliza@email.com',
-      level: 'trainer_l2',
+      level: 'expert',
       status: 'active',
       programs: 3,
       rating: 4.7,
@@ -36,7 +36,7 @@ export function TrainerManagement() {
       id: 3,
       name: 'Ahmad Dahlan',
       email: 'ahmad.dahlan@email.com',
-      level: 'trainer_l1',
+      level: 'junior',
       status: 'pending',
       programs: 1,
       rating: 4.5,
@@ -46,7 +46,7 @@ export function TrainerManagement() {
       id: 4,
       name: 'Maya Sari',
       email: 'maya.sari@email.com',
-      level: 'trainer_l2',
+      level: 'senior',
       status: 'suspended',
       programs: 2,
       rating: 4.2,
@@ -56,12 +56,14 @@ export function TrainerManagement() {
 
   const getLevelInfo = (level: string) => {
     switch (level) {
-      case 'master_trainer':
-        return { label: 'Master Trainer', color: 'bg-purple-100 text-purple-800', icon: Star }
-      case 'trainer_l2':
-        return { label: 'Level 2', color: 'bg-blue-100 text-blue-800', icon: Award }
-      case 'trainer_l1':
-        return { label: 'Level 1', color: 'bg-green-100 text-green-800', icon: Award }
+      case 'master':
+        return { label: 'Master', color: 'bg-purple-100 text-purple-800', icon: Star }
+      case 'expert':
+        return { label: 'Expert', color: 'bg-blue-100 text-blue-800', icon: Award }
+      case 'senior':
+        return { label: 'Senior', color: 'bg-green-100 text-green-800', icon: Award }
+      case 'junior':
+        return { label: 'Junior', color: 'bg-yellow-100 text-yellow-800', icon: Award }
       default:
         return { label: 'User', color: 'bg-gray-100 text-gray-800', icon: Award }
     }

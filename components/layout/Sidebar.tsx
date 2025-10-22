@@ -137,9 +137,10 @@ export function Sidebar({ onClose }: SidebarProps) {
             </span>
                    {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
-                {(profile as any).trainer_level === 'master_trainer' ? 'Master' :
-                 (profile as any).trainer_level === 'trainer_l2' ? 'L2' :
-                 (profile as any).trainer_level === 'trainer_l1' ? 'L1' : 'Trainer'}
+                {(profile as any).trainer_level === 'master' ? 'Master' :
+                 (profile as any).trainer_level === 'expert' ? 'Expert' :
+                 (profile as any).trainer_level === 'senior' ? 'Senior' :
+                 (profile as any).trainer_level === 'junior' ? 'Junior' : 'Trainer'}
               </span>
             )}
           </div>

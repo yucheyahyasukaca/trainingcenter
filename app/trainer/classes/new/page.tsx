@@ -37,9 +37,10 @@ export default function NewClassPage() {
     const trainerLevel = (profile as any)?.trainer_level || 'user'
     const levelHierarchy = {
       'user': 0,
-      'trainer_l1': 1,
-      'trainer_l2': 2,
-      'master_trainer': 3
+      'junior': 1,
+      'senior': 2,
+      'expert': 3,
+      'master': 4
     }
     
     return (levelHierarchy[trainerLevel as keyof typeof levelHierarchy] || 0) >= 
@@ -48,7 +49,7 @@ export default function NewClassPage() {
 
   // Filter programs that trainer can create classes for
   const availablePrograms = programs.filter(program => 
-    canCreateClassForProgram(program.min_trainer_level || 'trainer_l1')
+    canCreateClassForProgram(program.min_trainer_level || 'junior')
   )
 
   useEffect(() => {
@@ -205,8 +206,9 @@ export default function NewClassPage() {
                   {availablePrograms.map(program => (
                     <option key={program.id} value={program.id}>
                       {program.title} 
-                      {program.min_trainer_level && program.min_trainer_level !== 'trainer_l1' && 
-                        ` (Min: ${program.min_trainer_level === 'trainer_l2' ? 'L2' : 'Master'})`
+                      {program.min_trainer_level && program.min_trainer_level !== 'junior' && 
+                        ` (Min: ${program.min_trainer_level === 'senior' ? 'Senior' : 
+                          program.min_trainer_level === 'expert' ? 'Expert' : 'Master'})`
                       }
                     </option>
                   ))}

@@ -561,14 +561,15 @@ export default function ProgramsPage() {
                       <GraduationCap className="w-4 h-4 mr-2 text-red-500" />
                       <span>{program.category}</span>
                     </div>
-                    {program.min_trainer_level && program.min_trainer_level !== 'trainer_l1' && (
+                    {program.min_trainer_level && program.min_trainer_level !== 'junior' && (
                       <div className="flex items-center text-sm text-gray-600">
                         <BookOpen className="w-4 h-4 mr-2 text-blue-500" />
                         <span>
                           Min Trainer: {
-                            program.min_trainer_level === 'trainer_l2' ? 'Level 2' :
-                            program.min_trainer_level === 'master_trainer' ? 'Master' :
-                            'Level 1'
+                            program.min_trainer_level === 'senior' ? 'Senior' :
+                            program.min_trainer_level === 'expert' ? 'Expert' :
+                            program.min_trainer_level === 'master' ? 'Master' :
+                            'Junior'
                           }
                         </span>
                       </div>

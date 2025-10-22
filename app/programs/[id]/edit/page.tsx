@@ -24,7 +24,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
     registration_start_date: '',
     registration_end_date: '',
     program_type: 'regular' as 'tot' | 'regular',
-    min_trainer_level: 'trainer_l1' as 'trainer_l1' | 'trainer_l2' | 'master_trainer',
+    min_trainer_level: 'junior' as 'junior' | 'senior' | 'expert' | 'master',
   })
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         price: data.price || 0,
         status: data.status || 'draft',
         registration_type: data.registration_type || 'lifetime',
-        min_trainer_level: data.min_trainer_level || 'trainer_l1',
+        min_trainer_level: data.min_trainer_level || 'junior',
         registration_start_date: data.registration_start_date ? data.registration_start_date.split('T')[0] : '',
         registration_end_date: data.registration_end_date ? data.registration_end_date.split('T')[0] : '',
         program_type: data.program_type || 'regular',
@@ -99,6 +99,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
           registration_end_date: formData.registration_type === 'limited' ? new Date(formData.registration_end_date).toISOString() : null,
           program_type: formData.program_type,
           auto_approved: formData.price_type === 'gratis',
+          min_trainer_level: formData.min_trainer_level,
           updated_at: new Date().toISOString(),
         })
         .eq('id', params.id)
@@ -343,12 +344,13 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
             </label>
             <select
               value={formData.min_trainer_level}
-              onChange={(e) => setFormData({ ...formData, min_trainer_level: e.target.value as 'trainer_l1' | 'trainer_l2' | 'master_trainer' })}
+              onChange={(e) => setFormData({ ...formData, min_trainer_level: e.target.value as 'junior' | 'senior' | 'expert' | 'master' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
-              <option value="trainer_l1">Trainer Level 1 (Dasar)</option>
-              <option value="trainer_l2">Trainer Level 2 (Menengah)</option>
-              <option value="master_trainer">Master Trainer (Mahir)</option>
+              <option value="junior">Junior (Dasar)</option>
+              <option value="senior">Senior (Menengah)</option>
+              <option value="expert">Expert (Mahir)</option>
+              <option value="master">Master (Sangat Mahir)</option>
             </select>
             <p className="text-sm text-gray-500 mt-1">
               Hanya trainer dengan level ini atau lebih tinggi yang dapat membuka kelas untuk program ini

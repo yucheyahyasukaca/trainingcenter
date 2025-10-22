@@ -23,7 +23,7 @@ export default function NewProgramPage() {
     registration_start_date: '',
     registration_end_date: '',
     program_type: 'regular' as 'tot' | 'regular',
-    min_trainer_level: 'trainer_l1' as 'trainer_l1' | 'trainer_l2' | 'master_trainer',
+    min_trainer_level: 'junior' as 'junior' | 'senior' | 'expert' | 'master',
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -61,6 +61,7 @@ export default function NewProgramPage() {
         registration_end_date: formData.registration_type === 'limited' ? formData.registration_end_date : null,
         program_type: formData.program_type,
         auto_approved: formData.price_type === 'gratis',
+        min_trainer_level: formData.min_trainer_level,
       }
 
       const { error: insertError } = await supabase
@@ -286,9 +287,10 @@ export default function NewProgramPage() {
               onChange={handleChange}
               className="input"
             >
-              <option value="trainer_l1">Trainer Level 1 (Dasar)</option>
-              <option value="trainer_l2">Trainer Level 2 (Menengah)</option>
-              <option value="master_trainer">Master Trainer (Mahir)</option>
+              <option value="junior">Junior (Dasar)</option>
+              <option value="senior">Senior (Menengah)</option>
+              <option value="expert">Expert (Mahir)</option>
+              <option value="master">Master (Sangat Mahir)</option>
             </select>
             <p className="text-sm text-gray-500 mt-1">
               Hanya trainer dengan level ini atau lebih tinggi yang dapat membuka kelas untuk program ini
