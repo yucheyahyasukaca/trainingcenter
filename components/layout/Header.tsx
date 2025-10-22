@@ -123,31 +123,31 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
-                <div className="p-4 border-b border-gray-200">
+              <div className="fixed sm:absolute top-16 sm:top-full left-4 right-4 sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
+                <div className="p-3 sm:p-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Notifikasi</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Notifikasi</h3>
                     <button
                       onClick={() => setShowNotifications(false)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
 
                 <div className="max-h-80 overflow-y-auto">
                   {allNotifications.length === 0 ? (
-                    <div className="p-8 text-center text-gray-500">
-                      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                      <p>Tidak ada notifikasi</p>
+                    <div className="p-6 sm:p-8 text-center text-gray-500">
+                      <Bell className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
+                      <p className="text-sm sm:text-base">Tidak ada notifikasi</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-200">
                       {allNotifications.map((notification, index) => (
                         <div
                           key={notification.id || index}
-                          className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                         >
                           <div className="flex items-start space-x-3">
                             <div className="flex-shrink-0 mt-0.5">
@@ -180,11 +180,11 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
                             </div>
                             
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                                 {notification.title}
                               </p>
                               {notification.message && (
-                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
                                   {notification.message}
                                 </p>
                               )}

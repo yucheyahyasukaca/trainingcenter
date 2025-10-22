@@ -85,6 +85,47 @@ export default function NewMaterialPage({
   })
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
+  // Function to calculate progress based on form completion
+  const calculateProgress = () => {
+    const steps = {
+      basicInfo: false,
+      contentType: false,
+      contentData: false,
+      settings: false
+    }
+
+    // Check Informasi Dasar (Basic Information)
+    steps.basicInfo = !!(newContent.title?.trim())
+
+    // Check Tipe Konten (Content Type)
+    steps.contentType = !!(newContent.content_type)
+
+    // Check Konten Materi (Content Data) - based on content type
+    if (newContent.content_type === 'text') {
+      steps.contentData = !!(newContent.content_data?.body?.trim())
+    } else if (newContent.content_type === 'video') {
+      steps.contentData = !!(newContent.content_data?.video_url?.trim())
+    } else if (newContent.content_type === 'document') {
+      steps.contentData = !!(newContent.content_data?.document_url?.trim())
+    } else if (newContent.content_type === 'quiz') {
+      steps.contentData = !!(newContent.content_data?.question?.trim())
+    } else if (newContent.content_type === 'assignment') {
+      steps.contentData = !!(newContent.content_data?.instructions?.trim())
+    }
+
+    // Check Pengaturan (Settings) - validate required settings
+    steps.settings = !!(newContent.estimated_duration && newContent.status)
+    
+    // Additional validation for sub-materials
+    if (selectedParentId !== null && !selectedParentId) {
+      steps.settings = false // Sub-material must have parent selected
+    }
+
+    return steps
+  }
+
+  const progress = calculateProgress()
+
   useEffect(() => {
     if (!authLoading && profile) {
       checkAccessAndFetchData()
@@ -819,20 +860,60 @@ export default function NewMaterialPage({
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-3 sm:mb-4">Progress</h3>
                 <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Informasi Dasar</span>
-                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    <span className={`${progress.basicInfo ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                      Informasi Dasar
+                    </span>
+                    {progress.basicInfo ? (
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    ) : (
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Tipe Konten</span>
-                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    <span className={`${progress.contentType ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                      Tipe Konten
+                    </span>
+                    {progress.contentType ? (
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    ) : (
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Konten Materi</span>
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    <span className={`${progress.contentData ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                      Konten Materi
+                    </span>
+                    {progress.contentData ? (
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    ) : (
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-slate-600">Pengaturan</span>
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    <span className={`${progress.settings ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                      Pengaturan
+                    </span>
+                    {progress.settings ? (
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                    ) : (
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-slate-300 rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>Progress</span>
+                    <span>{Object.values(progress).filter(Boolean).length}/4</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${(Object.values(progress).filter(Boolean).length / 4) * 100}%` 
+                      }}
+                    ></div>
                   </div>
                 </div>
               </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useNotification } from '@/components/ui/Notification'
 import { AdminNotificationProvider, useAdminNotifications } from '@/components/admin/AdminNotificationSystem'
-import { NotificationTestPanel } from '@/components/admin/NotificationTestPanel'
+import { useRealTimeNotifications } from '@/hooks/useRealTimeNotifications'
 import { DashboardStats } from './DashboardStats'
 import { RecentEnrollments } from './RecentEnrollments'
 import { ProgramsChart } from './ProgramsChart'
@@ -12,6 +12,8 @@ import { EnrollmentStatusChart } from './EnrollmentStatusChart'
 import { UsersChart } from './UsersChart'
 import { SystemOverview } from './SystemOverview'
 import { ManagerManagement } from './ManagerManagement'
+import { RealTimeNotificationPanel } from '@/components/admin/RealTimeNotificationPanel'
+import { MobileNotificationToast } from '@/components/ui/MobileNotificationToast'
 import { 
   BarChart3,
   LayoutDashboard,
@@ -24,46 +26,22 @@ function AdminDashboardContent() {
   const { profile } = useAuth()
   const { addNotification } = useAdminNotifications()
   const [activeTab, setActiveTab] = useState('overview')
+  
+  // Enable real-time notifications
+  useRealTimeNotifications()
 
   // Admin stats will be handled by DashboardStats component
 
-  // Initialize admin notifications
+  // Initialize welcome notification
   useEffect(() => {
-    // Only add notifications once when component mounts
     const hasInitialized = sessionStorage.getItem('admin-notifications-initialized')
     
-    if (!hasInitialized) {
-      // Add initial system notifications
+    if (!hasInitialized && profile?.full_name) {
       addNotification({
         type: 'system',
         priority: 'medium',
         title: 'Selamat Datang di Admin Dashboard',
-        message: `Halo ${profile?.full_name}, sistem GARUDA-21 berjalan dengan baik!`,
-        actionRequired: false
-      })
-
-      // Add some sample notifications
-      addNotification({
-        type: 'user',
-        priority: 'high',
-        title: 'Pendaftaran Baru',
-        message: '15 peserta baru mendaftar program AI Fundamentals hari ini',
-        actionRequired: true
-      })
-
-      addNotification({
-        type: 'program',
-        priority: 'medium',
-        title: 'Program Mendekati Deadline',
-        message: 'Program "Digital Marketing" akan berakhir dalam 3 hari',
-        actionRequired: true
-      })
-
-      addNotification({
-        type: 'payment',
-        priority: 'low',
-        title: 'Pembayaran Diterima',
-        message: 'Pembayaran Rp 2.500.000 dari John Doe telah diterima',
+        message: `Halo ${profile.full_name}, sistem GARUDA-21 berjalan dengan baik!`,
         actionRequired: false
       })
 
@@ -81,6 +59,9 @@ function AdminDashboardContent() {
 
   return (
     <div className="space-y-6">
+      {/* Mobile Notification Toast */}
+      <MobileNotificationToast />
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -138,6 +119,9 @@ function AdminDashboardContent() {
             <SystemOverview />
             <RecentEnrollments />
           </div>
+
+          {/* Real-time Notifications */}
+          <RealTimeNotificationPanel />
         </>
       )}
 
@@ -155,8 +139,6 @@ function AdminDashboardContent() {
             </div>
           </div>
           
-          {/* Notification Test Panel - Remove in production */}
-          <NotificationTestPanel />
         </div>
       )}
 
