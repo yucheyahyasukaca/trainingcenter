@@ -70,7 +70,7 @@ export default function ProgramsPage() {
           .from('participants')
           .select('id')
           .eq('user_id', userId)
-          .single()
+          .maybeSingle()
         if (!(participant as any)?.id) {
           setEnrollmentsLoading(false)
           return
@@ -183,7 +183,7 @@ export default function ProgramsPage() {
         .from('participants')
         .select('id')
         .eq('user_id', profile.id)
-        .single()
+        .maybeSingle()
 
       if (participantError || !participant) {
         console.log('No participant record found for user')
@@ -561,6 +561,18 @@ export default function ProgramsPage() {
                       <GraduationCap className="w-4 h-4 mr-2 text-red-500" />
                       <span>{program.category}</span>
                     </div>
+                    {program.min_trainer_level && program.min_trainer_level !== 'trainer_l1' && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <BookOpen className="w-4 h-4 mr-2 text-blue-500" />
+                        <span>
+                          Min Trainer: {
+                            program.min_trainer_level === 'trainer_l2' ? 'Level 2' :
+                            program.min_trainer_level === 'master_trainer' ? 'Master' :
+                            'Level 1'
+                          }
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2 text-red-500" />
                       <span>

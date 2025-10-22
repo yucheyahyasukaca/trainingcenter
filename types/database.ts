@@ -91,6 +91,7 @@ export interface Database {
           registration_start_date: string | null
           registration_end_date: string | null
           auto_approved: boolean
+          min_trainer_level: 'trainer_l1' | 'trainer_l2' | 'master_trainer'
         }
         Insert: {
           id?: string
@@ -114,6 +115,7 @@ export interface Database {
           registration_start_date?: string | null
           registration_end_date?: string | null
           auto_approved?: boolean
+          min_trainer_level?: 'trainer_l1' | 'trainer_l2' | 'master_trainer'
         }
         Update: {
           id?: string
@@ -137,6 +139,7 @@ export interface Database {
           registration_start_date?: string | null
           registration_end_date?: string | null
           auto_approved?: boolean
+          min_trainer_level?: 'trainer_l1' | 'trainer_l2' | 'master_trainer'
         }
       }
       program_categories: {

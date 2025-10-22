@@ -24,6 +24,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
     registration_start_date: '',
     registration_end_date: '',
     program_type: 'regular' as 'tot' | 'regular',
+    min_trainer_level: 'trainer_l1' as 'trainer_l1' | 'trainer_l2' | 'master_trainer',
   })
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         price: data.price || 0,
         status: data.status || 'draft',
         registration_type: data.registration_type || 'lifetime',
+        min_trainer_level: data.min_trainer_level || 'trainer_l1',
         registration_start_date: data.registration_start_date ? data.registration_start_date.split('T')[0] : '',
         registration_end_date: data.registration_end_date ? data.registration_end_date.split('T')[0] : '',
         program_type: data.program_type || 'regular',
@@ -332,6 +334,25 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
               <option value="published">Published</option>
               <option value="archived">Archived</option>
             </select>
+          </div>
+
+          {/* Minimum Trainer Level */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Level Trainer Minimum
+            </label>
+            <select
+              value={formData.min_trainer_level}
+              onChange={(e) => setFormData({ ...formData, min_trainer_level: e.target.value as 'trainer_l1' | 'trainer_l2' | 'master_trainer' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="trainer_l1">Trainer Level 1 (Dasar)</option>
+              <option value="trainer_l2">Trainer Level 2 (Menengah)</option>
+              <option value="master_trainer">Master Trainer (Mahir)</option>
+            </select>
+            <p className="text-sm text-gray-500 mt-1">
+              Hanya trainer dengan level ini atau lebih tinggi yang dapat membuka kelas untuk program ini
+            </p>
           </div>
 
           {/* Info untuk program gratis */}

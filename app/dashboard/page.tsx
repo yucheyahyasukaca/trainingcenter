@@ -4,6 +4,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard'
 import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard'
 import { UserDashboard } from '@/components/dashboard/UserDashboard'
+import { TrainerDashboard } from '@/components/dashboard/TrainerDashboard'
 
 export default function DashboardPage() {
   const { profile, loading } = useAuth()
@@ -36,6 +37,8 @@ export default function DashboardPage() {
       return <AdminDashboard />
     case 'manager':
       return <ManagerDashboard />
+    case 'trainer':
+      return <TrainerDashboard />
     case 'user':
     default:
       return <UserDashboard />

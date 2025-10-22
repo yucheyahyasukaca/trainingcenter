@@ -14,7 +14,10 @@ import {
   HelpCircle,
   UserCheck,
   Award,
-  CreditCard
+  CreditCard,
+  BookOpen,
+  FileText,
+  MessageSquare
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -67,6 +70,17 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     return userItems
   }
 
+  if (role === 'trainer') {
+    return [
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/trainer/dashboard', roles: ['trainer'] },
+      { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
+      { icon: FileText, label: 'Materi Pelatihan', href: '/trainer/materials', roles: ['trainer'] },
+      { icon: MessageSquare, label: 'Forum Diskusi', href: '/trainer/forum', roles: ['trainer'] },
+      { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['trainer'] },
+      { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['trainer'] },
+    ]
+  }
+
   return baseItems
 }
 
@@ -113,11 +127,13 @@ export function Sidebar({ onClose }: SidebarProps) {
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
               profile.role === 'admin' ? 'bg-red-500' :
-              profile.role === 'manager' ? 'bg-blue-500' : 'bg-green-500'
+              profile.role === 'manager' ? 'bg-blue-500' : 
+              profile.role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
             }`}></div>
             <span className="text-sm font-medium text-gray-700 capitalize">
               {profile.role === 'admin' ? 'Administrator' :
-               profile.role === 'manager' ? 'Manager' : 'User Level 0'}
+               profile.role === 'manager' ? 'Manager' : 
+               profile.role === 'trainer' ? 'Trainer' : 'User Level 0'}
             </span>
                    {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">

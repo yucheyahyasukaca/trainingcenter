@@ -59,12 +59,46 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
     setLoading(true)
 
     try {
-      const { error } = await (supabase as any)
+      // 1. Get current trainer data to get user_id
+      const { data: currentTrainer, error: fetchError } = await supabase
+        .from('trainers')
+        .select('user_id')
+        .eq('id', params.id)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // 2. Determine trainer level based on experience
+      const trainerLevel = formData.experience_years >= 10 ? 'master_trainer' :
+                          formData.experience_years >= 5 ? 'trainer_l2' : 'trainer_l1'
+
+      // 3. Update user_profiles if user_id exists
+      if (currentTrainer?.user_id) {
+        const { error: userError } = await supabase
+          .from('user_profiles')
+          .update({
+            email: formData.email,
+            full_name: formData.name,
+            trainer_level: trainerLevel,
+            trainer_status: formData.status === 'active' ? 'active' : 'inactive',
+            trainer_specializations: [formData.specialization],
+            trainer_experience_years: formData.experience_years,
+            trainer_certifications: formData.certification,
+            is_active: formData.status === 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentTrainer.user_id)
+
+        if (userError) throw userError
+      }
+
+      // 4. Update trainer record
+      const { error: trainerError } = await supabase
         .from('trainers')
         .update(formData)
         .eq('id', params.id)
 
-      if (error) throw error
+      if (trainerError) throw trainerError
 
       alert('Trainer berhasil diupdate!')
       router.push('/trainers')

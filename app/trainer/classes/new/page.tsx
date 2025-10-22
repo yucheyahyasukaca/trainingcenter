@@ -1,0 +1,336 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/components/AuthProvider'
+import { supabase } from '@/lib/supabase'
+import { Program } from '@/types'
+import { 
+  ArrowLeft,
+  Plus,
+  BookOpen,
+  Calendar,
+  Users,
+  FileText,
+  Save
+} from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+export default function NewClassPage() {
+  const { profile } = useAuth()
+  const router = useRouter()
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    program_id: '',
+    name: '',
+    description: '',
+    start_date: '',
+    end_date: '',
+    max_participants: '',
+    location: '',
+    room: ''
+  })
+
+  // Check if trainer can create class for program
+  const canCreateClassForProgram = (programMinLevel: string) => {
+    const trainerLevel = (profile as any)?.trainer_level || 'user'
+    const levelHierarchy = {
+      'user': 0,
+      'trainer_l1': 1,
+      'trainer_l2': 2,
+      'master_trainer': 3
+    }
+    
+    return (levelHierarchy[trainerLevel as keyof typeof levelHierarchy] || 0) >= 
+           (levelHierarchy[programMinLevel as keyof typeof levelHierarchy] || 0)
+  }
+
+  // Filter programs that trainer can create classes for
+  const availablePrograms = programs.filter(program => 
+    canCreateClassForProgram(program.min_trainer_level || 'trainer_l1')
+  )
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('programs')
+          .select('id, title, description, category, min_trainer_level')
+          .eq('status', 'published')
+          .order('title')
+
+        if (error) throw error
+        setPrograms(data || [])
+      } catch (error) {
+        console.error('Error fetching programs:', error)
+      }
+    }
+
+    fetchPrograms()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!profile?.id) return
+
+    setLoading(true)
+    try {
+      // Get trainer ID from trainers table
+      const { data: trainerData } = await supabase
+        .from('trainers')
+        .select('id')
+        .eq('user_id', profile.id)
+        .single()
+
+      if (!trainerData) {
+        alert('Trainer data not found')
+        return
+      }
+
+      // Prepare class data
+      const classData = {
+        program_id: formData.program_id,
+        name: formData.name,
+        description: formData.description || null,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        location: formData.location || null,
+        room: formData.room || null,
+        status: 'scheduled',
+        current_participants: 0
+      }
+
+      // Insert class
+      const { data: insertedClass, error: classError } = await supabase
+        .from('classes')
+        .insert([classData])
+        .select()
+
+      if (classError) throw classError
+
+      // Assign trainer to class
+      const { error: trainerError } = await supabase
+        .from('class_trainers')
+        .insert([{
+          class_id: insertedClass[0].id,
+          trainer_id: trainerData.id,
+          role: 'instructor',
+          is_primary: true
+        }])
+
+      if (trainerError) throw trainerError
+
+      alert('Kelas berhasil dibuat!')
+      router.push('/trainer/classes')
+    } catch (error) {
+      console.error('Error creating class:', error)
+      alert('Gagal membuat kelas: ' + (error as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center space-x-4">
+          <Link 
+            href="/trainer/classes" 
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Buat Kelas Baru</h1>
+            <p className="text-gray-600 mt-1">Buat kelas pelatihan baru</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-2xl mx-auto">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <div className="space-y-6">
+              {/* Program Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Program <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="program_id"
+                  value={formData.program_id}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                >
+                  <option value="">Pilih Program</option>
+                  {availablePrograms.map(program => (
+                    <option key={program.id} value={program.id}>
+                      {program.title} 
+                      {program.min_trainer_level && program.min_trainer_level !== 'trainer_l1' && 
+                        ` (Min: ${program.min_trainer_level === 'trainer_l2' ? 'L2' : 'Master'})`
+                      }
+                    </option>
+                  ))}
+                </select>
+                {availablePrograms.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">
+                    Tidak ada program yang tersedia untuk level trainer Anda
+                  </p>
+                )}
+              </div>
+
+              {/* Class Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Kelas <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="Masukkan nama kelas"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deskripsi
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="Deskripsi kelas (opsional)"
+                />
+              </div>
+
+              {/* Date Range */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Mulai <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal Selesai <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Max Participants */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Maksimal Peserta
+                </label>
+                <input
+                  type="number"
+                  name="max_participants"
+                  value={formData.max_participants}
+                  onChange={handleChange}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="Kosongkan untuk unlimited"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Kosongkan untuk unlimited peserta
+                </p>
+              </div>
+
+              {/* Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    placeholder="Lokasi kelas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ruangan
+                  </label>
+                  <input
+                    type="text"
+                    name="room"
+                    value={formData.room}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    placeholder="Nama ruangan"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex justify-end space-x-4 pt-8 border-t border-gray-200 mt-8">
+              <Link
+                href="/trainer/classes"
+                className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Batal
+              </Link>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Simpan Kelas</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}

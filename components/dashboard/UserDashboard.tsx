@@ -55,11 +55,11 @@ export function UserDashboard() {
         }
       default:
         return {
-          title: 'Level 0',
+          title: 'User',
           description: 'Dapat mengikuti program pelatihan',
           color: 'gray',
           icon: BookOpen,
-          badge: 'L0'
+          badge: 'User'
         }
     }
   }
@@ -80,7 +80,7 @@ export function UserDashboard() {
           .from('participants')
           .select('id')
           .eq('user_id', profile.id)
-          .single()
+          .maybeSingle()
 
         if (!participant) {
           setStatsLoading(false)

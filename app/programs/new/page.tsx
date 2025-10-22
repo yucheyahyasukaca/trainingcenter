@@ -23,6 +23,7 @@ export default function NewProgramPage() {
     registration_start_date: '',
     registration_end_date: '',
     program_type: 'regular' as 'tot' | 'regular',
+    min_trainer_level: 'trainer_l1' as 'trainer_l1' | 'trainer_l2' | 'master_trainer',
   })
 
   async function handleSubmit(e: React.FormEvent) {
@@ -274,6 +275,24 @@ export default function NewProgramPage() {
               <option value="published">Published</option>
               <option value="archived">Archived</option>
             </select>
+          </div>
+
+          {/* Minimum Trainer Level */}
+          <div>
+            <label className="label">Level Trainer Minimum *</label>
+            <select
+              name="min_trainer_level"
+              value={formData.min_trainer_level}
+              onChange={handleChange}
+              className="input"
+            >
+              <option value="trainer_l1">Trainer Level 1 (Dasar)</option>
+              <option value="trainer_l2">Trainer Level 2 (Menengah)</option>
+              <option value="master_trainer">Master Trainer (Mahir)</option>
+            </select>
+            <p className="text-sm text-gray-500 mt-1">
+              Hanya trainer dengan level ini atau lebih tinggi yang dapat membuka kelas untuk program ini
+            </p>
           </div>
 
           {/* Info untuk program gratis */}

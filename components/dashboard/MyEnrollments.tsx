@@ -37,7 +37,7 @@ export function MyEnrollments() {
         .from('participants')
         .select('id')
         .eq('user_id', profile.id)
-        .single()
+        .maybeSingle()
 
       if (participantError || !participant) {
         console.log('No participant record found for user')

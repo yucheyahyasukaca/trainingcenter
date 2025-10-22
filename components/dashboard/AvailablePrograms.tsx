@@ -58,7 +58,7 @@ export function AvailablePrograms() {
           .from('participants')
           .select('id')
           .eq('user_id', userId)
-          .single()
+          .maybeSingle()
         if (!(participant as any)?.id) {
           setEnrollmentsLoading(false)
           return
@@ -140,7 +140,7 @@ export function AvailablePrograms() {
         .from('participants')
         .select('id, created_at')
         .eq('user_id', profile.id)
-        .single()
+        .maybeSingle()
 
       if (participantError || !participant) {
         console.log('No participant record found for user:', participantError?.message)

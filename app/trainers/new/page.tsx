@@ -25,11 +25,42 @@ export default function NewTrainerPage() {
     setLoading(true)
 
     try {
-      const { error } = await (supabase as any)
-        .from('trainers')
-        .insert([formData])
+      // 1. Generate user_id untuk trainer
+      const userId = crypto.randomUUID()
+      
+      // 2. Determine trainer level based on experience
+      const trainerLevel = formData.experience_years >= 10 ? 'master_trainer' :
+                          formData.experience_years >= 5 ? 'trainer_l2' : 'trainer_l1'
+      
+      // 3. Create user_profiles first
+      const { error: userError } = await supabase
+        .from('user_profiles')
+        .insert([{
+          id: userId,
+          email: formData.email,
+          full_name: formData.name,
+          role: 'trainer',
+          trainer_level: trainerLevel,
+          trainer_status: formData.status === 'active' ? 'active' : 'inactive',
+          trainer_specializations: [formData.specialization],
+          trainer_experience_years: formData.experience_years,
+          trainer_certifications: formData.certification,
+          is_active: formData.status === 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
 
-      if (error) throw error
+      if (userError) throw userError
+
+      // 4. Create trainer record with user_id
+      const { error: trainerError } = await supabase
+        .from('trainers')
+        .insert([{
+          ...formData,
+          user_id: userId
+        }])
+
+      if (trainerError) throw trainerError
 
       alert('Trainer berhasil ditambahkan!')
       router.push('/trainers')
