@@ -7,6 +7,7 @@ import {
   X, Save, ChevronUp, ChevronDown, Eye, Upload, PlayCircle 
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
+import Link from 'next/link'
 
 interface LearningContent {
   id: string
@@ -40,25 +41,8 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   const { profile } = useAuth()
   const [contents, setContents] = useState<LearningContent[]>([])
   const [loading, setLoading] = useState(true)
-  const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingContent, setEditingContent] = useState<LearningContent | null>(null)
-  const [newContent, setNewContent] = useState<Partial<LearningContent>>({
-    class_id: classId,
-    title: '',
-    description: '',
-    content_type: 'text',
-    content_data: {},
-    order_index: 0,
-    is_free: false,
-    status: 'draft',
-    is_required: true,
-    estimated_duration: 10,
-    material_type: 'main',
-    level: 0,
-    is_expanded: true
-  })
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchContents()
@@ -107,33 +91,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     return mainMaterials.sort((a, b) => a.order_index - b.order_index)
   }
 
-  async function handleAddContent() {
-    try {
-      const contentData = {
-        ...newContent,
-        created_by: profile?.id,
-        parent_id: selectedParentId,
-        material_type: selectedParentId ? 'sub' : 'main',
-        level: selectedParentId ? 1 : 0
-      }
-
-      const { data, error } = await supabase
-        .from('learning_contents')
-        .insert([contentData] as any)
-        .select()
-
-      if (error) throw error
-      
-      // Refresh the contents to get the hierarchical structure
-      fetchContents()
-      setShowAddModal(false)
-      resetForm()
-      setSelectedParentId(null)
-    } catch (error) {
-      console.error('Error adding content:', error)
-      alert('Gagal menambahkan materi')
-    }
-  }
 
   async function handleUpdateContent() {
     if (!editingContent) return
@@ -216,24 +173,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     }
   }
 
-  function resetForm() {
-    setNewContent({
-      class_id: classId,
-      title: '',
-      description: '',
-      content_type: 'text',
-      content_data: {},
-      order_index: contents.length,
-      is_free: false,
-      status: 'draft',
-      is_required: true,
-      estimated_duration: 10,
-      material_type: 'main',
-      level: 0,
-      is_expanded: true
-    })
-    setSelectedParentId(null)
-  }
 
   function openEditModal(content: LearningContent) {
     setEditingContent(content)
@@ -280,14 +219,14 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Materi Pembelajaran</h2>
           <p className="text-sm text-gray-600 mt-1">Kelola video, teks, quiz, dan dokumen untuk kelas {className}</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
+        <Link
+          href={`/programs/${programId}/classes/${classId}/content/new`}
           className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span className="hidden sm:inline">Tambah Materi</span>
           <span className="sm:hidden">Tambah</span>
-        </button>
+        </Link>
       </div>
 
       {/* Content List */}
@@ -295,12 +234,12 @@ export function ContentManagement({ classId, className, programId }: ContentMana
         <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg px-4">
           <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600 text-sm sm:text-base">Belum ada materi pembelajaran</p>
-          <button
-            onClick={() => setShowAddModal(true)}
+          <Link
+            href={`/programs/${programId}/classes/${classId}/content/new`}
             className="mt-4 text-primary-600 hover:text-primary-700 font-medium text-sm sm:text-base"
           >
             Tambah materi pertama
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-4">
@@ -495,22 +434,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
         </div>
       )}
 
-      {/* Add Content Modal */}
-      {showAddModal && (
-        <ContentFormModal
-          content={newContent}
-          onSave={handleAddContent}
-          onClose={() => {
-            setShowAddModal(false)
-            resetForm()
-          }}
-          title="Tambah Materi Baru"
-          onChange={setNewContent}
-          selectedParentId={selectedParentId}
-          setSelectedParentId={setSelectedParentId}
-          contents={contents}
-        />
-      )}
 
       {/* Edit Content Modal */}
       {showEditModal && editingContent && (
