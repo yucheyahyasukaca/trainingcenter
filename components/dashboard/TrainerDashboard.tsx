@@ -113,10 +113,13 @@ export function TrainerDashboard() {
         // Use the same query method as in "Kelas Saya" page
         console.log('🔍 User ID:', profile.id)
         console.log('🔍 User email:', profile.email)
+        console.log('🔍 Full profile object:', profile)
 
         // Use profile.id directly since class_trainers.trainer_id references user_profiles.id
         const trainerId = profile.id
         console.log('🔍 Looking for classes for trainer ID:', trainerId)
+        console.log('🔍 Trainer ID type:', typeof trainerId)
+        console.log('🔍 Trainer ID value:', JSON.stringify(trainerId))
 
         // Try direct query from class_trainers with join (same as Kelas Saya page)
         console.log('🔍 Querying class_trainers for trainer_id:', trainerId)
@@ -177,16 +180,48 @@ export function TrainerDashboard() {
             
             // Calculate stats with fallback data
             const now = new Date()
+            console.log('🕐 Current time for filtering (fallback):', now.toISOString())
+            
             const activeClasses = allClasses.filter((c: any) => {
               const startDate = new Date(c.start_date)
               const endDate = new Date(c.end_date)
-              return startDate <= now && endDate >= now && c.status === 'ongoing'
+              const isActive = startDate <= now && endDate >= now
+              
+              console.log(`📅 Class "${c.name}" (fallback):`, {
+                startDate: c.start_date,
+                endDate: c.end_date,
+                startDateObj: startDate.toISOString(),
+                endDateObj: endDate.toISOString(),
+                startDateLocal: startDate.toLocaleDateString('id-ID'),
+                endDateLocal: endDate.toLocaleDateString('id-ID'),
+                nowLocal: now.toLocaleDateString('id-ID'),
+                isActive,
+                status: c.status,
+                startTime: startDate.getTime(),
+                endTime: endDate.getTime(),
+                nowTime: now.getTime()
+              })
+              
+              // Kelas aktif: dalam rentang tanggal pelaksanaan (tidak peduli status)
+              return isActive
             })
+            
+            console.log('🎯 Active classes found (fallback):', activeClasses.length)
+            console.log('🎯 Active classes details (fallback):', activeClasses.map((c: any) => ({
+              name: c.name,
+              start: c.start_date,
+              end: c.end_date,
+              status: c.status
+            })))
 
-            const completedClasses = allClasses.filter((c: any) => c.status === 'completed')
+            const completedClasses = allClasses.filter((c: any) => {
+              const endDate = new Date(c.end_date)
+              return endDate < now || c.status === 'completed'
+            })
+            
             const upcomingClasses = allClasses.filter((c: any) => {
               const startDate = new Date(c.start_date)
-              return startDate > now && c.status === 'scheduled'
+              return startDate > now
             })
 
             const totalParticipants = allClasses.reduce((sum: any, c: any) => sum + (c.current_participants || 0), 0)
@@ -206,8 +241,8 @@ export function TrainerDashboard() {
               averageRating: 4.8
             })
 
-            setUpcomingClasses(upcomingClasses.slice(0, 3))
-            setRecentClasses(completedClasses.slice(0, 3))
+            setUpcomingClasses(activeClasses.slice(0, 3)) // Kelas aktif: dalam rentang tanggal pelaksanaan
+            setRecentClasses(allClasses.slice(0, 3)) // Kelas terbaru: semua kelas yang dibuat trainer
             return
           }
         } else {
@@ -229,20 +264,60 @@ export function TrainerDashboard() {
         )
 
         console.log('📚 All unique classes:', uniqueClasses)
+        console.log('📚 Number of unique classes:', uniqueClasses.length)
         setAssignedClasses(uniqueClasses)
 
         // Calculate stats
         const now = new Date()
+        console.log('🕐 Current time for filtering:', now.toISOString())
+        console.log('🕐 Current time (local):', now.toLocaleString('id-ID'))
+        console.log('🕐 Current time (UTC):', now.toUTCString())
+        console.log('🕐 Current time (WIB):', now.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }))
+        
+        // Try using WIB timezone for comparison
+        const nowWIB = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+        console.log('🕐 WIB time object:', nowWIB.toISOString())
+        
         const activeClasses = uniqueClasses.filter(c => {
           const startDate = new Date(c.start_date)
           const endDate = new Date(c.end_date)
-          return startDate <= now && endDate >= now && c.status === 'ongoing'
+          const isActive = startDate <= now && endDate >= now
+          
+          console.log(`📅 Class "${c.name}":`, {
+            startDate: c.start_date,
+            endDate: c.end_date,
+            startDateObj: startDate.toISOString(),
+            endDateObj: endDate.toISOString(),
+            startDateLocal: startDate.toLocaleDateString('id-ID'),
+            endDateLocal: endDate.toLocaleDateString('id-ID'),
+            nowLocal: now.toLocaleDateString('id-ID'),
+            isActive,
+            status: c.status,
+            startTime: startDate.getTime(),
+            endTime: endDate.getTime(),
+            nowTime: now.getTime()
+          })
+          
+          // Kelas aktif: dalam rentang tanggal pelaksanaan (tidak peduli status)
+          return isActive
         })
+        
+        console.log('🎯 Active classes found:', activeClasses.length)
+        console.log('🎯 Active classes details:', activeClasses.map(c => ({
+          name: c.name,
+          start: c.start_date,
+          end: c.end_date,
+          status: c.status
+        })))
 
-        const completedClasses = uniqueClasses.filter(c => c.status === 'completed')
+        const completedClasses = uniqueClasses.filter(c => {
+          const endDate = new Date(c.end_date)
+          return endDate < now || c.status === 'completed'
+        })
+        
         const upcomingClasses = uniqueClasses.filter(c => {
           const startDate = new Date(c.start_date)
-          return startDate > now && c.status === 'scheduled'
+          return startDate > now
         })
 
         const totalParticipants = uniqueClasses.reduce((sum, c) => sum + (c.current_participants || 0), 0)
@@ -262,8 +337,8 @@ export function TrainerDashboard() {
           averageRating: 4.8
         })
 
-        setUpcomingClasses(upcomingClasses.slice(0, 3))
-        setRecentClasses(completedClasses.slice(0, 3))
+        setUpcomingClasses(activeClasses.slice(0, 3)) // Kelas aktif: dalam rentang tanggal pelaksanaan
+        setRecentClasses(uniqueClasses.slice(0, 3)) // Kelas terbaru: semua kelas yang dibuat trainer
 
       } catch (error) {
         console.error('Error fetching trainer data:', error)
@@ -431,11 +506,11 @@ export function TrainerDashboard() {
         </div>
       </div>
 
-      {/* Upcoming Classes */}
+      {/* Active Classes */}
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-6">
           <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-gray-900">Kelas Mendatang</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Kelas Aktif</h2>
         </div>
         
         {loading ? (
@@ -452,8 +527,8 @@ export function TrainerDashboard() {
           </div>
         ) : upcomingClasses.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">Tidak ada kelas mendatang</p>
+            <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">Tidak ada kelas yang sedang berlangsung</p>
             <Link href="/trainer/classes/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
               <Plus className="w-5 h-5 mr-2" />
               Buat Kelas Baru
@@ -539,8 +614,8 @@ export function TrainerDashboard() {
           </div>
         ) : recentClasses.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-            <CheckCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Belum ada kelas yang selesai</p>
+            <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">Belum ada kelas yang dibuat</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 p-6">
