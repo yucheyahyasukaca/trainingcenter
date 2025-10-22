@@ -22,11 +22,14 @@ import {
   Zap,
   Target,
   Layers,
-  PenTool
+  PenTool,
+  Eye,
+  Edit
 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { useToastContext } from '@/components/ToastProvider'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 interface LearningContent {
   id: string
@@ -561,18 +564,14 @@ export default function NewMaterialPage({
               
               {newContent.content_type === 'text' && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    Isi Artikel
-                  </label>
-                  <textarea
-                    value={newContent.content_data?.text || ''}
-                    onChange={(e) => setNewContent({
+                  <RichTextEditor
+                    value={newContent.content_data?.body || ''}
+                    onChange={(value) => setNewContent({
                       ...newContent,
-                      content_data: { ...newContent.content_data, text: e.target.value }
+                      content_data: { ...newContent.content_data, body: value }
                     })}
-                    rows={12}
-                    className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-none font-mono text-sm"
-                    placeholder="Tuliskan konten materi di sini...&#10;&#10;Anda dapat menggunakan format markdown untuk formatting:&#10;- **Bold text**&#10;- *Italic text*&#10;- # Heading 1&#10;- ## Heading 2&#10;- - List item"
+                    placeholder="Tuliskan konten materi di sini... Gunakan toolbar untuk formatting, insert gambar, dan lainnya"
+                    height={400}
                   />
                 </div>
               )}

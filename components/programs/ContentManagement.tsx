@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   Plus, Edit, Trash2, Video, FileText, HelpCircle, File, 
-  X, Save, ChevronUp, ChevronDown, Eye, Upload, PlayCircle 
+  X, Save, ChevronUp, ChevronDown, Eye, Upload, PlayCircle, EyeOff
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import Link from 'next/link'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 interface LearningContent {
   id: string
@@ -725,21 +726,12 @@ function ContentDataForm({ contentType, contentData, onChange }: ContentDataForm
     case 'text':
       return (
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Konten Teks <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={contentData?.body || ''}
-              onChange={(e) => onChange({ ...contentData, body: e.target.value })}
-              rows={10}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono text-sm"
-              placeholder="Tulis konten pembelajaran di sini... (Markdown supported)"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Gunakan Markdown untuk formatting (bold, italic, list, dll)
-            </p>
-          </div>
+          <RichTextEditor
+            value={contentData?.body || ''}
+            onChange={(value) => onChange({ ...contentData, body: value })}
+            placeholder="Tuliskan konten materi di sini... Gunakan toolbar untuk formatting, insert gambar, dan lainnya"
+            height={300}
+          />
         </div>
       )
 
@@ -832,4 +824,5 @@ function ContentDataForm({ contentType, contentData, onChange }: ContentDataForm
       return null
   }
 }
+
 
