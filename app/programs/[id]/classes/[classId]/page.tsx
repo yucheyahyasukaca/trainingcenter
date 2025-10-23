@@ -71,7 +71,7 @@ export default function ClassDetailPage({
         <div className="text-center">
           <p className="text-xl text-gray-700">Kelas tidak ditemukan</p>
           <Link 
-            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
             className="text-primary-600 hover:underline mt-4 inline-block"
           >
             Kembali
@@ -89,7 +89,7 @@ export default function ClassDetailPage({
           <nav className="flex items-center gap-2 text-sm text-gray-600">
             <Link href="/dashboard" className="hover:text-primary-600">Dashboard</Link>
             <span className="text-gray-400">/</span>
-            {profile?.role === 'trainer' ? (
+            {(profile as any)?.role === 'trainer' ? (
               <>
                 <Link href="/trainer/classes" className="hover:text-primary-600">Kelas Saya</Link>
                 <span className="text-gray-400">/</span>
@@ -112,11 +112,11 @@ export default function ClassDetailPage({
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
+            {(profile as any)?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
           </Link>
           
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

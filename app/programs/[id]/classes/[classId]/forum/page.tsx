@@ -98,12 +98,12 @@ export default function ClassForumPage({
 
       // Set first category as default if exists
       if (categoriesData && categoriesData.length > 0 && !newThreadCategoryId) {
-        setNewThreadCategoryId(categoriesData[0].id)
+        setNewThreadCategoryId((categoriesData[0] as any).id)
       }
 
       // Fetch threads
       if (categoriesData && categoriesData.length > 0) {
-        const categoryIds = categoriesData.map(c => c.id)
+        const categoryIds = categoriesData.map((c: any) => (c as any).id)
         
         const { data: threadsData, error: threadsError } = await supabase
           .from('forum_threads')
@@ -117,7 +117,7 @@ export default function ClassForumPage({
 
         // Fetch user profiles for thread authors
         if (threadsData && threadsData.length > 0) {
-          const authorIds = Array.from(new Set(threadsData.map(t => t.author_id)))
+          const authorIds = Array.from(new Set(threadsData.map((t: any) => (t as any).author_id)))
           
           const { data: profilesData, error: profilesError } = await supabase
             .from('user_profiles')
@@ -203,7 +203,7 @@ export default function ClassForumPage({
       }
 
       // Create thread
-      const { data: threadData, error: threadError } = await supabase
+      const { data: threadData, error: threadError } = await (supabase as any)
         .from('forum_threads')
         .insert({
           category_id: newThreadCategoryId,
@@ -284,10 +284,10 @@ export default function ClassForumPage({
         <div className="text-center">
           <p className="text-gray-600">Kelas tidak ditemukan</p>
           <Link 
-            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
             className="text-indigo-600 hover:text-indigo-700 mt-4 inline-block"
           >
-            {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Program'}
+            {(profile as any)?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Program'}
           </Link>
         </div>
       </div>
@@ -301,11 +301,11 @@ export default function ClassForumPage({
         {/* Header */}
         <div className="mb-8">
           <Link 
-            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
             className="inline-flex items-center text-indigo-600 hover:text-indigo-700 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
+            {(profile as any)?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
           </Link>
           
           <div className="bg-white rounded-xl shadow-lg p-6">
@@ -410,7 +410,7 @@ export default function ClassForumPage({
                   type="text"
                   value={newThreadTitle}
                   onChange={(e) => setNewThreadTitle(e.target.value)}
-                  placeholder="Masukkan judul thread..."
+                  placeholder="Masukkan judul (thread as any)..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
@@ -511,13 +511,13 @@ export default function ClassForumPage({
             </div>
           ) : (
             filteredThreads.map(thread => {
-              const category = categories.find(c => c.id === thread.category_id)
-              const author = userProfiles[thread.author_id]
+              const category = categories.find(c => c.id === (thread as any).category_id)
+              const author = userProfiles[(thread as any).author_id]
               
               return (
                 <Link
-                  key={thread.id}
-                  href={`/programs/${params.id}/classes/${params.classId}/forum/${thread.id}`}
+                  key={(thread as any).id}
+                  href={`/programs/${params.id}/classes/${params.classId}/forum/${(thread as any).id}`}
                   className="block bg-gradient-to-br from-white to-indigo-50 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-100 hover:border-indigo-200 hover:scale-[1.02] hover:from-indigo-50 hover:to-blue-50"
                 >
                   <div className="p-5 border-l-4 border-l-indigo-500">
@@ -527,10 +527,10 @@ export default function ClassForumPage({
                         <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white text-xs font-bold rounded-full shadow-lg transform hover:scale-105 transition-transform">
                           {category?.name || 'Umum'}
                         </span>
-                        {thread.is_pinned && (
+                        {(thread as any).is_pinned && (
                           <Pin className="h-5 w-5 text-indigo-600 animate-pulse" />
                         )}
-                        {thread.is_locked && (
+                        {(thread as any).is_locked && (
                           <Lock className="h-5 w-5 text-gray-400" />
                         )}
                       </div>
@@ -543,7 +543,7 @@ export default function ClassForumPage({
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden'
                     }}>
-                      {thread.title}
+                      {(thread as any).title}
                     </h3>
 
                     {/* Bottom Row: Author */}
@@ -563,20 +563,20 @@ export default function ClassForumPage({
                     {/* Bottom Row: Date & Stats */}
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-gray-700 bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full shadow-sm">
-                        {formatDate(thread.created_at)}
+                        {formatDate((thread as any).created_at)}
                       </span>
                       
                       {/* Stats - Compact */}
                       <div className="flex items-center gap-3 text-xs">
                         <span className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
                           <Eye className="h-4 w-4 mr-1" />
-                          {thread.view_count}
+                          {(thread as any).view_count}
                         </span>
                         <span className="flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
                           <Reply className="h-4 w-4 mr-1" />
-                          {thread.reply_count}
+                          {(thread as any).reply_count}
                         </span>
-                        {thread.attachment_url && (
+                        {(thread as any).attachment_url && (
                           <span className="flex items-center bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-full font-bold shadow-md">
                             <Paperclip className="h-4 w-4 mr-1" />
                             File

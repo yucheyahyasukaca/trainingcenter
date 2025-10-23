@@ -78,9 +78,9 @@ export default function ParticipantsPage() {
       
       fetchParticipants()
       closeDeleteModal()
-    } catch (error) {
-      console.error('Error deleting participant:', error)
-      error('Gagal menghapus peserta', 'Error')
+    } catch (err) {
+      console.error('Error deleting participant:', err)
+      addToast.error('Gagal menghapus peserta', 'Error')
       setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }

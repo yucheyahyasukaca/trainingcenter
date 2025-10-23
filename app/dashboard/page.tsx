@@ -32,7 +32,7 @@ export default function DashboardPage() {
   }
 
   // Render dashboard based on user role
-  switch (profile.role) {
+  switch ((profile as any).role) {
     case 'admin':
       return <AdminDashboard />
     case 'manager':

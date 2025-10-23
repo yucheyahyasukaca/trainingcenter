@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Send, Pin, Lock, Eye, ThumbsUp, MoreVertical, Trash2, Edit2, FileText, Image as ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, Send, Pin, Lock, Eye, ThumbsUp, MoreVertical, Trash2, Edit2, FileText, Image as ImageIcon, X, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
-import { ConfirmDialog, useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialogWithHook, useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface ThreadData {
   id: string
@@ -41,7 +41,7 @@ export default function ThreadDetailPage({
   const router = useRouter()
   const { profile } = useAuth()
   const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
-  const { dialog: confirmDialog, confirm: confirmAction, close: closeConfirm } = useConfirmDialog()
+  const { isOpen: confirmDialog, openDialog, closeDialog, confirm: confirmAction } = useConfirmDialog()
   
   const [classData, setClassData] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
@@ -99,7 +99,7 @@ export default function ThreadDetailPage({
       const { data: categoryData, error: categoryError } = await supabase
         .from('forum_categories')
         .select('*')
-        .eq('id', threadData.category_id)
+        .eq('id', (threadData as any).category_id)
         .single()
 
       if (categoryError) throw categoryError
@@ -137,8 +137,8 @@ export default function ThreadDetailPage({
 
       // Fetch user profiles
       const allUserIds = [
-        threadData.author_id,
-        ...(repliesData?.map(r => r.author_id) || [])
+        (threadData as any).author_id,
+        ...(repliesData?.map((r: any) => (r as any).author_id) || [])
       ]
       const uniqueUserIds = Array.from(new Set(allUserIds))
 
@@ -223,7 +223,7 @@ export default function ThreadDetailPage({
         }
       }
 
-      const { error: replyError } = await supabase
+      const { error: replyError } = await (supabase as any)
         .from('forum_replies')
         .insert({
           thread_id: params.threadId,
@@ -254,18 +254,19 @@ export default function ThreadDetailPage({
   }
 
   async function handleDeleteThread() {
-    const confirmed = await confirmAction(
-      'Hapus Thread',
-      'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
-      'danger',
-      'Hapus',
-      'Batal'
-    )
-    
-    if (!confirmed) return
+    openDialog({
+      title: 'Hapus Thread',
+      message: 'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      onConfirm: deleteThread
+    })
+  }
 
+  async function deleteThread() {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('forum_threads')
         .delete()
         .eq('id', params.threadId)
@@ -283,18 +284,21 @@ export default function ThreadDetailPage({
   }
 
   async function handleDeleteReply(replyId: string) {
-    const confirmed = await confirmAction(
-      'Hapus Balasan',
-      'Apakah Anda yakin ingin menghapus balasan ini?',
-      'warning',
-      'Hapus',
-      'Batal'
-    )
+    openDialog({
+      title: 'Hapus Balasan',
+      message: 'Apakah Anda yakin ingin menghapus balasan ini?',
+      type: 'warning',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      onConfirm: () => deleteReply(replyId)
+    })
+  }
+
+  async function deleteReply(replyId: string) {
     
-    if (!confirmed) return
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('forum_replies')
         .delete()
         .eq('id', replyId)
@@ -341,10 +345,10 @@ export default function ThreadDetailPage({
               Kembali ke Forum
             </Link>
             <Link 
-              href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`} 
+              href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`} 
               className="block text-sm text-gray-500 hover:text-gray-700"
             >
-              {profile?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
+              {(profile as any)?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
             </Link>
           </div>
         </div>
@@ -360,16 +364,7 @@ export default function ThreadDetailPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={closeConfirm}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        type={confirmDialog.type}
-        confirmText={confirmDialog.confirmText}
-        cancelText={confirmDialog.cancelText}
-      />
+      <ConfirmDialogWithHook />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -446,28 +441,28 @@ export default function ThreadDetailPage({
               <p className="whitespace-pre-wrap">{thread.content}</p>
               
               {/* Thread Attachment */}
-              {thread.attachment_url && (
+              {(thread as any).attachment_url && (
                 <div className="mt-4">
                   <div className="border border-primary-200 rounded-lg p-4 bg-gradient-to-r from-primary-50 to-red-50">
                     <h4 className="text-sm font-medium text-gray-900 mb-2">Lampiran:</h4>
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-gray-500" />
                       <button
-                        onClick={() => window.open(thread.attachment_url, '_blank')}
+                        onClick={() => window.open((thread as any).attachment_url, '_blank')}
                         className="text-indigo-600 hover:text-indigo-700 text-sm underline"
                       >
-                        {thread.attachment_url.split('/').pop()}
+                        {(thread as any).attachment_url.split('/').pop()}
                       </button>
                     </div>
                     
                     {/* Image Preview */}
-                    {thread.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                    {(thread as any).attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
                       <div className="mt-3">
                         <img
-                          src={thread.attachment_url}
+                          src={(thread as any).attachment_url}
                           alt="Lampiran thread"
                           className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setOpenAttachment(thread.attachment_url)}
+                          onClick={() => setOpenAttachment((thread as any).attachment_url)}
                           style={{ maxHeight: '300px' }}
                         />
                       </div>
@@ -487,12 +482,12 @@ export default function ThreadDetailPage({
             {/* Replies List */}
             <div className="space-y-4 mb-6">
               {replies.map(reply => {
-                const replyAuthor = userProfiles[reply.author_id]
-                const isReplyAuthor = profile?.id === reply.author_id
+                const replyAuthor = userProfiles[(reply as any).author_id]
+                const isReplyAuthor = profile?.id === (reply as any).author_id
                 const canModerateReply = isReplyAuthor || isAdmin
 
                 return (
-                  <div key={reply.id} className="bg-gradient-to-r from-primary-50 to-red-50 rounded-lg p-4 border-l-4 border-primary-300">
+                  <div key={(reply as any).id} className="bg-gradient-to-r from-primary-50 to-red-50 rounded-lg p-4 border-l-4 border-primary-300">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center">
@@ -517,14 +512,14 @@ export default function ThreadDetailPage({
                             )}
                           </div>
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                            {formatDate(reply.created_at)}
+                            {formatDate((reply as any).created_at)}
                           </span>
                         </div>
                       </div>
                       
                       {canModerateReply && (
                         <button
-                          onClick={() => handleDeleteReply(reply.id)}
+                          onClick={() => handleDeleteReply((reply as any).id)}
                           className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Hapus Reply"
                         >
@@ -532,31 +527,31 @@ export default function ThreadDetailPage({
                         </button>
                       )}
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-3">{reply.content}</p>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed mb-3">{(reply as any).content}</p>
                     
                     {/* Reply Attachment */}
-                    {reply.attachment_url && (
+                    {(reply as any).attachment_url && (
                       <div className="mt-3">
                         <div className="border border-primary-200 rounded-lg p-3 bg-gradient-to-r from-primary-50 to-red-50">
                           <h5 className="text-xs font-medium text-gray-700 mb-2">Lampiran:</h5>
                           <div className="flex items-center space-x-2">
                             <FileText className="h-3 w-3 text-gray-500" />
                             <button
-                              onClick={() => window.open(reply.attachment_url, '_blank')}
+                              onClick={() => window.open((reply as any).attachment_url, '_blank')}
                               className="text-indigo-600 hover:text-indigo-700 text-xs underline"
                             >
-                              {reply.attachment_url.split('/').pop()}
+                              {(reply as any).attachment_url.split('/').pop()}
                             </button>
                           </div>
                           
                           {/* Image Preview */}
-                          {reply.attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                          {(reply as any).attachment_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
                             <div className="mt-2">
                               <img
-                                src={reply.attachment_url}
+                                src={(reply as any).attachment_url}
                                 alt="Lampiran balasan"
                                 className="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => setOpenAttachment(reply.attachment_url)}
+                                onClick={() => setOpenAttachment((reply as any).attachment_url)}
                                 style={{ maxHeight: '200px' }}
                               />
                             </div>

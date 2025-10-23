@@ -60,7 +60,7 @@ export default function QuizManagementPage({
       if (profile.role === 'admin') {
         console.log('✅ Admin access granted')
         access = true
-      } else if (profile.role === 'trainer') {
+      } else if ((profile as any).role === 'trainer') {
         console.log('👨‍🏫 Checking trainer access...')
         
         // Check if assigned to class using class_trainers directly
@@ -78,7 +78,7 @@ export default function QuizManagementPage({
           console.log('✅ Class trainer data found:', classTrainer)
           
           // Check if the trainer_id matches the current user directly
-          if (classTrainer.trainer_id === profile.id) {
+          if ((classTrainer as any).trainer_id === profile.id) {
             console.log('✅ Class trainer access granted - user matches')
             access = true
           } else {
@@ -98,7 +98,7 @@ export default function QuizManagementPage({
           console.log('Program data:', programData)
           console.log('Program error:', programError)
 
-          if (programData?.trainer_id === profile.id) {
+          if ((programData as any)?.trainer_id === profile.id) {
             console.log('✅ Program trainer access granted')
             access = true
           } else {

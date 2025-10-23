@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Check if code is still valid
     const now = new Date()
-    if (codeData.valid_until && new Date(codeData.valid_until) < now) {
+    if ((codeData as any).valid_until && new Date((codeData as any).valid_until) < now) {
       return NextResponse.json({ 
         success: false,
         error: 'Kode referral sudah tidak berlaku' 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check usage limit
-    if (codeData.max_uses && codeData.current_uses >= codeData.max_uses) {
+    if ((codeData as any).max_uses && (codeData as any).current_uses >= (codeData as any).max_uses) {
       return NextResponse.json({ 
         success: false,
         error: 'Kode referral sudah mencapai batas penggunaan' 
@@ -63,13 +63,13 @@ export async function POST(request: NextRequest) {
 
     // Format response
     const formattedCode = {
-      id: codeData.id,
-      code: codeData.code,
-      description: codeData.description,
-      discount_percentage: codeData.discount_percentage,
-      discount_amount: codeData.discount_amount,
-      valid_until: codeData.valid_until,
-      trainer_name: codeData.user_profiles?.full_name || 'Unknown'
+      id: (codeData as any).id,
+      code: (codeData as any).code,
+      description: (codeData as any).description,
+      discount_percentage: (codeData as any).discount_percentage,
+      discount_amount: (codeData as any).discount_amount,
+      valid_until: (codeData as any).valid_until,
+      trainer_name: (codeData as any).user_profiles?.full_name || 'Unknown'
     }
 
     return NextResponse.json({ 

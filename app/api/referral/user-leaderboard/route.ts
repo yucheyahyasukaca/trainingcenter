@@ -99,14 +99,14 @@ export async function GET(request: NextRequest) {
           .eq('trainer_id', (user as any).id)
 
         const totalReferralCodes = referralCodes?.length || 0
-        const activeReferralCodes = referralCodes?.filter(c => c.is_active).length || 0
+        const activeReferralCodes = referralCodes?.filter((c: any) => c.is_active).length || 0
 
         // Calculate conversion rate
         const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
         // Get last referral date
-        const lastReferralDate = filteredTrackingData.length > 0 
-          ? filteredTrackingData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+        const lastReferralDate = filteredTrackingData.length > 0        
+          ? (filteredTrackingData.sort((a: any, b: any) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime())[0] as any).created_at                      
           : null
 
         return {

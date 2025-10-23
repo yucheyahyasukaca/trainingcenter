@@ -56,15 +56,16 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       if (profile?.role === 'admin' || profile?.role === 'manager') {
         // Admin and manager have full access
         setEnrollment({ id: 'admin-access', status: 'approved' })
-      } else if (profile?.role === 'trainer') {
+      } else if ((profile as any)?.role === 'trainer') {
         // Check if trainer is assigned to this program
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', profile.id)
-          .single()
+        if (profile?.id) {
+          const { data: trainerData } = await supabase
+            .from('trainers')
+            .select('id')
+            .eq('user_id', profile.id)
+            .single()
 
-        if (trainerData && programData.trainer_id === trainerData.id) {
+          if (trainerData && programData.trainer_id === trainerData.id) {
           setEnrollment({ id: 'trainer-access', status: 'approved' })
         } else {
           // Check if assigned to any class in this program

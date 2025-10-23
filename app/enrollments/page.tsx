@@ -244,9 +244,9 @@ export default function EnrollmentsPage() {
                       <Calendar className="w-4 h-4 mr-2" />
                       <span>
                         {(program as any).registration_type === 'lifetime' || 
-                         (program.start_date === program.end_date)
+                         ((program as any).start_date === (program as any).end_date)
                           ? 'Lifetime' 
-                          : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
+                          : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
                         }
                       </span>
                     </div>

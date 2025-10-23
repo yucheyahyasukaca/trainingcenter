@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const user = { id: users[0].id }
+    const user = { id: (users[0] as any).id }
 
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'all'
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     const filteredPeriodStats = periodStats?.filter(stat => {
       if (period === 'all') return true
       
-      const statDate = new Date(stat.created_at)
+      const statDate = new Date((stat as any).created_at)
       const now = new Date()
       
       switch (period) {
@@ -122,21 +122,21 @@ export async function GET(request: NextRequest) {
 
     // Calculate all-time stats
     const totalReferrals = allTimeStats?.length || 0
-    const confirmedReferrals = allTimeStats?.filter(s => s.status === 'confirmed').length || 0
-    const pendingReferrals = allTimeStats?.filter(s => s.status === 'pending').length || 0
-    const cancelledReferrals = allTimeStats?.filter(s => s.status === 'cancelled').length || 0
-    const totalCommissionEarned = allTimeStats?.reduce((sum, s) => sum + (s.commission_earned || 0), 0) || 0
-    const confirmedCommission = allTimeStats?.filter(s => s.status === 'confirmed').reduce((sum, s) => sum + (s.commission_earned || 0), 0) || 0
-    const totalDiscountGiven = allTimeStats?.reduce((sum, s) => sum + (s.discount_applied || 0), 0) || 0
+    const confirmedReferrals = allTimeStats?.filter((s: any) => s.status === 'confirmed').length || 0
+    const pendingReferrals = allTimeStats?.filter((s: any) => s.status === 'pending').length || 0
+    const cancelledReferrals = allTimeStats?.filter((s: any) => s.status === 'cancelled').length || 0
+    const totalCommissionEarned = allTimeStats?.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0) || 0
+    const confirmedCommission = allTimeStats?.filter((s: any) => s.status === 'confirmed').reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0) || 0
+    const totalDiscountGiven = allTimeStats?.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0) || 0
 
     // Calculate period stats
     const periodTotalReferrals = filteredPeriodStats.length
-    const periodConfirmedReferrals = filteredPeriodStats.filter(s => s.status === 'confirmed').length
-    const periodPendingReferrals = filteredPeriodStats.filter(s => s.status === 'pending').length
-    const periodCancelledReferrals = filteredPeriodStats.filter(s => s.status === 'cancelled').length
-    const periodTotalCommissionEarned = filteredPeriodStats.reduce((sum, s) => sum + (s.commission_earned || 0), 0)
-    const periodConfirmedCommission = filteredPeriodStats.filter(s => s.status === 'confirmed').reduce((sum, s) => sum + (s.commission_earned || 0), 0)
-    const periodTotalDiscountGiven = filteredPeriodStats.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+    const periodConfirmedReferrals = filteredPeriodStats.filter((s: any) => s.status === 'confirmed').length
+    const periodPendingReferrals = filteredPeriodStats.filter((s: any) => s.status === 'pending').length
+    const periodCancelledReferrals = filteredPeriodStats.filter((s: any) => s.status === 'cancelled').length
+    const periodTotalCommissionEarned = filteredPeriodStats.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
+    const periodConfirmedCommission = filteredPeriodStats.filter((s: any) => s.status === 'confirmed').reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
+    const periodTotalDiscountGiven = filteredPeriodStats.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
 
     // Calculate conversion rate
     const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
@@ -167,14 +167,14 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching recent referrals:', recentError)
     }
 
-    const formattedRecentReferrals = recentReferrals?.map(ref => ({
-      id: ref.id,
-      participant_name: ref.participants?.user_profiles?.full_name || 'Unknown',
-      program_title: ref.programs?.title || 'Unknown Program',
-      status: ref.status,
-      commission_earned: ref.commission_earned || 0,
-      discount_applied: ref.discount_applied || 0,
-      created_at: ref.created_at
+    const formattedRecentReferrals = recentReferrals?.map((ref: any) => ({
+      id: (ref as any).id,
+      participant_name: (ref as any).participants?.user_profiles?.full_name || 'Unknown',
+      program_title: (ref as any).programs?.title || 'Unknown Program',
+      status: (ref as any).status,
+      commission_earned: (ref as any).commission_earned || 0,
+      discount_applied: (ref as any).discount_applied || 0,
+      created_at: (ref as any).created_at
     })) || []
 
     const stats = {

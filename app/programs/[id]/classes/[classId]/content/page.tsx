@@ -152,7 +152,7 @@ export default function ClassContentManagementPage({
           <nav className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
             <Link href="/dashboard" className="hover:text-primary-600 whitespace-nowrap">Dashboard</Link>
             <span className="text-gray-400">/</span>
-            {profile?.role === 'trainer' ? (
+            {(profile as any)?.role === 'trainer' ? (
               <>
                 <Link href="/trainer/classes" className="hover:text-primary-600 whitespace-nowrap">Kelas Saya</Link>
                 <span className="text-gray-400">/</span>
@@ -177,7 +177,7 @@ export default function ClassContentManagementPage({
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={profile?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

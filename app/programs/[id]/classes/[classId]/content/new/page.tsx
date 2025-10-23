@@ -246,7 +246,7 @@ export default function NewMaterialPage({
 
   async function handleSave() {
     if (!newContent.title?.trim()) {
-      error('Judul materi harus diisi')
+      addToast.error('Judul materi harus diisi')
       return
     }
 
@@ -260,7 +260,7 @@ export default function NewMaterialPage({
         order_index: contents.length
       }
 
-      const { data, error: insertError } = await supabase
+      const { data, error: insertError } = await (supabase as any)
         .from('learning_contents')
         .insert([contentData])
         .select()
@@ -268,11 +268,11 @@ export default function NewMaterialPage({
 
       if (insertError) throw insertError
 
-      success('Materi berhasil ditambahkan')
+      addToast.success('Materi berhasil ditambahkan')
       router.push(`/programs/${params.id}/classes/${params.classId}/content`)
     } catch (error) {
       console.error('Error saving content:', error)
-      error('Gagal menyimpan materi')
+      addToast.error('Gagal menyimpan materi')
     } finally {
       setSaving(false)
     }
@@ -337,7 +337,7 @@ export default function NewMaterialPage({
 
           {/* Desktop Breadcrumb - Full */}
           <nav className="hidden sm:flex items-center gap-2 text-sm">
-            {(profile?.role === 'trainer' ? [
+            {((profile as any)?.role === 'trainer' ? [
               { name: 'Dashboard', href: '/dashboard' },
               { name: 'Kelas Saya', href: '/trainer/classes' },
               { name: 'Materi', href: `/programs/${params.id}/classes/${params.classId}/content` },
@@ -354,7 +354,7 @@ export default function NewMaterialPage({
                 {index > 0 && (
                   <span className="text-slate-400">/</span>
                 )}
-                {index === (profile?.role === 'trainer' ? 3 : 5) ? (
+                {index === ((profile as any)?.role === 'trainer' ? 3 : 5) ? (
                   <span className="text-slate-700 font-medium">
                     {item.name}
                   </span>
