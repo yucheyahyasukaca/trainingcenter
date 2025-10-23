@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('⚠️ Loading timeout, forcing loading to false')
         setLoading(false)
       }
-    }, 3000) // 3 seconds timeout
+    }, 10000) // 10 seconds timeout
 
     // Listen to auth changes
     const { data: { subscription } } = onAuthStateChange((user) => {

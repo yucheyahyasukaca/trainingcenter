@@ -43,7 +43,23 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   const [contents, setContents] = useState<LearningContent[]>([])
   const [loading, setLoading] = useState(true)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [editingContent, setEditingContent] = useState<LearningContent | null>(null)
+  const [newContent, setNewContent] = useState<Partial<LearningContent>>({
+    class_id: classId,
+    title: '',
+    description: '',
+    content_type: 'text',
+    content_data: {},
+    order_index: 0,
+    is_free: false,
+    status: 'draft',
+    is_required: false,
+    estimated_duration: 10,
+    material_type: 'sub',
+    level: 1
+  })
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchContents()
@@ -92,6 +108,60 @@ export function ContentManagement({ classId, className, programId }: ContentMana
     return mainMaterials.sort((a, b) => a.order_index - b.order_index)
   }
 
+
+  async function handleCreateContent() {
+    if (!newContent.title || !selectedParentId) return
+
+    try {
+      // Get the next order index for sub-materials
+      const parentContent = contents.find(c => c.id === selectedParentId)
+      const nextOrderIndex = parentContent?.sub_materials?.length || 0
+
+      const { data, error } = await (supabase as any)
+        .from('learning_contents')
+        .insert({
+          class_id: classId,
+          created_by: profile?.id,
+          title: newContent.title,
+          description: newContent.description,
+          content_type: newContent.content_type,
+          content_data: newContent.content_data,
+          order_index: nextOrderIndex,
+          is_free: newContent.is_free,
+          status: newContent.status,
+          is_required: newContent.is_required,
+          estimated_duration: newContent.estimated_duration,
+          parent_id: selectedParentId,
+          material_type: 'sub',
+          level: 2
+        })
+        .select()
+
+      if (error) throw error
+
+      // Refresh contents to show the new sub-material
+      await fetchContents()
+      setShowAddModal(false)
+      setNewContent({
+        class_id: classId,
+        title: '',
+        description: '',
+        content_type: 'text',
+        content_data: {},
+        order_index: 0,
+        is_free: false,
+        status: 'draft',
+        is_required: false,
+        estimated_duration: 10,
+        material_type: 'sub',
+        level: 1
+      })
+      setSelectedParentId(null)
+    } catch (error) {
+      console.error('Error creating content:', error)
+      alert('Gagal menambahkan sub materi')
+    }
+  }
 
   async function handleUpdateContent() {
     if (!editingContent) return
@@ -301,7 +371,10 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                       <ChevronDown className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setShowAddModal(true)}
+                      onClick={() => {
+                        setSelectedParentId(content.id)
+                        setShowAddModal(true)
+                      }}
                       className="p-2 rounded hover:bg-gray-100 text-green-600"
                       title="Tambah Sub Materi"
                     >
@@ -315,6 +388,15 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                     >
                       <Eye className="w-4 h-4" />
                     </a>
+                    {content.content_type === 'quiz' && (
+                      <a
+                        href={`/programs/${programId}/classes/${classId}/content/${content.id}/quiz`}
+                        className="p-2 rounded hover:bg-gray-100 text-green-600"
+                        title="Kelola Quiz"
+                      >
+                        <HelpCircle className="w-4 h-4" />
+                      </a>
+                    )}
                     <button
                       onClick={() => openEditModal(content)}
                       className="p-2 rounded hover:bg-gray-100 text-blue-600"
@@ -436,6 +518,37 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       )}
 
 
+      {/* Add Content Modal */}
+      {showAddModal && (
+        <ContentFormModal
+          content={newContent}
+          onSave={handleCreateContent}
+          onClose={() => {
+            setShowAddModal(false)
+            setNewContent({
+              class_id: classId,
+              title: '',
+              description: '',
+              content_type: 'text',
+              content_data: {},
+              order_index: 0,
+              is_free: false,
+              status: 'draft',
+              is_required: false,
+              estimated_duration: 10,
+              material_type: 'sub',
+              level: 1
+            })
+            setSelectedParentId(null)
+          }}
+          title="Tambah Sub Materi"
+          onChange={(content) => setNewContent(content)}
+          selectedParentId={selectedParentId}
+          setSelectedParentId={setSelectedParentId}
+          contents={contents}
+        />
+      )}
+
       {/* Edit Content Modal */}
       {showEditModal && editingContent && (
         <ContentFormModal
@@ -482,36 +595,47 @@ function ContentFormModal({ content, onSave, onClose, title, onChange, selectedP
 
         {/* Form */}
         <div className="p-4 sm:p-6 space-y-4">
-          {/* Material Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Jenis Materi <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="materialType"
-                  value="main"
-                  checked={selectedParentId === null}
-                  onChange={() => setSelectedParentId(null)}
-                  className="mr-2"
-                />
-                <span className="text-sm">Materi Utama</span>
+          {/* Material Type Selection - Only show if not adding sub-material */}
+          {selectedParentId === null && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Jenis Materi <span className="text-red-500">*</span>
               </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="materialType"
-                  value="sub"
-                  checked={selectedParentId !== null}
-                  onChange={() => setSelectedParentId('')}
-                  className="mr-2"
-                />
-                <span className="text-sm">Sub Materi</span>
-              </label>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="materialType"
+                    value="main"
+                    checked={selectedParentId === null}
+                    onChange={() => setSelectedParentId(null)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Materi Utama</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="materialType"
+                    value="sub"
+                    checked={selectedParentId !== null}
+                    onChange={() => setSelectedParentId('')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm">Sub Materi</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Show parent material info if adding sub-material */}
+          {selectedParentId !== null && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-700">
+                <strong>Menambahkan Sub Materi untuk:</strong> {contents.find(c => c.id === selectedParentId)?.title}
+              </p>
+            </div>
+          )}
 
           {/* Title */}
           <div>

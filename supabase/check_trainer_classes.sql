@@ -89,3 +89,4 @@ JOIN classes c ON ct.class_id = c.id
 JOIN user_profiles u ON ct.trainer_id = u.id
 WHERE u.email = 'trainer@garuda-21.com'
 ORDER BY c.created_at DESC;
+

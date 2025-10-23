@@ -141,22 +141,12 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
         // Auto-assign current trainer as primary when in trainer mode
         console.log('🔄 Auto-assigning current trainer to class:', currentUserId)
         
-        // First get trainer ID from trainers table
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', currentUserId)
-          .single()
-
-        if (!trainerData) {
-          throw new Error('Trainer data not found')
-        }
-        
+        // Directly use user_id as trainer_id in class_trainers
         const { error: trainersError } = await (supabase as any)
           .from('class_trainers')
           .insert([{
             class_id: classId,
-            trainer_id: (trainerData as any).id,
+            trainer_id: currentUserId, // Use user_id directly
             role: 'instructor',
             is_primary: true
           }])

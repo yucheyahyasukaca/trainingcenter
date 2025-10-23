@@ -20,72 +20,107 @@ export default function QuizManagementPage({
   const [hasAccess, setHasAccess] = useState(false)
 
   useEffect(() => {
-    checkAccessAndFetchData()
+    // Only check access when profile is loaded
+    if (profile !== null) {
+      checkAccessAndFetchData()
+    }
   }, [params, profile])
 
   async function checkAccessAndFetchData() {
+    console.log('🔍 Starting access check...')
+    console.log('Profile:', profile)
+    console.log('Params:', params)
+
     if (!profile) {
+      console.log('❌ No profile, redirecting to login')
       router.push('/login')
       return
     }
 
     try {
       // Fetch content data
+      console.log('📄 Fetching content data...')
       const { data: contentData, error: contentError } = await supabase
         .from('learning_contents')
         .select('*, classes!inner(*)')
         .eq('id', params.contentId)
         .single()
 
-      if (contentError) throw contentError
+      if (contentError) {
+        console.error('❌ Content error:', contentError)
+        throw contentError
+      }
+      console.log('✅ Content data:', contentData)
       setContent(contentData)
 
-      // Check access: Admin or trainer
+      // Check access: Admin or assigned trainer
       let access = false
+      console.log('🔐 Checking access for role:', profile.role)
 
       if (profile.role === 'admin') {
+        console.log('✅ Admin access granted')
         access = true
       } else if (profile.role === 'trainer') {
-        // Get trainer data
-        const { data: trainerData } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('user_id', profile.id)
+        console.log('👨‍🏫 Checking trainer access...')
+        
+        // Check if assigned to class using class_trainers directly
+        console.log('🔍 Checking class assignment...')
+        const { data: classTrainer, error: classTrainerError } = await supabase
+          .from('class_trainers')
+          .select('id, trainer_id')
+          .eq('class_id', params.classId)
           .single()
 
-        if (trainerData) {
-          // Check if program trainer matches or if assigned to class
-          const { data: programData } = await supabase
+        console.log('Class trainer data:', classTrainer)
+        console.log('Class trainer error:', classTrainerError)
+
+        if (classTrainer) {
+          console.log('✅ Class trainer data found:', classTrainer)
+          
+          // Check if the trainer_id matches the current user directly
+          if (classTrainer.trainer_id === profile.id) {
+            console.log('✅ Class trainer access granted - user matches')
+            access = true
+          } else {
+            console.log('❌ User does not match class trainer')
+          }
+        } else {
+          console.log('❌ No class trainer data found')
+          
+          // Fallback: Check if program trainer matches
+          console.log('🔍 Checking program trainer...')
+          const { data: programData, error: programError } = await supabase
             .from('programs')
             .select('trainer_id')
             .eq('id', params.id)
             .single()
 
-          if (programData?.trainer_id === trainerData.id) {
+          console.log('Program data:', programData)
+          console.log('Program error:', programError)
+
+          if (programData?.trainer_id === profile.id) {
+            console.log('✅ Program trainer access granted')
             access = true
           } else {
-            const { data: classTrainer } = await supabase
-              .from('class_trainers')
-              .select('id')
-              .eq('class_id', params.classId)
-              .eq('trainer_id', trainerData.id)
-              .single()
-
-            if (classTrainer) {
-              access = true
-            }
+            console.log('❌ No access found')
           }
         }
+      } else {
+        console.log('❌ Invalid role:', profile.role)
       }
 
+      console.log('🎯 Final access result:', access)
       setHasAccess(access)
 
       if (!access) {
+        console.log('❌ Access denied, showing alert')
         alert('Anda tidak memiliki akses ke halaman ini')
         router.push('/dashboard')
+      } else {
+        console.log('✅ Access granted!')
       }
     } catch (error) {
-      console.error('Error checking access:', error)
+      console.error('💥 Error checking access:', error)
       router.push('/dashboard')
     } finally {
       setLoading(false)
