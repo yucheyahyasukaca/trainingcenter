@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 
 // PUT /api/referral/user-codes/[id] - Update user referral code
 export async function PUT(
@@ -9,28 +9,40 @@ export async function PUT(
   try {
     const supabase = createServerClient()
 
-    // For now, let's get the first user for testing
-    // In production, you would get the user from the session
-    const { data: users, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'user')
-      .limit(1)
-
-    if (userError || !users || users.length === 0) {
-      return NextResponse.json({ error: 'No users found' }, { status: 404 })
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ 
+        error: 'Unauthorized' 
+      }, { status: 401 })
     }
 
-    const user = { id: (users[0] as any).id }
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'user') {
+      return NextResponse.json({ 
+        error: 'Access denied. User role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     const body = await request.json()
     const {
       description,
       max_uses,
-      discount_percentage = 0,
-      discount_amount = 0,
-      commission_percentage = 0,
-      commission_amount = 0,
       valid_until,
       is_active = true
     } = body
@@ -41,16 +53,12 @@ export async function PUT(
       .update({
         description,
         max_uses,
-        discount_percentage,
-        discount_amount,
-        commission_percentage,
-        commission_amount,
         valid_until,
         is_active,
         updated_at: new Date().toISOString()
       })
       .eq('id', params.id)
-      .eq('trainer_id', user.id)
+      .eq('trainer_id', userData.id)
       .select()
 
     if (error) {
@@ -82,26 +90,42 @@ export async function DELETE(
   try {
     const supabase = createServerClient()
 
-    // For now, let's get the first user for testing
-    // In production, you would get the user from the session
-    const { data: users, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'user')
-      .limit(1)
-
-    if (userError || !users || users.length === 0) {
-      return NextResponse.json({ error: 'No users found' }, { status: 404 })
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ 
+        error: 'Unauthorized' 
+      }, { status: 401 })
     }
 
-    const user = { id: (users[0] as any).id }
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'user') {
+      return NextResponse.json({ 
+        error: 'Access denied. User role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     // Delete the referral code
     const { error } = await supabase
       .from('referral_codes')
       .delete()
       .eq('id', params.id)
-      .eq('trainer_id', user.id)
+      .eq('trainer_id', userData.id)
 
     if (error) {
       console.error('Error deleting user referral code:', error)

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/components/AuthProvider'
 import { X, Save, Loader2 } from 'lucide-react'
 import { useNotification } from '@/components/ui/Notification'
 
@@ -12,15 +14,12 @@ interface ReferralCodeFormProps {
 }
 
 export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCode }: ReferralCodeFormProps) {
+  const { profile } = useAuth()
   const { addNotification } = useNotification()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     description: '',
     max_uses: '',
-    discount_percentage: 0,
-    discount_amount: 0,
-    commission_percentage: 0,
-    commission_amount: 0,
     valid_until: ''
   })
 
@@ -29,20 +28,12 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
       setFormData({
         description: editingCode.description || '',
         max_uses: editingCode.max_uses?.toString() || '',
-        discount_percentage: editingCode.discount_percentage || 0,
-        discount_amount: editingCode.discount_amount || 0,
-        commission_percentage: editingCode.commission_percentage || 0,
-        commission_amount: editingCode.commission_amount || 0,
         valid_until: editingCode.valid_until ? editingCode.valid_until.split('T')[0] : ''
       })
     } else {
       setFormData({
         description: '',
         max_uses: '',
-        discount_percentage: 0,
-        discount_amount: 0,
-        commission_percentage: 0,
-        commission_amount: 0,
         valid_until: ''
       })
     }
@@ -53,40 +44,86 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
     setLoading(true)
 
     try {
-      const submitData = {
-        ...formData,
-        max_uses: formData.max_uses ? parseInt(formData.max_uses) : null,
-        valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null
-      }
-
-      const url = editingCode ? '/api/referral/codes' : '/api/referral/codes'
-      const method = editingCode ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editingCode ? { id: editingCode.id, ...submitData } : submitData)
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: editingCode ? 'Kode referral berhasil diperbarui' : 'Kode referral berhasil dibuat'
-        })
-        onSuccess()
-        onClose()
-      } else {
+      if (!profile?.id) {
         addNotification({
           type: 'error',
           title: 'Error',
-          message: result.error || 'Gagal menyimpan kode referral'
+          message: 'User tidak terautentikasi'
+        })
+        return
+      }
+
+      const submitData = {
+        description: formData.description,
+        max_uses: formData.max_uses ? parseInt(formData.max_uses) : null,
+        valid_until: formData.valid_until ? new Date(formData.valid_until).toISOString() : null,
+        discount_percentage: 0,
+        discount_amount: 0,
+        commission_percentage: 0,
+        commission_amount: 0,
+        is_active: true
+      }
+
+      if (editingCode) {
+        // Update existing code
+        const { error } = await supabase
+          .from('referral_codes')
+          .update(submitData)
+          .eq('id', editingCode.id)
+          .eq('trainer_id', profile.id)
+
+        if (error) {
+          console.error('Error updating referral code:', error)
+          addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal memperbarui kode referral'
+          })
+          return
+        }
+
+        addNotification({
+          type: 'success',
+          title: 'Berhasil',
+          message: 'Kode referral berhasil diperbarui'
+        })
+      } else {
+        // Create new code
+        const generateReferralCode = (trainerName: string): string => {
+          const baseCode = trainerName.replace(/\s+/g, '').toUpperCase().substring(0, 3)
+          const timestamp = Date.now().toString().slice(-3)
+          return `${baseCode}${timestamp}`
+        }
+
+        const referralCode = generateReferralCode(profile.full_name || 'USER')
+
+        const { error } = await supabase
+          .from('referral_codes')
+          .insert({
+            trainer_id: profile.id,
+            code: referralCode,
+            ...submitData
+          })
+
+        if (error) {
+          console.error('Error creating referral code:', error)
+          addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal membuat kode referral'
+          })
+          return
+        }
+
+        addNotification({
+          type: 'success',
+          title: 'Berhasil',
+          message: 'Kode referral berhasil dibuat'
         })
       }
+
+      onSuccess()
+      onClose()
     } catch (error) {
       console.error('Error saving referral code:', error)
       addNotification({
@@ -172,86 +209,28 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
             <p className="text-xs text-gray-500 mt-1">Kosongkan untuk tidak ada batas waktu</p>
           </div>
 
-          {/* Discount Section */}
+          {/* Info about referral policies */}
           <div className="border-t border-gray-200 pt-4 md:pt-6">
-            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Pengaturan Diskon</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Diskon Persentase (%)
-                </label>
-                <input
-                  type="number"
-                  name="discount_percentage"
-                  value={formData.discount_percentage}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Diskon Jumlah (Rp)
-                </label>
-                <input
-                  type="number"
-                  name="discount_amount"
-                  value={formData.discount_amount}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="0"
-                />
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">
+                    Informasi Komisi & Diskon
+                  </h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <p>
+                      Komisi dan diskon untuk kode referral Anda ditentukan oleh admin berdasarkan program yang dipilih. 
+                      Anda hanya perlu membuat kode referral dan membagikannya untuk mendapatkan komisi sesuai dengan policy yang berlaku.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Pilih salah satu: persentase atau jumlah tetap. Jika keduanya diisi, akan menggunakan yang lebih besar.
-            </p>
-          </div>
-
-          {/* Commission Section */}
-          <div className="border-t border-gray-200 pt-4 md:pt-6">
-            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Pengaturan Komisi</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Komisi Persentase (%)
-                </label>
-                <input
-                  type="number"
-                  name="commission_percentage"
-                  value={formData.commission_percentage}
-                  onChange={handleInputChange}
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Komisi Jumlah (Rp)
-                </label>
-                <input
-                  type="number"
-                  name="commission_amount"
-                  value={formData.commission_amount}
-                  onChange={handleInputChange}
-                  min="0"
-                  step="1000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Pilih salah satu: persentase atau jumlah tetap. Jika keduanya diisi, akan menggunakan yang lebih besar.
-            </p>
           </div>
 
           {/* Preview */}
@@ -259,25 +238,9 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
             <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Preview</h3>
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Diskon:</span>
-                <span className="text-sm font-medium">
-                  {formData.discount_percentage > 0 
-                    ? `${formData.discount_percentage}%` 
-                    : formData.discount_amount > 0 
-                      ? `Rp ${formData.discount_amount.toLocaleString('id-ID')}`
-                      : 'Tidak ada diskon'
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Komisi:</span>
-                <span className="text-sm font-medium">
-                  {formData.commission_percentage > 0 
-                    ? `${formData.commission_percentage}%` 
-                    : formData.commission_amount > 0 
-                      ? `Rp ${formData.commission_amount.toLocaleString('id-ID')}`
-                      : 'Tidak ada komisi'
-                  }
+                <span className="text-sm text-gray-600">Komisi & Diskon:</span>
+                <span className="text-sm font-medium text-blue-600">
+                  Akan ditentukan oleh admin
                 </span>
               </div>
               {formData.max_uses && (

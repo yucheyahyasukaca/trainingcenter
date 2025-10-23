@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/components/AuthProvider'
 import { 
   Gift, 
   Users, 
@@ -19,6 +21,7 @@ import {
   Star
 } from 'lucide-react'
 import { useNotification } from '@/components/ui/Notification'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface UserReferralStats {
   total_referrals: number
@@ -75,6 +78,7 @@ interface UserReferralDashboardProps {
 }
 
 export default function UserReferralDashboard({ period = 'all' }: UserReferralDashboardProps) {
+  const { profile } = useAuth()
   const { addNotification } = useNotification()
   const [stats, setStats] = useState<UserReferralStats | null>(null)
   const [referralCodes, setReferralCodes] = useState<UserReferralCode[]>([])
@@ -82,28 +86,96 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
   const [selectedPeriod, setSelectedPeriod] = useState(period)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingCode, setEditingCode] = useState<UserReferralCode | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   useEffect(() => {
-    fetchStats()
-    fetchReferralCodes()
-  }, [selectedPeriod])
+    if (profile?.id) {
+      fetchStats()
+      fetchReferralCodes()
+    }
+  }, [selectedPeriod, profile?.id])
 
   const fetchStats = async () => {
+    if (!profile?.id) return
+
     try {
-      const response = await fetch(`/api/referral/user-stats?period=${selectedPeriod}`)
-      const result = await response.json()
+      console.log('Fetching user referral stats for:', profile.id)
       
-      if (result.success) {
-        setStats(result.data)
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal memuat statistik referral'
-        })
+      // Get referral codes count
+      const { data: referralCodes, error: codesError } = await supabase
+        .from('referral_codes')
+        .select('id')
+        .eq('trainer_id', profile.id)
+
+      if (codesError) {
+        console.error('Error fetching referral codes:', codesError)
+        throw codesError
       }
+
+      // Get referral tracking data
+      const { data: referralTracking, error: trackingError } = await supabase
+        .from('referral_tracking')
+        .select('*')
+        .in('referral_code_id', referralCodes?.map(code => code.id) || [])
+
+      if (trackingError) {
+        console.error('Error fetching referral tracking:', trackingError)
+        throw trackingError
+      }
+
+      // Calculate stats
+      const totalReferrals = referralTracking?.length || 0
+      const confirmedReferrals = referralTracking?.filter(tracking => tracking.status === 'confirmed').length || 0
+      const pendingReferrals = referralTracking?.filter(tracking => tracking.status === 'pending').length || 0
+      const cancelledReferrals = referralTracking?.filter(tracking => tracking.status === 'cancelled').length || 0
+      const totalCommissionEarned = referralTracking?.reduce((sum, tracking) => sum + (tracking.commission_earned || 0), 0) || 0
+      const confirmedCommission = referralTracking?.filter(tracking => tracking.status === 'confirmed').reduce((sum, tracking) => sum + (tracking.commission_earned || 0), 0) || 0
+      const totalDiscountGiven = referralTracking?.reduce((sum, tracking) => sum + (tracking.discount_applied || 0), 0) || 0
+      const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
+
+      const statsData: UserReferralStats = {
+        total_referrals: totalReferrals,
+        confirmed_referrals: confirmedReferrals,
+        pending_referrals: pendingReferrals,
+        cancelled_referrals: cancelledReferrals,
+        total_commission_earned: totalCommissionEarned,
+        confirmed_commission: confirmedCommission,
+        total_discount_given: totalDiscountGiven,
+        conversion_rate: conversionRate,
+        period_stats: {
+          total_referrals: totalReferrals,
+          confirmed_referrals: confirmedReferrals,
+          pending_referrals: pendingReferrals,
+          cancelled_referrals: cancelledReferrals,
+          total_commission_earned: totalCommissionEarned,
+          confirmed_commission: confirmedCommission,
+          total_discount_given: totalDiscountGiven
+        },
+        recent_referrals: referralTracking?.slice(0, 5).map(tracking => ({
+          id: tracking.id,
+          participant_name: 'Participant', // You might need to join with participants table
+          program_title: 'Program', // You might need to join with programs table
+          status: tracking.status,
+          commission_earned: tracking.commission_earned || 0,
+          discount_applied: tracking.discount_applied || 0,
+          created_at: tracking.created_at
+        })) || []
+      }
+
+      console.log('User referral stats:', statsData)
+      setStats(statsData)
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error('Error fetching user stats:', error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -113,21 +185,34 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
   }
 
   const fetchReferralCodes = async () => {
+    if (!profile?.id) return
+
     try {
-      const response = await fetch('/api/referral/user-codes')
-      const result = await response.json()
+      console.log('Fetching user referral codes for:', profile.id)
       
-      if (result.success) {
-        setReferralCodes(result.data)
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal memuat kode referral'
-        })
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .select(`
+          *,
+          referral_tracking (
+            id,
+            status,
+            commission_earned,
+            created_at
+          )
+        `)
+        .eq('trainer_id', profile.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching referral codes:', error)
+        throw error
       }
+
+      console.log('User referral codes:', data)
+      setReferralCodes(data || [])
     } catch (error) {
-      console.error('Error fetching referral codes:', error)
+      console.error('Error fetching user referral codes:', error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -139,33 +224,61 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
   }
 
   const handleCreateCode = async (codeData: any) => {
-    try {
-      const response = await fetch('/api/referral/user-codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(codeData)
+    if (!profile?.id) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Autentikasi diperlukan untuk membuat kode referral.'
       })
+      return
+    }
+
+    try {
+      console.log('Creating user referral code:', codeData)
       
-      const result = await response.json()
-      
-      if (result.success) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: 'Kode referral berhasil dibuat'
-        })
-        setShowCreateForm(false)
-        fetchReferralCodes()
-        fetchStats()
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal membuat kode referral'
-        })
+      // Generate referral code
+      const generateReferralCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        let result = ''
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        return result
       }
+
+      const referralCode = generateReferralCode()
+
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .insert({
+          code: referralCode,
+          trainer_id: profile.id,
+          program_id: codeData.program_id,
+          description: codeData.description || '',
+          is_active: true,
+          discount_percentage: 0,
+          discount_amount: 0,
+          commission_percentage: 0,
+          commission_amount: 0
+        })
+        .select()
+
+      if (error) {
+        console.error('Error creating referral code:', error)
+        throw error
+      }
+
+      console.log('User referral code created:', data)
+      addNotification({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Kode referral berhasil dibuat'
+      })
+      setShowCreateForm(false)
+      fetchReferralCodes()
+      fetchStats()
     } catch (error) {
-      console.error('Error creating code:', error)
+      console.error('Error creating user code:', error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -175,33 +288,44 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
   }
 
   const handleUpdateCode = async (id: string, codeData: any) => {
-    try {
-      const response = await fetch(`/api/referral/user-codes/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(codeData)
+    if (!profile?.id) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Autentikasi diperlukan untuk memperbarui kode referral.'
       })
+      return
+    }
+
+    try {
+      console.log('Updating user referral code:', { id, codeData })
       
-      const result = await response.json()
-      
-      if (result.success) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: 'Kode referral berhasil diperbarui'
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .update({
+          program_id: codeData.program_id,
+          description: codeData.description || '',
         })
-        setEditingCode(null)
-        fetchReferralCodes()
-        fetchStats()
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal memperbarui kode referral'
-        })
+        .eq('id', id)
+        .eq('trainer_id', profile.id)
+        .select()
+
+      if (error) {
+        console.error('Error updating referral code:', error)
+        throw error
       }
+
+      console.log('User referral code updated:', data)
+      addNotification({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Kode referral berhasil diperbarui'
+      })
+      setEditingCode(null)
+      fetchReferralCodes()
+      fetchStats()
     } catch (error) {
-      console.error('Error updating code:', error)
+      console.error('Error updating user code:', error)
       addNotification({
         type: 'error',
         title: 'Error',
@@ -211,38 +335,91 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
   }
 
   const handleDeleteCode = async (id: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kode referral ini?')) return
-
-    try {
-      const response = await fetch(`/api/referral/user-codes/${id}`, {
-        method: 'DELETE'
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: 'Kode referral berhasil dihapus'
-        })
-        fetchReferralCodes()
-        fetchStats()
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal menghapus kode referral'
-        })
-      }
-    } catch (error) {
-      console.error('Error deleting code:', error)
+    if (!profile?.id) {
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Gagal menghapus kode referral'
+        message: 'Autentikasi diperlukan untuk menghapus kode referral.'
       })
+      return
     }
+
+    // Show confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Konfirmasi Penghapusan',
+      message: 'Apakah Anda yakin ingin menghapus kode referral ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+        
+        console.log('Attempting to delete user referral code:', { codeId: id, userId: profile.id })
+
+        try {
+          // First, let's check if the code exists and belongs to this user
+          const { data: existingCode, error: checkError } = await supabase
+            .from('referral_codes')
+            .select('id, trainer_id')
+            .eq('id', id)
+            .eq('trainer_id', profile.id)
+            .single()
+
+          if (checkError || !existingCode) {
+            console.error('Code not found or access denied:', checkError)
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Kode referral tidak ditemukan atau Anda tidak memiliki akses untuk menghapusnya'
+            })
+            return
+          }
+
+          // Now delete the code
+          const { data, error } = await supabase
+            .from('referral_codes')
+            .delete()
+            .eq('id', id)
+            .eq('trainer_id', profile.id)
+            .select()
+
+          console.log('Delete result:', { data, error })
+
+          if (error) {
+            console.error('Error deleting referral code:', error)
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: `Gagal menghapus kode referral: ${error.message}`
+            })
+          } else if (data && data.length > 0) {
+            console.log('Successfully deleted referral code:', data)
+            addNotification({
+              type: 'success',
+              title: 'Berhasil',
+              message: 'Kode referral berhasil dihapus'
+            })
+            // Force refresh the list
+            setTimeout(() => {
+              fetchReferralCodes()
+              fetchStats()
+            }, 100)
+          } else {
+            console.log('No rows deleted')
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Kode referral tidak dapat dihapus'
+            })
+          }
+        } catch (error) {
+          console.error('Error deleting code:', error)
+          addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal menghapus kode referral'
+          })
+        }
+      }
+    })
   }
 
   const copyToClipboard = (text: string) => {
@@ -455,25 +632,25 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Diskon</span>
-                        <span className="font-medium">
-                          {code.discount_percentage > 0 
-                            ? `${code.discount_percentage}%` 
-                            : formatCurrency(code.discount_amount)
-                          }
+                        <span className="font-medium text-blue-600">
+                          Ditentukan Admin
                         </span>
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Komisi</span>
-                        <span className="font-medium">
-                          {code.commission_percentage > 0 
-                            ? `${code.commission_percentage}%` 
-                            : formatCurrency(code.commission_amount)
-                          }
+                        <span className="font-medium text-blue-600">
+                          Ditentukan Admin
                         </span>
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Total Komisi</span>
-                        <span className="font-medium text-green-600">{formatCurrency(code.stats.total_commission)}</span>
+                        <span className="font-medium text-green-600">
+                          {formatCurrency(
+                            code.referral_stats?.reduce((sum: number, stat: any) => 
+                              sum + (stat.commission_earned || 0), 0
+                            ) || 0
+                          )}
+                        </span>
                       </div>
                     </div>
 
@@ -581,10 +758,6 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
                       const data = {
                         description: formData.get('description'),
                         max_uses: formData.get('max_uses') ? parseInt(formData.get('max_uses') as string) : null,
-                        discount_percentage: parseFloat(formData.get('discount_percentage') as string) || 0,
-                        discount_amount: parseFloat(formData.get('discount_amount') as string) || 0,
-                        commission_percentage: parseFloat(formData.get('commission_percentage') as string) || 0,
-                        commission_amount: parseFloat(formData.get('commission_amount') as string) || 0,
                         valid_until: formData.get('valid_until') || null
                       }
                       
@@ -621,63 +794,25 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Diskon (%)
-                            </label>
-                            <input
-                              type="number"
-                              name="discount_percentage"
-                              defaultValue={editingCode?.discount_percentage || 0}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Diskon (Rp)
-                            </label>
-                            <input
-                              type="number"
-                              name="discount_amount"
-                              defaultValue={editingCode?.discount_amount || 0}
-                              min="0"
-                              step="1000"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Komisi (%)
-                            </label>
-                            <input
-                              type="number"
-                              name="commission_percentage"
-                              defaultValue={editingCode?.commission_percentage || 0}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Komisi (Rp)
-                            </label>
-                            <input
-                              type="number"
-                              name="commission_amount"
-                              defaultValue={editingCode?.commission_amount || 0}
-                              min="0"
-                              step="1000"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
+                        {/* Info about referral policies */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-blue-800">
+                                Informasi Komisi & Diskon
+                              </h3>
+                              <div className="mt-2 text-sm text-blue-700">
+                                <p>
+                                  Komisi dan diskon untuk kode referral Anda ditentukan oleh admin berdasarkan program yang dipilih. 
+                                  Anda hanya perlu membuat kode referral dan membagikannya untuk mendapatkan komisi sesuai dengan policy yang berlaku.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
@@ -720,6 +855,18 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
           </div>
         </div>
       )}
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   )
 }

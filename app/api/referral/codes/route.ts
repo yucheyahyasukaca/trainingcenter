@@ -1,36 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
-import { headers } from 'next/headers'
+import { createServerClient } from '@/lib/supabase-server'
 
 // GET /api/referral/codes - Get referral codes for current trainer
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first trainer for testing
-    // In production, you would get the user from the session
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'trainer')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (trainerError || !trainers || trainers.length === 0) {
-      return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
+    if (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Authentication failed',
+        details: authError.message
+      }, { status: 401 })
     }
     
-    const user = { id: (trainers[0] as any).id }
+    if (!user) {
+      console.error('No user found in session')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Auth session missing! Please login again.',
+        details: 'No authenticated user found in the current session'
+      }, { status: 401 })
+    }
 
-    // Get user profile to check role
+    // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('id, role')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || (profile as any).role !== 'trainer') {
-      return NextResponse.json({ error: 'Access denied. Trainer role required.' }, { status: 403 })
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'User profile not found' 
+      }, { status: 404 })
     }
+
+    if (profile.role !== 'trainer') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Access denied. Trainer role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     // Get referral codes for this trainer
     const { data: referralCodes, error: codesError } = await (supabase as any)
@@ -45,7 +63,7 @@ export async function GET(request: NextRequest) {
           created_at
         )
       `)
-      .eq('trainer_id', user.id)
+      .eq('trainer_id', userData.id)
       .order('created_at', { ascending: false })
 
     if (codesError) {
@@ -91,20 +109,47 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first trainer for testing
-    // In production, you would get the user from the session
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id, full_name')
-      .eq('role', 'trainer')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (trainerError || !trainers || trainers.length === 0) {
-      return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
+    if (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json({ 
+        success: false,
+        error: 'Authentication failed',
+        details: authError.message
+      }, { status: 401 })
     }
     
-    const user = { id: (trainers[0] as any).id }
-    const profile = { role: 'trainer', full_name: (trainers[0] as any).full_name }
+    if (!user) {
+      console.error('No user found in session')
+      return NextResponse.json({ 
+        success: false,
+        error: 'Auth session missing! Please login again.',
+        details: 'No authenticated user found in the current session'
+      }, { status: 401 })
+    }
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, role, full_name')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'trainer') {
+      return NextResponse.json({ 
+        error: 'Access denied. Trainer role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     const body = await request.json()
     const {
@@ -134,34 +179,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Commission amount cannot be negative' }, { status: 400 })
     }
 
-    // Create referral code using the database function
-    const { data: referralCodeId, error: createError } = await (supabase as any)
-      .rpc('create_trainer_referral_code', {
-        p_trainer_id: user.id,
-        p_description: description || null,
-        p_max_uses: max_uses || null,
-        p_discount_percentage: discount_percentage,
-        p_discount_amount: discount_amount,
-        p_commission_percentage: commission_percentage,
-        p_commission_amount: commission_amount,
-        p_valid_until: valid_until || null
+    // Generate referral code manually
+    const generateReferralCode = (trainerName: string): string => {
+      const baseCode = trainerName.replace(/\s+/g, '').toUpperCase().substring(0, 3)
+      const timestamp = Date.now().toString().slice(-3)
+      return `${baseCode}${timestamp}`
+    }
+
+    const referralCode = generateReferralCode(profile.full_name)
+    
+    console.log('Creating referral code manually:', {
+      trainer_id: userData.id,
+      code: referralCode,
+      description,
+      max_uses: max_uses,
+      valid_until: valid_until
+    })
+
+    // Insert referral code directly
+    const { data: newCode, error: createError } = await supabase
+      .from('referral_codes')
+      .insert({
+        trainer_id: userData.id,
+        code: referralCode,
+        description: description,
+        max_uses: max_uses,
+        discount_percentage: discount_percentage,
+        discount_amount: discount_amount,
+        commission_percentage: commission_percentage,
+        commission_amount: commission_amount,
+        valid_until: valid_until,
+        is_active: true
       })
+      .select()
+      .single()
 
     if (createError) {
       console.error('Error creating referral code:', createError)
-      return NextResponse.json({ error: 'Failed to create referral code' }, { status: 500 })
-    }
-
-    // Get the created referral code
-    const { data: newCode, error: fetchError } = await (supabase as any)
-      .from('referral_codes')
-      .select('*')
-      .eq('id', referralCodeId)
-      .single()
-
-    if (fetchError) {
-      console.error('Error fetching created referral code:', fetchError)
-      return NextResponse.json({ error: 'Failed to fetch created referral code' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to create referral code', 
+        details: createError.message,
+        code: createError.code 
+      }, { status: 500 })
     }
 
     return NextResponse.json({ 
@@ -181,19 +240,47 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first trainer for testing
-    // In production, you would get the user from the session
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'trainer')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (trainerError || !trainers || trainers.length === 0) {
-      return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
+    if (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json({ 
+        success: false,
+        error: 'Authentication failed',
+        details: authError.message
+      }, { status: 401 })
     }
     
-    const user = { id: (trainers[0] as any).id }
+    if (!user) {
+      console.error('No user found in session')
+      return NextResponse.json({ 
+        success: false,
+        error: 'Auth session missing! Please login again.',
+        details: 'No authenticated user found in the current session'
+      }, { status: 401 })
+    }
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'trainer') {
+      return NextResponse.json({ 
+        error: 'Access denied. Trainer role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     const body = await request.json()
     const { id, ...updateData } = body
@@ -213,7 +300,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Referral code not found' }, { status: 404 })
     }
 
-    if ((existingCode as any).trainer_id !== user.id) {
+    if ((existingCode as any).trainer_id !== userData.id) {
       return NextResponse.json({ error: 'Access denied. You can only update your own referral codes.' }, { status: 403 })
     }
 
@@ -267,19 +354,47 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first trainer for testing
-    // In production, you would get the user from the session
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'trainer')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (trainerError || !trainers || trainers.length === 0) {
-      return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
+    if (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json({ 
+        success: false,
+        error: 'Authentication failed',
+        details: authError.message
+      }, { status: 401 })
     }
     
-    const user = { id: (trainers[0] as any).id }
+    if (!user) {
+      console.error('No user found in session')
+      return NextResponse.json({ 
+        success: false,
+        error: 'Auth session missing! Please login again.',
+        details: 'No authenticated user found in the current session'
+      }, { status: 401 })
+    }
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'trainer') {
+      return NextResponse.json({ 
+        error: 'Access denied. Trainer role required.' 
+      }, { status: 403 })
+    }
+
+    const userData = { id: profile.id }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -299,7 +414,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Referral code not found' }, { status: 404 })
     }
 
-    if ((existingCode as any).trainer_id !== user.id) {
+    if ((existingCode as any).trainer_id !== userData.id) {
       return NextResponse.json({ error: 'Access denied. You can only delete your own referral codes.' }, { status: 403 })
     }
 

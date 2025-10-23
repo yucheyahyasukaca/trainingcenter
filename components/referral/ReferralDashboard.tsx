@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/components/AuthProvider'
 import { 
   Gift, 
   TrendingUp, 
@@ -18,6 +20,7 @@ import {
   BarChart3
 } from 'lucide-react'
 import { useNotification } from '@/components/ui/Notification'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import ReferralCodeForm from './ReferralCodeForm'
 
 interface ReferralStats {
@@ -94,6 +97,7 @@ interface ReferralCode {
 }
 
 export default function ReferralDashboard() {
+  const { profile } = useAuth()
   const { addNotification } = useNotification()
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [referralCodes, setReferralCodes] = useState<ReferralCode[]>([])
@@ -101,26 +105,148 @@ export default function ReferralDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('all')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingCode, setEditingCode] = useState<ReferralCode | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  })
 
   useEffect(() => {
-    fetchStats()
-    fetchReferralCodes()
-  }, [selectedPeriod])
+    if (profile?.id) {
+      fetchStats()
+      fetchReferralCodes()
+    }
+  }, [selectedPeriod, profile?.id])
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`/api/referral/stats?period=${selectedPeriod}`)
-      const result = await response.json()
-      
-      if (result.success) {
-        setStats(result.data)
-      } else {
+      if (!profile?.id) {
+        setStats(null)
+        return
+      }
+
+      // Get trainer referral statistics using the view
+      const { data: stats, error: statsError } = await supabase
+        .from('trainer_referral_stats')
+        .select('*')
+        .eq('trainer_id', profile.id)
+        .single()
+
+      if (statsError) {
+        console.error('Error fetching trainer stats:', statsError)
         addNotification({
           type: 'error',
           title: 'Error',
-          message: result.error || 'Gagal memuat statistik referral'
+          message: 'Gagal memuat statistik referral'
         })
+        return
       }
+
+      // Get detailed referral tracking
+      const { data: detailedStats, error: detailedError } = await supabase
+        .from('referral_tracking')
+        .select(`
+          id,
+          status,
+          commission_earned,
+          discount_applied,
+          created_at,
+          program:programs(
+            id,
+            title,
+            price
+          ),
+          participant:participants(
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('trainer_id', profile.id)
+        .order('created_at', { ascending: false })
+
+      if (detailedError) {
+        console.error('Error fetching detailed stats:', detailedError)
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: 'Gagal memuat statistik detail'
+        })
+        return
+      }
+
+      // Filter by period
+      const now = new Date()
+      const filteredStats = detailedStats?.filter(stat => {
+        if (selectedPeriod === 'all') return true
+        
+        const statDate = new Date(stat.created_at)
+        
+        switch (selectedPeriod) {
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            return statDate >= weekAgo
+          case 'month':
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            return statDate >= monthAgo
+          case 'year':
+            const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+            return statDate >= yearAgo
+          default:
+            return true
+        }
+      }) || []
+
+      // Calculate period stats
+      const periodStats = {
+        total_referrals: filteredStats.length,
+        confirmed_referrals: filteredStats.filter(s => s.status === 'confirmed').length,
+        pending_referrals: filteredStats.filter(s => s.status === 'pending').length,
+        cancelled_referrals: filteredStats.filter(s => s.status === 'cancelled').length,
+        total_commission: filteredStats.reduce((sum, s) => sum + (s.commission_earned || 0), 0),
+        confirmed_commission: filteredStats
+          .filter(s => s.status === 'confirmed')
+          .reduce((sum, s) => sum + (s.commission_earned || 0), 0),
+        total_discount: filteredStats.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+      }
+
+      // Get recent referrals
+      const recentReferrals = filteredStats.slice(0, 10).map(stat => ({
+        id: stat.id,
+        participant_name: stat.participant?.name,
+        participant_email: stat.participant?.email,
+        program_title: stat.program?.title,
+        program_price: stat.program?.price,
+        status: stat.status,
+        commission_earned: stat.commission_earned,
+        discount_applied: stat.discount_applied,
+        created_at: stat.created_at
+      }))
+
+      setStats({
+        overall_stats: stats || {
+          total_referrals: 0,
+          confirmed_referrals: 0,
+          pending_referrals: 0,
+          cancelled_referrals: 0,
+          total_commission_earned: 0,
+          confirmed_commission: 0,
+          total_discount_given: 0,
+          total_referral_codes: 0,
+          active_referral_codes: 0
+        },
+        period_stats: periodStats,
+        recent_referrals: recentReferrals,
+        program_stats: [],
+        monthly_trend: [],
+        period: selectedPeriod
+      })
     } catch (error) {
       console.error('Error fetching stats:', error)
       addNotification({
@@ -133,18 +259,38 @@ export default function ReferralDashboard() {
 
   const fetchReferralCodes = async () => {
     try {
-      const response = await fetch('/api/referral/codes')
-      const result = await response.json()
-      
-      if (result.success) {
-        setReferralCodes(result.data)
-      } else {
+      if (!profile?.id) {
+        setReferralCodes([])
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .select(`
+          *,
+          referral_stats:referral_tracking(
+            id,
+            status,
+            commission_earned,
+            discount_applied,
+            created_at
+          )
+        `)
+        .eq('trainer_id', profile.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching referral codes:', error)
         addNotification({
           type: 'error',
           title: 'Error',
-          message: result.error || 'Gagal memuat kode referral'
+          message: 'Gagal memuat kode referral'
         })
+        return
       }
+
+      setReferralCodes(data || [])
     } catch (error) {
       console.error('Error fetching referral codes:', error)
       addNotification({
@@ -177,33 +323,36 @@ export default function ReferralDashboard() {
   }
 
   const toggleCodeStatus = async (codeId: string, isActive: boolean) => {
-    try {
-      const response = await fetch('/api/referral/codes', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: codeId,
-          is_active: !isActive
-        })
+    if (!profile?.id) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Autentikasi diperlukan untuk mengubah status kode referral.'
       })
+      return
+    }
 
-      const result = await response.json()
-      
-      if (result.success) {
+    try {
+      const { error } = await supabase
+        .from('referral_codes')
+        .update({ is_active: !isActive })
+        .eq('id', codeId)
+        .eq('trainer_id', profile.id) // Ensure only trainer can update their own code
+
+      if (error) {
+        console.error('Error toggling code status:', error)
+        addNotification({
+          type: 'error',
+          title: 'Error',
+          message: error.message || 'Gagal mengubah status kode referral'
+        })
+      } else {
         addNotification({
           type: 'success',
           title: 'Berhasil',
           message: `Kode referral ${!isActive ? 'diaktifkan' : 'dinonaktifkan'}`
         })
         fetchReferralCodes()
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal mengubah status kode referral'
-        })
       }
     } catch (error) {
       console.error('Error toggling code status:', error)
@@ -216,39 +365,90 @@ export default function ReferralDashboard() {
   }
 
   const deleteCode = async (codeId: string) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus kode referral ini?')) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/referral/codes?id=${codeId}`, {
-        method: 'DELETE'
-      })
-
-      const result = await response.json()
-      
-      if (result.success) {
-        addNotification({
-          type: 'success',
-          title: 'Berhasil',
-          message: 'Kode referral berhasil dihapus'
-        })
-        fetchReferralCodes()
-      } else {
-        addNotification({
-          type: 'error',
-          title: 'Error',
-          message: result.error || 'Gagal menghapus kode referral'
-        })
-      }
-    } catch (error) {
-      console.error('Error deleting code:', error)
+    if (!profile?.id) {
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Gagal menghapus kode referral'
+        message: 'Autentikasi diperlukan untuk menghapus kode referral.'
       })
+      return
     }
+
+    // Show confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Konfirmasi Penghapusan',
+      message: 'Apakah Anda yakin ingin menghapus kode referral ini? Tindakan ini tidak dapat dibatalkan.',
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })
+        
+        console.log('Attempting to delete referral code:', { codeId, trainerId: profile.id })
+
+        try {
+          // First, let's check if the code exists and belongs to this trainer
+          const { data: existingCode, error: checkError } = await supabase
+            .from('referral_codes')
+            .select('id, trainer_id')
+            .eq('id', codeId)
+            .eq('trainer_id', profile.id)
+            .single()
+
+          if (checkError || !existingCode) {
+            console.error('Code not found or access denied:', checkError)
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Kode referral tidak ditemukan atau Anda tidak memiliki akses untuk menghapusnya'
+            })
+            return
+          }
+
+          // Now delete the code
+          const { data, error } = await supabase
+            .from('referral_codes')
+            .delete()
+            .eq('id', codeId)
+            .eq('trainer_id', profile.id)
+            .select()
+
+          console.log('Delete result:', { data, error })
+
+          if (error) {
+            console.error('Error deleting referral code:', error)
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: `Gagal menghapus kode referral: ${error.message}`
+            })
+          } else if (data && data.length > 0) {
+            console.log('Successfully deleted referral code:', data)
+            addNotification({
+              type: 'success',
+              title: 'Berhasil',
+              message: 'Kode referral berhasil dihapus'
+            })
+            // Force refresh the list
+            setTimeout(() => {
+              fetchReferralCodes()
+            }, 100)
+          } else {
+            console.log('No rows deleted')
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Kode referral tidak dapat dihapus'
+            })
+          }
+        } catch (error) {
+          console.error('Error deleting code:', error)
+          addNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Gagal menghapus kode referral'
+          })
+        }
+      }
+    })
   }
 
   const formatCurrency = (amount: number) => {
@@ -473,25 +673,25 @@ export default function ReferralDashboard() {
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Diskon</span>
-                        <span className="font-medium">
-                          {code.discount_percentage > 0 
-                            ? `${code.discount_percentage}%` 
-                            : formatCurrency(code.discount_amount)
-                          }
+                        <span className="font-medium text-blue-600">
+                          Ditentukan Admin
                         </span>
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Komisi</span>
-                        <span className="font-medium">
-                          {code.commission_percentage > 0 
-                            ? `${code.commission_percentage}%` 
-                            : formatCurrency(code.commission_amount)
-                          }
+                        <span className="font-medium text-blue-600">
+                          Ditentukan Admin
                         </span>
                       </div>
                       <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                         <span className="text-gray-600 block text-xs">Total Komisi</span>
-                        <span className="font-medium text-green-600">{formatCurrency(code.stats.total_commission)}</span>
+                        <span className="font-medium text-green-600">
+                          {formatCurrency(
+                            code.referral_stats?.reduce((sum: number, stat: any) => 
+                              sum + (stat.commission_earned || 0), 0
+                            ) || 0
+                          )}
+                        </span>
                       </div>
                     </div>
                     
@@ -640,6 +840,18 @@ export default function ReferralDashboard() {
           fetchStats()
         }}
         editingCode={editingCode}
+      />
+      
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: () => {} })}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
       />
     </div>
   )

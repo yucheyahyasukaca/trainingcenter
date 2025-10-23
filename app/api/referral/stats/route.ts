@@ -1,34 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 
 // GET /api/referral/stats - Get referral statistics for trainer
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first trainer for testing
-    // In production, you would get the user from the session
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('role', 'trainer')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (trainerError || !trainers || trainers.length === 0) {
-      return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
+    if (authError) {
+      console.error('Auth error:', authError)
+      return NextResponse.json({ 
+        success: false,
+        error: 'Authentication failed',
+        details: authError.message
+      }, { status: 401 })
     }
     
-    const user = { id: (trainers[0] as any).id }
+    if (!user) {
+      console.error('No user found in session')
+      return NextResponse.json({ 
+        success: false,
+        error: 'Auth session missing! Please login again.',
+        details: 'No authenticated user found in the current session'
+      }, { status: 401 })
+    }
 
     // Get user profile to check role
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('role')
+      .select('id, role')
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || (profile as any).role !== 'trainer') {
-      return NextResponse.json({ error: 'Access denied. Trainer role required.' }, { status: 403 })
+    if (profileError || !profile) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'User profile not found' 
+      }, { status: 404 })
+    }
+
+    if (profile.role !== 'trainer') {
+      return NextResponse.json({ 
+        success: false,
+        error: 'Access denied. Trainer role required.' 
+      }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -59,7 +76,7 @@ export async function GET(request: NextRequest) {
     const { data: stats, error: statsError } = await supabase
       .from('trainer_referral_stats')
       .select('*')
-      .eq('trainer_id', user.id)
+      .eq('trainer_id', profile.id)
       .single()
 
     if (statsError) {
@@ -87,7 +104,7 @@ export async function GET(request: NextRequest) {
           email
         )
       `)
-      .eq('trainer_id', user.id)
+      .eq('trainer_id', profile.id)
       .order('created_at', { ascending: false })
 
     if (detailedError) {
