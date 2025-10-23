@@ -9,6 +9,7 @@ import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { useNotification } from '@/components/ui/Notification'
+import ReferralCodeInput from '@/components/referral/ReferralCodeInput'
 import { ProgramWithClasses, ClassWithTrainers } from '@/types'
 
 export default function EnrollProgramPage({ params }: { params: { id: string } }) {
@@ -25,6 +26,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   const [error, setError] = useState('')
   const [referralCode, setReferralCode] = useState('')
   const [trainerClasses, setTrainerClasses] = useState<ClassWithTrainers[]>([])
+  const [referralData, setReferralData] = useState<any>(null)
+  const [finalPrice, setFinalPrice] = useState(0)
 
   useEffect(() => {
     fetchProgram()
@@ -38,6 +41,17 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       fetchTrainerClasses(referral)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    // Update final price when program or referral data changes
+    if (program) {
+      if (referralData) {
+        setFinalPrice(referralData.final_price)
+      } else {
+        setFinalPrice(program.price)
+      }
+    }
+  }, [program, referralData])
 
   async function fetchTrainerClasses(referralCode: string) {
     try {
@@ -77,6 +91,16 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
     } catch (error) {
       console.error('Error fetching trainer classes:', error)
     }
+  }
+
+  const handleReferralApplied = (data: any) => {
+    setReferralData(data)
+    setReferralCode(data.referral_code)
+  }
+
+  const handleReferralRemoved = () => {
+    setReferralData(null)
+    setReferralCode('')
   }
 
   async function fetchProgram() {
@@ -308,11 +332,14 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         program_id: program.id,
         class_id: selectedClass || null,
         participant_id: participantId,
-        status: program.price === 0 ? 'approved' : 'pending',
-        payment_status: program.price === 0 ? 'paid' : 'unpaid',
-        amount_paid: program.price === 0 ? program.price : 0,
+        status: finalPrice === 0 ? 'approved' : 'pending',
+        payment_status: finalPrice === 0 ? 'paid' : 'unpaid',
+        amount_paid: finalPrice === 0 ? finalPrice : 0,
         payment_proof_url: proofUrl,
-        notes: `Pendaftaran program ${program.title}${selectedClass ? ` - Kelas ${program.classes?.find(c => c.id === selectedClass)?.name}` : ' - Menunggu kelas tersedia'}`
+        referral_code_id: referralData?.referral_code_id || null,
+        referral_discount: referralData?.discount_amount || 0,
+        final_price: finalPrice,
+        notes: `Pendaftaran program ${program.title}${selectedClass ? ` - Kelas ${program.classes?.find(c => c.id === selectedClass)?.name}` : ' - Menunggu kelas tersedia'}${referralData ? ` - Menggunakan kode referral ${referralData.referral_code}` : ''}`
       }
 
       console.log('Creating enrollment with data:', enrollmentData)
@@ -330,6 +357,28 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       console.log('Enrollment created successfully:', enrollmentResult)
       
+      // Track referral if referral code was used
+      if (referralData && enrollmentResult && enrollmentResult.length > 0) {
+        try {
+          const createdEnrollment = enrollmentResult[0]
+          const { error: trackError } = await supabase
+            .rpc('track_referral_enrollment', {
+              p_referral_code_id: referralData.referral_code_id,
+              p_enrollment_id: createdEnrollment.id,
+              p_discount_amount: referralData.discount_amount,
+              p_commission_amount: referralData.commission_amount
+            })
+
+          if (trackError) {
+            console.error('Error tracking referral:', trackError)
+          } else {
+            console.log('Referral tracked successfully')
+          }
+        } catch (trackError) {
+          console.error('Error in referral tracking:', trackError)
+        }
+      }
+      
       // Verify the enrollment was created with correct status
       if (enrollmentResult && enrollmentResult.length > 0) {
         const createdEnrollment = enrollmentResult[0]
@@ -337,7 +386,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         console.log('Created enrollment payment_status:', createdEnrollment.payment_status)
         
         // If it's a free program but enrollment is not approved, there might be an issue
-        if (program.price === 0 && createdEnrollment.status !== 'approved') {
+        if (finalPrice === 0 && createdEnrollment.status !== 'approved') {
           console.warn('Free program enrollment was not auto-approved! Status:', createdEnrollment.status)
         }
       }
@@ -524,13 +573,39 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               </div>
 
               <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-gray-900">Harga:</span>
-                  <span className="text-2xl font-bold text-primary-600">
-                    {formatCurrency(program.price)}
-                  </span>
-                </div>
-                {program.price === 0 && (
+                {referralData ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Harga Asli:</span>
+                      <span className="text-sm line-through text-gray-500">
+                        {formatCurrency(program.price)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-green-600">Diskon:</span>
+                      <span className="text-sm text-green-600">
+                        -{formatCurrency(referralData.discount_amount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                      <span className="text-lg font-semibold text-gray-900">Harga Final:</span>
+                      <span className="text-2xl font-bold text-primary-600">
+                        {formatCurrency(finalPrice)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600">
+                      Anda hemat {formatCurrency(referralData.discount_amount)}!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-semibold text-gray-900">Harga:</span>
+                    <span className="text-2xl font-bold text-primary-600">
+                      {formatCurrency(program.price)}
+                    </span>
+                  </div>
+                )}
+                {finalPrice === 0 && (
                   <p className="text-sm text-green-600 mt-2 flex items-center">
                     <CheckCircle className="w-4 h-4 mr-1" />
                     Gratis - Otomatis terdaftar
@@ -552,6 +627,14 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                   <p className="text-sm text-red-600">{error}</p>
                 </div>
               )}
+
+              {/* Referral Code Input */}
+              <ReferralCodeInput
+                programId={program.id}
+                onReferralApplied={handleReferralApplied}
+                onReferralRemoved={handleReferralRemoved}
+                initialCode={referralCode}
+              />
 
               {/* Class Selection */}
               {(() => {
@@ -598,7 +681,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               })()}
 
               {/* Payment Proof Upload */}
-              {program.price > 0 && (
+              {finalPrice > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Bukti Pembayaran *
@@ -647,7 +730,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                   <li>• Program ini akan dimulai sesuai jadwal yang telah ditentukan</li>
                   <li>• Peserta diwajibkan mengikuti seluruh sesi program</li>
                   <li>• Sertifikat akan diberikan setelah menyelesaikan program</li>
-                  {program.price > 0 && (
+                  {finalPrice > 0 && (
                     <li>• Pembayaran harus dilakukan sebelum program dimulai</li>
                   )}
                 </ul>
@@ -663,7 +746,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 </Link>
                 <button
                   type="submit"
-                  disabled={submitting || (program.price > 0 && !paymentProof) || (() => {
+                  disabled={submitting || (finalPrice > 0 && !paymentProof) || (() => {
                     const classesToShow = referralCode && trainerClasses.length > 0 ? trainerClasses : program.classes
                     return classesToShow && classesToShow.length > 0 && !selectedClass
                   })()}

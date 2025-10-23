@@ -15,7 +15,10 @@ import {
   UserCheck,
   Award,
   CreditCard,
-  BookOpen
+  BookOpen,
+  Gift,
+  Trophy,
+  User
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -34,6 +37,8 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
+      { icon: Trophy, label: 'Leaderboard Referral', href: '/admin/referral-leaderboard', roles: ['admin'] },
+      { icon: User, label: 'Leaderboard User', href: '/admin/user-referral-leaderboard', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
   }
@@ -55,6 +60,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       ...baseItems,
       { icon: BarChart3, label: 'Program', href: '/programs', roles: ['user'] },
       { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
+      { icon: Gift, label: 'Referral Saya', href: '/my-referral', roles: ['user'] },
     ]
 
     // Add trainer-specific items if user is a trainer
@@ -72,7 +78,8 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     return [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/trainer/dashboard', roles: ['trainer'] },
       { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
-        { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },
+      { icon: Gift, label: 'Referral', href: '/trainer/referral', roles: ['trainer'] },
+      { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },
       { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['trainer'] },
     ]
   }

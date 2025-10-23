@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase'
+
+// GET /api/referral/user-stats - Get referral statistics for user
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createServerClient()
+
+    // For now, let's get the first user for testing
+    // In production, you would get the user from the session
+    const { data: users, error: userError } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('role', 'user')
+      .limit(1)
+
+    if (userError || !users || users.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        data: {
+          total_referrals: 0,
+          confirmed_referrals: 0,
+          pending_referrals: 0,
+          cancelled_referrals: 0,
+          total_commission_earned: 0,
+          confirmed_commission: 0,
+          total_discount_given: 0,
+          conversion_rate: 0,
+          period_stats: {
+            total_referrals: 0,
+            confirmed_referrals: 0,
+            pending_referrals: 0,
+            cancelled_referrals: 0,
+            total_commission_earned: 0,
+            confirmed_commission: 0,
+            total_discount_given: 0
+          },
+          recent_referrals: []
+        }
+      })
+    }
+
+    const user = { id: users[0].id }
+
+    const { searchParams } = new URL(request.url)
+    const period = searchParams.get('period') || 'all'
+
+    // Build date filter based on period
+    let dateFilter = ''
+    const now = new Date()
+    
+    switch (period) {
+      case 'week':
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        dateFilter = `rt.created_at >= '${weekAgo.toISOString()}'`
+        break
+      case 'month':
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        dateFilter = `rt.created_at >= '${monthAgo.toISOString()}'`
+        break
+      case 'year':
+        const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+        dateFilter = `rt.created_at >= '${yearAgo.toISOString()}'`
+        break
+      default:
+        dateFilter = 'true'
+    }
+
+    // Get all-time stats
+    const { data: allTimeStats, error: allTimeError } = await supabase
+      .from('referral_tracking')
+      .select(`
+        id,
+        status,
+        commission_earned,
+        discount_applied,
+        created_at
+      `)
+      .eq('referrer_id', user.id)
+
+    if (allTimeError) {
+      console.error('Error fetching all-time stats:', allTimeError)
+    }
+
+    // Get period stats
+    const { data: periodStats, error: periodError } = await supabase
+      .from('referral_tracking')
+      .select(`
+        id,
+        status,
+        commission_earned,
+        discount_applied,
+        created_at
+      `)
+      .eq('referrer_id', user.id)
+
+    if (periodError) {
+      console.error('Error fetching period stats:', periodError)
+    }
+
+    // Filter period stats by date
+    const filteredPeriodStats = periodStats?.filter(stat => {
+      if (period === 'all') return true
+      
+      const statDate = new Date(stat.created_at)
+      const now = new Date()
+      
+      switch (period) {
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return statDate >= weekAgo
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          return statDate >= monthAgo
+        case 'year':
+          const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+          return statDate >= yearAgo
+        default:
+          return true
+      }
+    }) || []
+
+    // Calculate all-time stats
+    const totalReferrals = allTimeStats?.length || 0
+    const confirmedReferrals = allTimeStats?.filter(s => s.status === 'confirmed').length || 0
+    const pendingReferrals = allTimeStats?.filter(s => s.status === 'pending').length || 0
+    const cancelledReferrals = allTimeStats?.filter(s => s.status === 'cancelled').length || 0
+    const totalCommissionEarned = allTimeStats?.reduce((sum, s) => sum + (s.commission_earned || 0), 0) || 0
+    const confirmedCommission = allTimeStats?.filter(s => s.status === 'confirmed').reduce((sum, s) => sum + (s.commission_earned || 0), 0) || 0
+    const totalDiscountGiven = allTimeStats?.reduce((sum, s) => sum + (s.discount_applied || 0), 0) || 0
+
+    // Calculate period stats
+    const periodTotalReferrals = filteredPeriodStats.length
+    const periodConfirmedReferrals = filteredPeriodStats.filter(s => s.status === 'confirmed').length
+    const periodPendingReferrals = filteredPeriodStats.filter(s => s.status === 'pending').length
+    const periodCancelledReferrals = filteredPeriodStats.filter(s => s.status === 'cancelled').length
+    const periodTotalCommissionEarned = filteredPeriodStats.reduce((sum, s) => sum + (s.commission_earned || 0), 0)
+    const periodConfirmedCommission = filteredPeriodStats.filter(s => s.status === 'confirmed').reduce((sum, s) => sum + (s.commission_earned || 0), 0)
+    const periodTotalDiscountGiven = filteredPeriodStats.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+
+    // Calculate conversion rate
+    const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
+
+    // Get recent referrals with participant and program info
+    const { data: recentReferrals, error: recentError } = await supabase
+      .from('referral_tracking')
+      .select(`
+        id,
+        status,
+        commission_earned,
+        discount_applied,
+        created_at,
+        participants!referral_tracking_participant_id_fkey (
+          user_profiles!participants_user_id_fkey (
+            full_name
+          )
+        ),
+        programs!referral_tracking_program_id_fkey (
+          title
+        )
+      `)
+      .eq('referrer_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (recentError) {
+      console.error('Error fetching recent referrals:', recentError)
+    }
+
+    const formattedRecentReferrals = recentReferrals?.map(ref => ({
+      id: ref.id,
+      participant_name: ref.participants?.user_profiles?.full_name || 'Unknown',
+      program_title: ref.programs?.title || 'Unknown Program',
+      status: ref.status,
+      commission_earned: ref.commission_earned || 0,
+      discount_applied: ref.discount_applied || 0,
+      created_at: ref.created_at
+    })) || []
+
+    const stats = {
+      total_referrals: totalReferrals,
+      confirmed_referrals: confirmedReferrals,
+      pending_referrals: pendingReferrals,
+      cancelled_referrals: cancelledReferrals,
+      total_commission_earned: totalCommissionEarned,
+      confirmed_commission: confirmedCommission,
+      total_discount_given: totalDiscountGiven,
+      conversion_rate: conversionRate,
+      period_stats: {
+        total_referrals: periodTotalReferrals,
+        confirmed_referrals: periodConfirmedReferrals,
+        pending_referrals: periodPendingReferrals,
+        cancelled_referrals: periodCancelledReferrals,
+        total_commission_earned: periodTotalCommissionEarned,
+        confirmed_commission: periodConfirmedCommission,
+        total_discount_given: periodTotalDiscountGiven
+      },
+      recent_referrals: formattedRecentReferrals
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      data: stats,
+      period: period
+    })
+
+  } catch (error) {
+    console.error('Error in GET /api/referral/user-stats:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
