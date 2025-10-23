@@ -45,13 +45,20 @@ export default function NewEnrollmentPage() {
 
   useEffect(() => {
     // Check if program_id is provided in URL
-    const programId = searchParams.get('program_id')
+    const programId = searchParams.get('program_id') || searchParams.get('program')
+    const referralCode = searchParams.get('referral')
+    
     if (programId && programs.length > 0) {
       const program = programs.find(p => p.id === programId)
       if (program) {
         setFormData(prev => ({ ...prev, program_id: programId }))
         setSelectedProgram(program)
       }
+    }
+
+    // Store referral code if available
+    if (referralCode) {
+      setFormData(prev => ({ ...prev, notes: prev.notes + `\nReferral Code: ${referralCode}` }))
     }
   }, [searchParams, programs])
 

@@ -305,7 +305,7 @@ export default function ReferralDashboard() {
 
   const copyReferralCode = (code: string) => {
     const baseUrl = window.location.origin
-    const referralUrl = `${baseUrl}/programs?referral=${code}`
+    const referralUrl = `${baseUrl}/referral/${code}`
     
     navigator.clipboard.writeText(referralUrl).then(() => {
       addNotification({

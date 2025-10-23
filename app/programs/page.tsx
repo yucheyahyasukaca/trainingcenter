@@ -6,7 +6,7 @@ import { ProgramWithClasses } from '@/types'
 import { ClassManagement } from '@/components/programs/ClassManagement'
 import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus, UserCheck, Clock } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -16,8 +16,10 @@ export default function ProgramsPage() {
   const { profile } = useAuth()
   const addToast = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
   const [userEnrollments, setUserEnrollments] = useState<any[]>([])
@@ -39,6 +41,21 @@ export default function ProgramsPage() {
   const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
   useEffect(() => {
+    // Check for referral parameter and redirect if needed
+    const referralCode = searchParams.get('referral')
+    if (referralCode) {
+      setRedirecting(true)
+      if (profile) {
+        // User is logged in, redirect to referral registration page
+        router.push(`/register-referral/${referralCode}`)
+        return
+      } else {
+        // User not logged in, redirect to register page with referral
+        router.push(`/register?referral=${referralCode}`)
+        return
+      }
+    }
+
     fetchPrograms()
     if (profile?.role === 'user') {
       // hydrate from cache first to avoid flicker to "Daftar"
@@ -55,7 +72,7 @@ export default function ProgramsPage() {
       } catch {}
       fetchUserEnrollments()
     }
-  }, [profile])
+  }, [profile, searchParams])
 
   // Fallback: fetch enrollments using auth user directly (in case profile not ready yet)
   useEffect(() => {
@@ -421,7 +438,7 @@ export default function ProgramsPage() {
       {/* Content Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {loading ? (
+        {loading || redirecting ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
@@ -515,7 +532,13 @@ export default function ProgramsPage() {
                           if (userEnrollments.length === 0) {
                             return (
                               <Link
-                                href={`/programs/${program.id}/enroll`}
+                                href={(() => {
+                                  const referralCode = searchParams.get('referral')
+                                  if (referralCode) {
+                                    return `/register-referral/${referralCode}`
+                                  }
+                                  return `/programs/${program.id}/enroll`
+                                })()}
                                 className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                               >
                                 Daftar
@@ -550,7 +573,13 @@ export default function ProgramsPage() {
                           } else {
                             return (
                               <Link
-                                href={`/programs/${program.id}/enroll`}
+                                href={(() => {
+                                  const referralCode = searchParams.get('referral')
+                                  if (referralCode) {
+                                    return `/register-referral/${referralCode}`
+                                  }
+                                  return `/programs/${program.id}/enroll`
+                                })()}
                                 className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                               >
                                 Daftar
@@ -623,7 +652,13 @@ export default function ProgramsPage() {
                     
                     {!isAdminOrManager && (
                       <Link
-                        href={`/programs/${program.id}/enroll`}
+                        href={(() => {
+                          const referralCode = searchParams.get('referral')
+                          if (referralCode) {
+                            return `/register-referral/${referralCode}`
+                          }
+                          return `/programs/${program.id}/enroll`
+                        })()}
                         className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                       >
                         <GraduationCap className="w-4 h-4 mr-2" />

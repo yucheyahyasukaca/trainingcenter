@@ -2,17 +2,107 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { signIn } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    const referral = searchParams.get('referral')
+    if (referral) {
+      setReferralCode(referral)
+      // Validate referral code and get program info
+      validateReferralCode(referral)
+    }
+  }, [searchParams])
+
+  const validateReferralCode = async (referralCode: string) => {
+    try {
+      console.log('Validating referral code:', referralCode)
+
+      // Get referral code details with program info
+      const { data, error } = await supabase
+        .from('referral_codes')
+        .select(`
+          *,
+          user_profiles!referral_codes_trainer_id_fkey (
+            full_name,
+            email
+          ),
+          programs (
+            id,
+            title,
+            description,
+            price,
+            category
+          )
+        `)
+        .eq('code', referralCode)
+        .eq('is_active', true)
+        .single()
+
+      if (error) {
+        console.error('Error fetching referral code:', error)
+        return
+      }
+
+      if (!data) {
+        console.log('Referral code not found')
+        return
+      }
+
+      // Check if referral code is expired
+      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+        console.log('Referral code expired')
+        return
+      }
+
+      // Check if referral code has reached max uses
+      if (data.max_uses && data.current_uses >= data.max_uses) {
+        console.log('Referral code max uses reached')
+        return
+      }
+
+      // Store referral data in sessionStorage
+      const referralData = {
+        id: data.id,
+        code: data.code,
+        description: data.description,
+        trainer_id: data.trainer_id,
+        program_id: data.program_id,
+        discount_percentage: data.discount_percentage,
+        discount_amount: data.discount_amount,
+        trainer: {
+          full_name: data.user_profiles?.full_name || 'Unknown Trainer',
+          email: data.user_profiles?.email || 'unknown@example.com'
+        },
+        program: {
+          id: data.programs?.id,
+          title: data.programs?.title || 'Unknown Program',
+          description: data.programs?.description || '',
+          price: data.programs?.price || 0,
+          category: data.programs?.category || ''
+        }
+      }
+
+      sessionStorage.setItem('referralCode', referralCode)
+      sessionStorage.setItem('referralData', JSON.stringify(referralData))
+      console.log('Referral data stored:', referralData)
+
+    } catch (error) {
+      console.error('Error validating referral code:', error)
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -20,11 +110,17 @@ export default function RegisterPage() {
     setError('')
     try {
       await signIn(email, password)
-      // optionally redirect, but keep modal behavior for now
       setIsLoginOpen(false)
-      // Redirect to dashboard after a short delay for session propagation
+      
+      // Redirect based on referral code
       setTimeout(() => {
-        router.push('/dashboard')
+        if (referralCode) {
+          // Redirect to referral registration page
+          router.push(`/register-referral/${referralCode}`)
+        } else {
+          // Normal redirect to dashboard
+          router.push('/dashboard')
+        }
         router.refresh()
       }, 300)
     } catch (err: any) {
@@ -72,6 +168,27 @@ export default function RegisterPage() {
           <p className="text-gray-600 mt-2 text-base">
             Untuk melanjutkan, silakan masuk menggunakan akun Garuda Academy.
           </p>
+
+          {/* Referral Code Info */}
+          {referralCode && (
+            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-green-600">🎁</span>
+                <span className="font-semibold text-green-800">Anda memiliki kode referral!</span>
+              </div>
+              <p className="text-sm text-green-700">
+                Kode referral: <span className="font-mono font-bold">{referralCode}</span>
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                Setelah login, Anda akan diarahkan ke pendaftaran program dengan diskon khusus.
+              </p>
+              <div className="mt-2 p-2 bg-white rounded border">
+                <p className="text-xs text-gray-600">
+                  <strong>Catatan:</strong> Silakan login atau buat akun baru untuk melanjutkan pendaftaran dengan kode referral ini.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 flex flex-col gap-3">
             <button onClick={() => setIsLoginOpen(true)} className="btn-primary py-3 text-center shadow-lg hover:shadow-xl transition-shadow">
