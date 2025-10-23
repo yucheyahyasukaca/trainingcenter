@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No participants found' }, { status: 404 })
     }
     
-    const user = { id: participants[0].user_id }
+    const user = { id: (participants[0] as any).user_id }
 
     const body = await request.json()
     const { referral_code, program_id } = body
@@ -29,24 +29,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Get participant ID for current user
-    const { data: participant, error: participantError } = await supabase
+    const { data: participant, error: participantLookupError } = await supabase
       .from('participants')
       .select('id')
       .eq('user_id', user.id)
       .single()
 
-    if (participantError || !participant) {
+    if (participantLookupError || !participant) {
       return NextResponse.json({ 
         error: 'Participant profile not found. Please complete your profile first.' 
       }, { status: 404 })
     }
 
     // Apply referral code using database function
-    const { data: result, error: applyError } = await supabase
+    const { data: result, error: applyError } = await (supabase as any)
       .rpc('apply_referral_code', {
         p_referral_code: referral_code,
         p_program_id: program_id,
-        p_participant_id: participant.id
+        p_participant_id: (participant as any).id
       })
 
     if (applyError) {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    const originalPrice = program.price
+    const originalPrice = (program as any).price
     const discountAmount = applyResult.discount_amount
     const finalPrice = Math.max(0, originalPrice - discountAmount)
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         discount_amount: discountAmount,
         final_price: finalPrice,
         commission_amount: applyResult.commission_amount,
-        program_title: program.title
+        program_title: (program as any).title
       },
       message: applyResult.message
     })
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No participants found' }, { status: 404 })
     }
     
-    const user = { id: participants[0].user_id }
+    const user = { id: (participants[0] as any).user_id }
 
     const { searchParams } = new URL(request.url)
     const referral_code = searchParams.get('code')
@@ -159,8 +159,8 @@ export async function GET(request: NextRequest) {
 
     // Check if code is still valid
     const now = new Date()
-    const validFrom = new Date(refCode.valid_from)
-    const validUntil = refCode.valid_until ? new Date(refCode.valid_until) : null
+    const validFrom = new Date((refCode as any).valid_from)
+    const validUntil = (refCode as any).valid_until ? new Date((refCode as any).valid_until) : null
 
     if (now < validFrom) {
       return NextResponse.json({ 
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check usage limits
-    if (refCode.max_uses && refCode.current_uses >= refCode.max_uses) {
+    if ((refCode as any).max_uses && (refCode as any).current_uses >= (refCode as any).max_uses) {
       return NextResponse.json({ 
         error: 'Referral code has reached maximum usage limit',
         valid: false 
@@ -199,30 +199,30 @@ export async function GET(request: NextRequest) {
 
     // Calculate discount
     let discountAmount = 0
-    if (refCode.discount_percentage > 0) {
-      discountAmount = (program.price * refCode.discount_percentage / 100)
-    } else if (refCode.discount_amount > 0) {
-      discountAmount = refCode.discount_amount
+    if ((refCode as any).discount_percentage > 0) {
+      discountAmount = ((program as any).price * (refCode as any).discount_percentage / 100)
+    } else if ((refCode as any).discount_amount > 0) {
+      discountAmount = (refCode as any).discount_amount
     }
 
-    const finalPrice = Math.max(0, program.price - discountAmount)
+    const finalPrice = Math.max(0, (program as any).price - discountAmount)
 
     return NextResponse.json({ 
       success: true,
       valid: true,
       data: {
-        referral_code: refCode.code,
-        trainer_name: refCode.trainer.full_name,
-        trainer_email: refCode.trainer.email,
-        description: refCode.description,
-        original_price: program.price,
+        referral_code: (refCode as any).code,
+        trainer_name: (refCode as any).trainer.full_name,
+        trainer_email: (refCode as any).trainer.email,
+        description: (refCode as any).description,
+        original_price: (program as any).price,
         discount_amount: discountAmount,
         final_price: finalPrice,
-        discount_type: refCode.discount_percentage > 0 ? 'percentage' : 'amount',
-        discount_value: refCode.discount_percentage > 0 ? refCode.discount_percentage : refCode.discount_amount,
-        remaining_uses: refCode.max_uses ? refCode.max_uses - refCode.current_uses : null,
-        valid_until: refCode.valid_until,
-        program_title: program.title
+        discount_type: (refCode as any).discount_percentage > 0 ? 'percentage' : 'amount',
+        discount_value: (refCode as any).discount_percentage > 0 ? (refCode as any).discount_percentage : (refCode as any).discount_amount,
+        remaining_uses: (refCode as any).max_uses ? (refCode as any).max_uses - (refCode as any).current_uses : null,
+        valid_until: (refCode as any).valid_until,
+        program_title: (program as any).title
       }
     })
 

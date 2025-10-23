@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
     }
     
-    const user = { id: trainers[0].id }
+    const user = { id: (trainers[0] as any).id }
 
     // Get user profile to check role
     const { data: profile, error: profileError } = await supabase
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'trainer') {
+    if (profileError || !profile || (profile as any).role !== 'trainer') {
       return NextResponse.json({ error: 'Access denied. Trainer role required.' }, { status: 403 })
     }
 
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     const filteredDetailedStats = detailedStats?.filter(stat => {
       if (period === 'all') return true
       
-      const statDate = new Date(stat.created_at)
+      const statDate = new Date((stat as any).created_at)
       const now = new Date()
       
       switch (period) {
@@ -120,33 +120,33 @@ export async function GET(request: NextRequest) {
     // Calculate period-specific stats
     const periodStats = {
       total_referrals: filteredDetailedStats.length,
-      confirmed_referrals: filteredDetailedStats.filter(s => s.status === 'confirmed').length,
-      pending_referrals: filteredDetailedStats.filter(s => s.status === 'pending').length,
-      cancelled_referrals: filteredDetailedStats.filter(s => s.status === 'cancelled').length,
-      total_commission: filteredDetailedStats.reduce((sum, s) => sum + (s.commission_earned || 0), 0),
+      confirmed_referrals: filteredDetailedStats.filter((s: any) => s.status === 'confirmed').length,
+      pending_referrals: filteredDetailedStats.filter((s: any) => s.status === 'pending').length,
+      cancelled_referrals: filteredDetailedStats.filter((s: any) => s.status === 'cancelled').length,
+      total_commission: filteredDetailedStats.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0),
       confirmed_commission: filteredDetailedStats
-        .filter(s => s.status === 'confirmed')
-        .reduce((sum, s) => sum + (s.commission_earned || 0), 0),
-      total_discount: filteredDetailedStats.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+        .filter((s: any) => s.status === 'confirmed')
+        .reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0),
+      total_discount: filteredDetailedStats.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
     }
 
     // Get recent referrals (last 10)
     const recentReferrals = filteredDetailedStats.slice(0, 10).map(stat => ({
-      id: stat.id,
-      participant_name: stat.participant?.name,
-      participant_email: stat.participant?.email,
-      program_title: stat.program?.title,
-      program_price: stat.program?.price,
-      status: stat.status,
-      commission_earned: stat.commission_earned,
-      discount_applied: stat.discount_applied,
-      created_at: stat.created_at
+      id: (stat as any).id,
+      participant_name: (stat as any).participant?.name,
+      participant_email: (stat as any).participant?.email,
+      program_title: (stat as any).program?.title,
+      program_price: (stat as any).program?.price,
+      status: (stat as any).status,
+      commission_earned: (stat as any).commission_earned,
+      discount_applied: (stat as any).discount_applied,
+      created_at: (stat as any).created_at
     }))
 
     // Get program-wise statistics
     const programStats = filteredDetailedStats.reduce((acc, stat) => {
-      const programId = stat.program?.id
-      const programTitle = stat.program?.title
+      const programId = (stat as any).program?.id
+      const programTitle = (stat as any).program?.title
       
       if (!acc[programId]) {
         acc[programId] = {
@@ -160,11 +160,11 @@ export async function GET(request: NextRequest) {
       }
       
       acc[programId].total_referrals++
-      if (stat.status === 'confirmed') {
+      if ((stat as any).status === 'confirmed') {
         acc[programId].confirmed_referrals++
       }
-      acc[programId].total_commission += stat.commission_earned || 0
-      acc[programId].total_discount += stat.discount_applied || 0
+      acc[programId].total_commission += (stat as any).commission_earned || 0
+      acc[programId].total_discount += (stat as any).discount_applied || 0
       
       return acc
     }, {} as Record<string, any>)
@@ -179,17 +179,17 @@ export async function GET(request: NextRequest) {
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0)
       
       const monthStats = filteredDetailedStats.filter(stat => {
-        const statDate = new Date(stat.created_at)
+        const statDate = new Date((stat as any).created_at)
         return statDate >= monthStart && statDate <= monthEnd
       })
       
       return {
         month: date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
         referrals: monthStats.length,
-        confirmed: monthStats.filter(s => s.status === 'confirmed').length,
+        confirmed: monthStats.filter((s: any) => s.status === 'confirmed').length,
         commission: monthStats
-          .filter(s => s.status === 'confirmed')
-          .reduce((sum, s) => sum + (s.commission_earned || 0), 0)
+          .filter((s: any) => s.status === 'confirmed')
+          .reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
       }
     }).reverse()
 

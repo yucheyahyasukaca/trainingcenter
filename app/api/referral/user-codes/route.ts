@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const user = { id: users[0].id }
+    const user = { id: (users[0] as any).id }
 
     // Get user's referral codes
     const { data: codes, error: codesError } = await supabase
@@ -55,19 +55,19 @@ export async function GET(request: NextRequest) {
         const { data: trackingData, error: trackingError } = await supabase
           .from('referral_tracking')
           .select('id, status, commission_earned, discount_applied')
-          .eq('referral_code_id', code.id)
+          .eq('referral_code_id', (code as any).id)
 
         if (trackingError) {
-          console.error(`Error fetching tracking for code ${code.id}:`, trackingError)
+          console.error(`Error fetching tracking for code ${(code as any).id}:`, trackingError)
         }
 
         const totalReferrals = trackingData?.length || 0
-        const confirmedReferrals = trackingData?.filter(t => t.status === 'confirmed').length || 0
-        const totalCommission = trackingData?.reduce((sum, t) => sum + (t.commission_earned || 0), 0) || 0
-        const totalDiscount = trackingData?.reduce((sum, t) => sum + (t.discount_applied || 0), 0) || 0
+        const confirmedReferrals = trackingData?.filter((t: any) => t.status === 'confirmed').length || 0
+        const totalCommission = trackingData?.reduce((sum: number, t: any) => sum + (t.commission_earned || 0), 0) || 0
+        const totalDiscount = trackingData?.reduce((sum: number, t: any) => sum + (t.discount_applied || 0), 0) || 0
 
         return {
-          ...code,
+          ...(code as any),
           stats: {
             total_referrals: totalReferrals,
             confirmed_referrals: confirmedReferrals,
@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No users found' }, { status: 404 })
     }
 
-    const user = { id: users[0].id }
-    const profile = { role: 'user', full_name: users[0].full_name }
+    const user = { id: (users[0] as any).id }
+    const profile = { role: 'user', full_name: (users[0] as any).full_name }
 
     const body = await request.json()
     const {
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Generate referral code using the existing function
-    const { data: codeData, error: codeError } = await supabase
+    const { data: codeData, error: codeError } = await (supabase as any)
       .rpc('create_trainer_referral_code', {
         p_trainer_id: user.id,
         p_trainer_name: profile.full_name,

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase'
 
 // GET /api/referral/test - Test referral system
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Testing referral system...')
     
-    const supabase = createClient()
+    const supabase = createServerClient()
     console.log('✅ Supabase client created')
     
     // Test auth
@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
           email: user.email
         },
         profile: {
-          id: profile.id,
-          role: profile.role,
-          full_name: profile.full_name
+          id: (profile as any).id,
+          role: (profile as any).role,
+          full_name: (profile as any).full_name
         },
         referral_codes: {
           count: codes?.length || 0,

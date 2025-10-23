@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
     }
     
-    const user = { id: trainers[0].id }
+    const user = { id: (trainers[0] as any).id }
 
     // Get user profile to check role
     const { data: profile, error: profileError } = await supabase
@@ -28,12 +28,12 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profileError || !profile || profile.role !== 'trainer') {
+    if (profileError || !profile || (profile as any).role !== 'trainer') {
       return NextResponse.json({ error: 'Access denied. Trainer role required.' }, { status: 403 })
     }
 
     // Get referral codes for this trainer
-    const { data: referralCodes, error: codesError } = await supabase
+    const { data: referralCodes, error: codesError } = await (supabase as any)
       .from('referral_codes')
       .select(`
         *,
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate stats for each code
-    const codesWithStats = referralCodes?.map(code => {
-      const stats = code.referral_stats || []
+    const codesWithStats = referralCodes?.map((code: any) => {
+      const stats = (code as any).referral_stats || []
       const confirmedCount = stats.filter((s: any) => s.status === 'confirmed').length
       const pendingCount = stats.filter((s: any) => s.status === 'pending').length
       const cancelledCount = stats.filter((s: any) => s.status === 'cancelled').length
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       const totalDiscount = stats.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
 
       return {
-        ...code,
+        ...(code as any),
         stats: {
           total_uses: stats.length,
           confirmed: confirmedCount,
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
     }
     
-    const user = { id: trainers[0].id }
-    const profile = { role: 'trainer', full_name: trainers[0].full_name }
+    const user = { id: (trainers[0] as any).id }
+    const profile = { role: 'trainer', full_name: (trainers[0] as any).full_name }
 
     const body = await request.json()
     const {
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create referral code using the database function
-    const { data: referralCodeId, error: createError } = await supabase
+    const { data: referralCodeId, error: createError } = await (supabase as any)
       .rpc('create_trainer_referral_code', {
         p_trainer_id: user.id,
         p_description: description || null,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the created referral code
-    const { data: newCode, error: fetchError } = await supabase
+    const { data: newCode, error: fetchError } = await (supabase as any)
       .from('referral_codes')
       .select('*')
       .eq('id', referralCodeId)
@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
     }
     
-    const user = { id: trainers[0].id }
+    const user = { id: (trainers[0] as any).id }
 
     const body = await request.json()
     const { id, ...updateData } = body
@@ -203,7 +203,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user owns this referral code
-    const { data: existingCode, error: checkError } = await supabase
+    const { data: existingCode, error: checkError } = await (supabase as any)
       .from('referral_codes')
       .select('trainer_id')
       .eq('id', id)
@@ -213,7 +213,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Referral code not found' }, { status: 404 })
     }
 
-    if (existingCode.trainer_id !== user.id) {
+    if ((existingCode as any).trainer_id !== user.id) {
       return NextResponse.json({ error: 'Access denied. You can only update your own referral codes.' }, { status: 403 })
     }
 
@@ -235,7 +235,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update referral code
-    const { data: updatedCode, error: updateError } = await supabase
+    const { data: updatedCode, error: updateError } = await (supabase as any)
       .from('referral_codes')
       .update({
         ...updateData,
@@ -279,7 +279,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'No trainers found' }, { status: 404 })
     }
     
-    const user = { id: trainers[0].id }
+    const user = { id: (trainers[0] as any).id }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -289,7 +289,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if user owns this referral code
-    const { data: existingCode, error: checkError } = await supabase
+    const { data: existingCode, error: checkError } = await (supabase as any)
       .from('referral_codes')
       .select('trainer_id, current_uses')
       .eq('id', id)
@@ -299,19 +299,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Referral code not found' }, { status: 404 })
     }
 
-    if (existingCode.trainer_id !== user.id) {
+    if ((existingCode as any).trainer_id !== user.id) {
       return NextResponse.json({ error: 'Access denied. You can only delete your own referral codes.' }, { status: 403 })
     }
 
     // Check if code has been used
-    if (existingCode.current_uses > 0) {
+    if ((existingCode as any).current_uses > 0) {
       return NextResponse.json({ 
         error: 'Cannot delete referral code that has been used. Deactivate it instead.' 
       }, { status: 400 })
     }
 
     // Delete referral code
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('referral_codes')
       .delete()
       .eq('id', id)

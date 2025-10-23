@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 
 interface ConfirmDialogProps {
@@ -15,7 +15,45 @@ interface ConfirmDialogProps {
   isLoading?: boolean
 }
 
-export default function ConfirmDialog({
+// Hook for managing confirm dialog state
+export function useConfirmDialog() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [config, setConfig] = useState<{
+    title: string
+    message: string
+    onConfirm: () => void
+    confirmText?: string
+    cancelText?: string
+    type?: 'danger' | 'warning' | 'info'
+  } | null>(null)
+
+  const openDialog = (dialogConfig: typeof config) => {
+    setConfig(dialogConfig)
+    setIsOpen(true)
+  }
+
+  const closeDialog = () => {
+    setIsOpen(false)
+    setConfig(null)
+  }
+
+  const confirm = () => {
+    if (config?.onConfirm) {
+      config.onConfirm()
+    }
+    closeDialog()
+  }
+
+  return {
+    isOpen,
+    config,
+    openDialog,
+    closeDialog,
+    confirm
+  }
+}
+
+export function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
@@ -128,5 +166,28 @@ export default function ConfirmDialog({
         </div>
       </div>
     </div>
+  )
+}
+
+// Default export for backward compatibility
+export default ConfirmDialog
+
+// Component that uses the hook
+export function ConfirmDialogWithHook() {
+  const { isOpen, config, closeDialog, confirm } = useConfirmDialog()
+
+  if (!config) return null
+
+  return (
+    <ConfirmDialog
+      isOpen={isOpen}
+      onClose={closeDialog}
+      onConfirm={confirm}
+      title={config.title}
+      message={config.message}
+      confirmText={config.confirmText}
+      cancelText={config.cancelText}
+      type={config.type}
+    />
   )
 }

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
 
     // Get all referral policies with program info
-    const { data: policies, error: policiesError } = await supabase
+    const { data: policies, error: policiesError } = await (supabase as any)
       .from('referral_policies')
       .select(`
         id,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No admin found' }, { status: 404 })
     }
 
-    const adminId = admins[0].id
+    const adminId = (admins[0] as any).id
     console.log('Using admin ID:', adminId)
 
     const body = await request.json()
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create policy directly
-    const { data: policyData, error: policyError } = await supabase
+    const { data: policyData, error: policyError } = await (supabase as any)
       .from('referral_policies')
       .insert({
         program_id,

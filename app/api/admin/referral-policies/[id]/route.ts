@@ -26,22 +26,24 @@ export async function PUT(
     } = body
 
     // Update the policy
-    const { data, error } = await supabase
+    const updateData: any = {
+      program_id,
+      participant_discount_percentage,
+      participant_discount_amount,
+      participant_discount_type,
+      referrer_commission_percentage,
+      referrer_commission_amount,
+      referrer_commission_type,
+      max_uses_per_code,
+      max_total_uses,
+      valid_until,
+      is_active,
+      updated_at: new Date().toISOString()
+    }
+
+    const { data, error } = await (supabase as any)
       .from('referral_policies')
-      .update({
-        program_id,
-        participant_discount_percentage,
-        participant_discount_amount,
-        participant_discount_type,
-        referrer_commission_percentage,
-        referrer_commission_amount,
-        referrer_commission_type,
-        max_uses_per_code,
-        max_total_uses,
-        valid_until,
-        is_active,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', policyId)
       .select()
 
@@ -72,7 +74,7 @@ export async function DELETE(
     const policyId = params.id
 
     // Delete the policy
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('referral_policies')
       .delete()
       .eq('id', policyId)

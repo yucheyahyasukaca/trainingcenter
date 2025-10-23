@@ -21,7 +21,7 @@ export async function PUT(
       return NextResponse.json({ error: 'No users found' }, { status: 404 })
     }
 
-    const user = { id: users[0].id }
+    const user = { id: (users[0] as any).id }
 
     const body = await request.json()
     const {
@@ -36,7 +36,7 @@ export async function PUT(
     } = body
 
     // Update the referral code
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('referral_codes')
       .update({
         description,
@@ -94,7 +94,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'No users found' }, { status: 404 })
     }
 
-    const user = { id: users[0].id }
+    const user = { id: (users[0] as any).id }
 
     // Delete the referral code
     const { error } = await supabase

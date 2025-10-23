@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
             discount_applied,
             created_at
           `)
-          .eq('trainer_id', user.id)
+          .eq('trainer_id', (user as any).id)
 
         if (trackingError) {
-          console.error(`Error fetching tracking for user ${user.id}:`, trackingError)
+          console.error(`Error fetching tracking for user ${(user as any).id}:`, trackingError)
           return {
-            user_id: user.id,
-            user_name: user.full_name,
-            user_email: user.email,
+            user_id: (user as any).id,
+            user_name: (user as any).full_name,
+            user_email: (user as any).email,
             total_referrals: 0,
             confirmed_referrals: 0,
             pending_referrals: 0,
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         const filteredTrackingData = trackingData?.filter(stat => {
           if (period === 'all') return true
           
-          const statDate = new Date(stat.created_at)
+          const statDate = new Date((stat as any).created_at)
           const now = new Date()
           
           switch (period) {
@@ -83,20 +83,20 @@ export async function GET(request: NextRequest) {
 
         // Calculate stats
         const totalReferrals = filteredTrackingData.length
-        const confirmedReferrals = filteredTrackingData.filter(s => s.status === 'confirmed').length
-        const pendingReferrals = filteredTrackingData.filter(s => s.status === 'pending').length
-        const cancelledReferrals = filteredTrackingData.filter(s => s.status === 'cancelled').length
-        const totalCommissionEarned = filteredTrackingData.reduce((sum, s) => sum + (s.commission_earned || 0), 0)
+        const confirmedReferrals = filteredTrackingData.filter((s: any) => s.status === 'confirmed').length
+        const pendingReferrals = filteredTrackingData.filter((s: any) => s.status === 'pending').length
+        const cancelledReferrals = filteredTrackingData.filter((s: any) => s.status === 'cancelled').length
+        const totalCommissionEarned = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
         const confirmedCommission = filteredTrackingData
-          .filter(s => s.status === 'confirmed')
-          .reduce((sum, s) => sum + (s.commission_earned || 0), 0)
-        const totalDiscountGiven = filteredTrackingData.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+          .filter((s: any) => s.status === 'confirmed')
+          .reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
+        const totalDiscountGiven = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
 
         // Get referral codes count
         const { data: referralCodes, error: codesError } = await supabase
           .from('referral_codes')
           .select('id, is_active')
-          .eq('trainer_id', user.id)
+          .eq('trainer_id', (user as any).id)
 
         const totalReferralCodes = referralCodes?.length || 0
         const activeReferralCodes = referralCodes?.filter(c => c.is_active).length || 0
@@ -110,9 +110,9 @@ export async function GET(request: NextRequest) {
           : null
 
         return {
-          user_id: user.id,
-          user_name: user.full_name,
-          user_email: user.email,
+          user_id: (user as any).id,
+          user_name: (user as any).full_name,
+          user_email: (user as any).email,
           total_referrals: totalReferrals,
           confirmed_referrals: confirmedReferrals,
           pending_referrals: pendingReferrals,

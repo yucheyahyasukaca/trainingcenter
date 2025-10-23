@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Format the response
-    const formattedCodes = codes?.map(code => ({
-      id: code.id,
-      code: code.code,
-      description: code.description,
-      discount_percentage: code.discount_percentage,
-      discount_amount: code.discount_amount,
-      valid_until: code.valid_until,
-      trainer_name: code.user_profiles?.full_name || 'Unknown'
+    const formattedCodes = codes?.map((code: any) => ({
+      id: (code as any).id,
+      code: (code as any).code,
+      description: (code as any).description,
+      discount_percentage: (code as any).discount_percentage,
+      discount_amount: (code as any).discount_amount,
+      valid_until: (code as any).valid_until,
+      trainer_name: (code as any).user_profiles?.full_name || 'Unknown'
     })) || []
 
     return NextResponse.json({ 

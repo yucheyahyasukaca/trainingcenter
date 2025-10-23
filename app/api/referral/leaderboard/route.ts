@@ -58,14 +58,14 @@ export async function GET(request: NextRequest) {
             discount_applied,
             created_at
           `)
-          .eq('trainer_id', trainer.id)
+          .eq('trainer_id', (trainer as any).id)
 
         if (trackingError) {
-          console.error(`Error fetching tracking for trainer ${trainer.id}:`, trackingError)
+          console.error(`Error fetching tracking for trainer ${(trainer as any).id}:`, trackingError)
           return {
-            trainer_id: trainer.id,
-            trainer_name: trainer.full_name,
-            trainer_email: trainer.email,
+            trainer_id: (trainer as any).id,
+            trainer_name: (trainer as any).full_name,
+            trainer_email: (trainer as any).email,
             total_referrals: 0,
             confirmed_referrals: 0,
             pending_referrals: 0,
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         const filteredTrackingData = trackingData?.filter(stat => {
           if (period === 'all') return true
           
-          const statDate = new Date(stat.created_at)
+          const statDate = new Date((stat as any).created_at)
           const now = new Date()
           
           switch (period) {
@@ -104,36 +104,36 @@ export async function GET(request: NextRequest) {
 
         // Calculate stats
         const totalReferrals = filteredTrackingData.length
-        const confirmedReferrals = filteredTrackingData.filter(s => s.status === 'confirmed').length
-        const pendingReferrals = filteredTrackingData.filter(s => s.status === 'pending').length
-        const cancelledReferrals = filteredTrackingData.filter(s => s.status === 'cancelled').length
-        const totalCommissionEarned = filteredTrackingData.reduce((sum, s) => sum + (s.commission_earned || 0), 0)
+        const confirmedReferrals = filteredTrackingData.filter((s: any) => s.status === 'confirmed').length
+        const pendingReferrals = filteredTrackingData.filter((s: any) => s.status === 'pending').length
+        const cancelledReferrals = filteredTrackingData.filter((s: any) => s.status === 'cancelled').length
+        const totalCommissionEarned = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
         const confirmedCommission = filteredTrackingData
-          .filter(s => s.status === 'confirmed')
-          .reduce((sum, s) => sum + (s.commission_earned || 0), 0)
-        const totalDiscountGiven = filteredTrackingData.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+          .filter((s: any) => s.status === 'confirmed')
+          .reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
+        const totalDiscountGiven = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
 
         // Get referral codes count
         const { data: referralCodes, error: codesError } = await supabase
           .from('referral_codes')
           .select('id, is_active')
-          .eq('trainer_id', trainer.id)
+          .eq('trainer_id', (trainer as any).id)
 
         const totalReferralCodes = referralCodes?.length || 0
-        const activeReferralCodes = referralCodes?.filter(c => c.is_active).length || 0
+        const activeReferralCodes = referralCodes?.filter((c: any) => c.is_active).length || 0
 
         // Calculate conversion rate
         const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
         // Get last referral date
-        const lastReferralDate = filteredTrackingData.length > 0 
-          ? filteredTrackingData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+        const lastReferralDate = filteredTrackingData.length > 0        
+          ? (filteredTrackingData.sort((a: any, b: any) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime())[0] as any).created_at                      
           : null
 
         return {
-          trainer_id: trainer.id,
-          trainer_name: trainer.full_name,
-          trainer_email: trainer.email,
+          trainer_id: (trainer as any).id,
+          trainer_name: (trainer as any).full_name,
+          trainer_email: (trainer as any).email,
           total_referrals: totalReferrals,
           confirmed_referrals: confirmedReferrals,
           pending_referrals: pendingReferrals,
