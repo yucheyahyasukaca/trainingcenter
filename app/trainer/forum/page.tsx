@@ -60,7 +60,7 @@ export default function TrainerForumPage() {
               trainer:trainers(*)
             )
           `)
-          .eq('trainers.trainer_id', trainerData.id)
+          .eq('trainers.trainer_id', (trainerData as any).id)
           .order('start_date', { ascending: false })
 
         if (classesError) {
@@ -101,7 +101,7 @@ export default function TrainerForumPage() {
 
   const filteredClasses = classes.filter(classItem => {
     const matchesSearch = classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         classItem.programs?.title.toLowerCase().includes(searchQuery.toLowerCase())
+                          (classItem as any).program?.title.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'all' || classItem.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -250,8 +250,8 @@ export default function TrainerForumPage() {
                 </div>
 
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
-                {classItem.programs && (
-                  <p className="text-sm text-gray-600 mb-4">{classItem.programs.title}</p>
+                {(classItem as any).program && (
+                  <p className="text-sm text-gray-600 mb-4">{(classItem as any).program.title}</p>
                 )}
 
                 <div className="space-y-2 mb-4">

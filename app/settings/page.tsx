@@ -38,7 +38,7 @@ export default function SettingsPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     setLoading(false)
-    success('Pengaturan berhasil disimpan!', 'Berhasil')
+    addToast.success('Pengaturan berhasil disimpan!', 'Berhasil')
   }
 
   return (

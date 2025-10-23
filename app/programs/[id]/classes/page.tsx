@@ -65,19 +65,20 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             .eq('user_id', profile.id)
             .single()
 
-          if (trainerData && programData.trainer_id === trainerData.id) {
-          setEnrollment({ id: 'trainer-access', status: 'approved' })
-        } else {
-          // Check if assigned to any class in this program
-          const { data: classTrainer } = await supabase
-            .from('class_trainers')
-            .select('id')
-            .eq('trainer_id', trainerData?.id)
-            .in('class_id', (classesData || []).map(c => c.id))
-            .single()
-
-          if (classTrainer) {
+          if (trainerData && (programData as any).trainer_id === (trainerData as any).id) {
             setEnrollment({ id: 'trainer-access', status: 'approved' })
+          } else {
+            // Check if assigned to any class in this program
+            const { data: classTrainer } = await supabase
+              .from('class_trainers')
+              .select('id')
+              .eq('trainer_id', (trainerData as any)?.id)
+              .in('class_id', (classesData || []).map((c: any) => c.id))
+              .single()
+
+            if (classTrainer) {
+              setEnrollment({ id: 'trainer-access', status: 'approved' })
+            }
           }
         }
       } else {
@@ -94,7 +95,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           return
         }
 
-        console.log('Checking enrollment for participant:', participant.id, 'program:', params.id)
+        console.log('Checking enrollment for participant:', (participant as any).id, 'program:', params.id)
         
         const { data: enrollmentData, error: enrollmentError } = await supabase
           .from('enrollments')
@@ -102,7 +103,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             *,
             class:classes(*)
           `)
-          .eq('participant_id', participant.id)
+          .eq('participant_id', (participant as any).id)
           .eq('program_id', params.id)
           .eq('status', 'approved')
           .maybeSingle()
@@ -124,34 +125,34 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               *,
               class:classes(*)
             `)
-            .eq('participant_id', participant.id)
+            .eq('participant_id', (participant as any).id)
             .eq('program_id', params.id)
             .maybeSingle()
 
           console.log('Any enrollment query result:', { anyEnrollmentData, anyEnrollmentError })
           
           if (anyEnrollmentData) {
-            console.log('Found enrollment with status:', anyEnrollmentData.status)
+            console.log('Found enrollment with status:', (anyEnrollmentData as any).status)
             // For free programs, if enrollment exists but not approved, manually approve it
-            if (anyEnrollmentData.status === 'pending' && programData.price === 0) {
+            if ((anyEnrollmentData as any).status === 'pending' && (programData as any).price === 0) {
               console.log('Free program with pending enrollment - manually approving...')
               
               // Manually update the enrollment to approved
-              const { error: updateError } = await supabase
+              const { error: updateError } = await (supabase as any)
                 .from('enrollments')
                 .update({ 
                   status: 'approved', 
                   payment_status: 'paid',
                   amount_paid: 0
                 })
-                .eq('id', anyEnrollmentData.id)
+                .eq('id', (anyEnrollmentData as any).id)
 
               if (updateError) {
                 console.error('Error updating enrollment:', updateError)
               } else {
                 console.log('Enrollment manually approved')
                 // Set the enrollment as approved for immediate access
-                setEnrollment({ ...anyEnrollmentData, status: 'approved', payment_status: 'paid' })
+                setEnrollment({ ...(anyEnrollmentData as any), status: 'approved', payment_status: 'paid' })
                 return
               }
             }

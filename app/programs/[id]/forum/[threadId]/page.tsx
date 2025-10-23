@@ -8,13 +8,13 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
-import { ConfirmDialog, useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialogWithHook, useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export default function ThreadDetailPage({ params }: { params: { id: string, threadId: string } }) {
   const router = useRouter()
   const { profile } = useAuth()
   const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
-  const { dialog: confirmDialog, confirm: confirmAction, close: closeConfirm } = useConfirmDialog()
+  const { isOpen, config, openDialog, closeDialog, confirm } = useConfirmDialog()
   const [thread, setThread] = useState<any>(null)
   const [replies, setReplies] = useState<any[]>([])
   const [userProfiles, setUserProfiles] = useState<Record<string, any>>({})
@@ -242,15 +242,13 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
       return
     }
     
-    const confirmed = await confirmAction(
-      'Hapus Thread',
-      'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
-      'danger',
-      'Hapus',
-      'Batal'
-    )
-    
-    if (!confirmed) return
+    openDialog({
+      title: 'Hapus Thread',
+      message: 'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      onConfirm: async () => {
     try {
       setDeleting(true)
       // Delete replies first to avoid FK issues
@@ -270,6 +268,8 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
     } finally {
       setDeleting(false)
     }
+      }
+    })
   }
 
   async function submitReply() {
@@ -435,16 +435,7 @@ export default function ThreadDetailPage({ params }: { params: { id: string, thr
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={closeConfirm}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        type={confirmDialog.type}
-        confirmText={confirmDialog.confirmText}
-        cancelText={confirmDialog.cancelText}
-      />
+      <ConfirmDialogWithHook />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
       {errorMessage && (

@@ -33,7 +33,7 @@ export default function NewTrainerPage() {
                           formData.experience_years >= 5 ? 'trainer_l2' : 'trainer_l1'
       
       // 3. Create user_profiles first
-      const { error: userError } = await supabase
+      const { error: userError } = await (supabase as any)
         .from('user_profiles')
         .insert([{
           id: userId,
@@ -53,7 +53,7 @@ export default function NewTrainerPage() {
       if (userError) throw userError
 
       // 4. Create trainer record with user_id
-      const { error: trainerError } = await supabase
+      const { error: trainerError } = await (supabase as any)
         .from('trainers')
         .insert([{
           ...formData,

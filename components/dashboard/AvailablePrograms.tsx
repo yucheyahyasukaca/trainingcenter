@@ -197,7 +197,7 @@ export function AvailablePrograms() {
         }
         
         // For new users (participant created recently), be more aggressive about filtering
-        const participantTime = new Date(participant.created_at)
+        const participantTime = new Date((participant as any).created_at)
         const participantTimeDiff = now.getTime() - participantTime.getTime()
         const participantMinutesDiff = participantTimeDiff / (1000 * 60)
         
@@ -217,7 +217,7 @@ export function AvailablePrograms() {
       // but all enrollments are very recent (within 1 hour), they might be sample data
       const now = new Date()
       const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000))
-      const participantTime = new Date(participant.created_at)
+      const participantTime = new Date((participant as any).created_at)
       
       const hasRecentEnrollments = validEnrollments.some((enrollment: any) => {
         const enrollmentTime = new Date(enrollment.created_at)

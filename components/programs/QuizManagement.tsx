@@ -53,8 +53,8 @@ export function QuizManagement({ contentId, contentTitle }: QuizManagementProps)
       if (error) throw error
 
       // Sort options by order_index
-      const questionsWithSortedOptions = questionsData?.map(q => ({
-        ...q,
+      const questionsWithSortedOptions = questionsData?.map((q: any) => ({
+        ...(q as any),
         options: q.options?.sort((a: any, b: any) => a.order_index - b.order_index) || []
       }))
 
@@ -98,11 +98,11 @@ export function QuizManagement({ contentId, contentTitle }: QuizManagementProps)
 
     try {
       await Promise.all([
-        supabase
+        (supabase as any)
           .from('quiz_questions')
           .update({ order_index: newIndex })
           .eq('id', id),
-        supabase
+        (supabase as any)
           .from('quiz_questions')
           .update({ order_index: index })
           .eq('id', newQuestions[index].id)
@@ -317,7 +317,7 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
     try {
       if (question) {
         // Update existing question
-        const { error: questionError } = await supabase
+        const { error: questionError } = await (supabase as any)
           .from('quiz_questions')
           .update({
             question_text: formData.question_text,
@@ -341,10 +341,10 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
           // Insert new options
           const validOptions = options.filter(o => o.option_text?.trim())
           if (validOptions.length > 0) {
-            const { error: optionsError } = await supabase
+            const { error: optionsError } = await (supabase as any)
               .from('quiz_options')
               .insert(
-                validOptions.map((opt, index) => ({
+                validOptions.map((opt: any, index: number) => ({
                   question_id: question.id,
                   option_text: opt.option_text,
                   is_correct: opt.is_correct,
@@ -357,7 +357,7 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
         }
       } else {
         // Create new question
-        const { data: newQuestion, error: questionError } = await supabase
+        const { data: newQuestion, error: questionError } = await (supabase as any)
           .from('quiz_questions')
           .insert([formData])
           .select()
@@ -369,10 +369,10 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
         if (formData.question_type === 'multiple_choice' && newQuestion) {
           const validOptions = options.filter(o => o.option_text?.trim())
           if (validOptions.length > 0) {
-            const { error: optionsError } = await supabase
+            const { error: optionsError } = await (supabase as any)
               .from('quiz_options')
               .insert(
-                validOptions.map((opt, index) => ({
+                validOptions.map((opt: any, index: number) => ({
                   question_id: newQuestion.id,
                   option_text: opt.option_text,
                   is_correct: opt.is_correct,

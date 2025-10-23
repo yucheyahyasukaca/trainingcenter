@@ -106,8 +106,8 @@ export function TrainerDashboard() {
           .eq('id', profile.id)
           .single()
 
-        if (userProfile?.trainer_level) {
-          setTrainerLevel(userProfile.trainer_level)
+        if ((userProfile as any)?.trainer_level) {
+          setTrainerLevel((userProfile as any).trainer_level)
         }
 
         // Try multiple ways to get classes
@@ -153,11 +153,11 @@ export function TrainerDashboard() {
                 )
               )
             `)
-            .eq('trainer_id', trainerRecord.id)
+            .eq('trainer_id', (trainerRecord as any).id)
 
           if (classTrainers) {
             const classesFromTrainers = classTrainers
-              .map(ct => ct.classes)
+              .map((ct: any) => ct.classes)
               .filter(Boolean)
             allClasses = [...allClasses, ...classesFromTrainers]
             console.log('📚 Classes from trainers:', classesFromTrainers)

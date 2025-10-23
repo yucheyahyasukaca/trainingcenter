@@ -101,8 +101,8 @@ export function useRealTimeNotifications() {
 
         if (error) throw error
 
-        programs?.forEach(program => {
-          const endDate = new Date(program.end_date)
+        programs?.forEach((program: any) => {
+          const endDate = new Date((program as any).end_date)
           const daysLeft = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
           
           if (daysLeft <= 3) {
@@ -110,9 +110,9 @@ export function useRealTimeNotifications() {
               type: 'program',
               priority: 'high',
               title: 'Program Mendekati Deadline',
-              message: `Program "${program.title}" akan berakhir dalam ${daysLeft} hari`,
+              message: `Program "${(program as any).title}" akan berakhir dalam ${daysLeft} hari`,
               actionRequired: true,
-              data: { programId: program.id }
+              data: { programId: (program as any).id }
             })
           }
         })

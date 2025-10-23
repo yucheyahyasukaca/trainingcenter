@@ -96,7 +96,7 @@ export default function NewClassPage() {
       }
 
       // Insert class
-      const { data: insertedClass, error: classError } = await supabase
+      const { data: insertedClass, error: classError } = await (supabase as any)
         .from('classes')
         .insert([classData])
         .select()
@@ -128,7 +128,7 @@ export default function NewClassPage() {
         is_primary_valid: classTrainerData.is_primary === true
       })
       
-      const { error: trainerError } = await supabase
+      const { error: trainerError } = await (supabase as any)
         .from('class_trainers')
         .insert([classTrainerData])
 
@@ -226,9 +226,9 @@ export default function NewClassPage() {
                   {availablePrograms.map(program => (
                     <option key={program.id} value={program.id}>
                       {program.title} 
-                      {program.min_trainer_level && program.min_trainer_level !== 'junior' && 
-                        ` (Min: ${program.min_trainer_level === 'senior' ? 'Senior' : 
-                          program.min_trainer_level === 'expert' ? 'Expert' : 'Master'})`
+                      {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' &&                                                           
+                        ` (Min: ${(program as any).min_trainer_level === 'senior' ? 'Senior' :                                                                   
+                          (program as any).min_trainer_level === 'expert' ? 'Expert' : 'Master'})`                                                               
                       }
                     </option>
                   ))}

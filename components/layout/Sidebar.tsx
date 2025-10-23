@@ -130,14 +130,14 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="px-6 py-3 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
-              profile.role === 'admin' ? 'bg-red-500' :
-              profile.role === 'manager' ? 'bg-blue-500' : 
-              profile.role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
+              (profile as any).role === 'admin' ? 'bg-red-500' :
+              (profile as any).role === 'manager' ? 'bg-blue-500' : 
+              (profile as any).role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
             }`}></div>
             <span className="text-sm font-medium text-gray-700 capitalize">
-              {profile.role === 'admin' ? 'Administrator' :
-               profile.role === 'manager' ? 'Manager' : 
-               profile.role === 'trainer' ? 'Trainer' : 'User Level 0'}
+              {(profile as any).role === 'admin' ? 'Administrator' :
+               (profile as any).role === 'manager' ? 'Manager' : 
+               (profile as any).role === 'trainer' ? 'Trainer' : 'User Level 0'}
             </span>
                    {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">

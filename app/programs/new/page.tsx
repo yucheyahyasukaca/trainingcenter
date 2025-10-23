@@ -34,7 +34,7 @@ export default function NewProgramPage() {
       // Validate registration dates for limited type
       if (formData.registration_type === 'limited') {
         if (!formData.registration_start_date || !formData.registration_end_date) {
-          error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
+          addToast.error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
           setLoading(false)
           return
         }
@@ -43,7 +43,7 @@ export default function NewProgramPage() {
         const regEnd = new Date(formData.registration_end_date)
         
         if (regEnd < regStart) {
-          error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
+          addToast.error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
           setLoading(false)
           return
         }
@@ -64,17 +64,17 @@ export default function NewProgramPage() {
         min_trainer_level: formData.min_trainer_level,
       }
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('programs')
         .insert([dataToInsert])
 
       if (insertError) throw insertError
 
-      success('Program berhasil ditambahkan!', 'Berhasil')
+      addToast.success('Program berhasil ditambahkan!', 'Berhasil')
       router.push('/programs')
     } catch (err: any) {
       console.error('Error creating program:', err)
-      error('Gagal menambahkan program: ' + err.message, 'Error')
+      addToast.error('Gagal menambahkan program: ' + err.message, 'Error')
     } finally {
       setLoading(false)
     }

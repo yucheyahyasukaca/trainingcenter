@@ -261,8 +261,8 @@ export default function ProgramsPage() {
       let finalEnrollments = validEnrollments
       
       // For new users, be very aggressive about filtering
-      if (participant && participant.created_at) {
-        const participantTime = new Date(participant.created_at)
+      if (participant && (participant as any).created_at) {
+        const participantTime = new Date((participant as any).created_at)
         if (participantTime > oneHourAgo) {
           console.log('New participant detected - filtering out all enrollments as likely sample data')
           finalEnrollments = []
@@ -572,14 +572,14 @@ export default function ProgramsPage() {
                       <GraduationCap className="w-4 h-4 mr-2 text-red-500" />
                       <span>{program.category}</span>
                     </div>
-                    {program.min_trainer_level && program.min_trainer_level !== 'junior' && (
+                    {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' && (
                       <div className="flex items-center text-sm text-gray-600">
                         <BookOpen className="w-4 h-4 mr-2 text-blue-500" />
                         <span>
                           Min Trainer: {
-                            program.min_trainer_level === 'senior' ? 'Senior' :
-                            program.min_trainer_level === 'expert' ? 'Expert' :
-                            program.min_trainer_level === 'master' ? 'Master' :
+                            (program as any).min_trainer_level === 'senior' ? 'Senior' :
+                            (program as any).min_trainer_level === 'expert' ? 'Expert' :
+                            (program as any).min_trainer_level === 'master' ? 'Master' :
                             'Junior'
                           }
                         </span>
@@ -588,10 +588,10 @@ export default function ProgramsPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2 text-red-500" />
                       <span>
-                        {program.registration_type === 'lifetime' || 
-                         (program.start_date === program.end_date)
-                          ? 'Lifetime' 
-                          : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
+                        {(program as any).registration_type === 'lifetime' ||    
+                         ((program as any).start_date === (program as any).end_date)      
+                          ? 'Lifetime'
+                          : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
                         }
                       </span>
                     </div>

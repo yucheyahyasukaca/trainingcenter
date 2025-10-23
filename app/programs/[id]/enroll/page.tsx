@@ -78,7 +78,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           )
         `)
         .eq('program_id', params.id)
-        .eq('trainers.trainer_id', trainer.id)
+        .eq('trainers.trainer_id', (trainer as any).id)
         .order('start_date')
 
       if (classesError) {
@@ -169,7 +169,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         }
         
         setProgram({
-          ...simpleData,
+          ...(simpleData as any),
           classes: classesData || []
         })
         return
@@ -197,7 +197,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         }
         
         setProgram({
-          ...simpleData,
+          ...(simpleData as any),
           classes: classesData || []
         })
         return
@@ -227,7 +227,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         )
         
         setProgram({
-          ...data,
+          ...(data as any),
           classes: classesWithTrainers
         })
       } else {
@@ -361,7 +361,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       if (referralData && enrollmentResult && enrollmentResult.length > 0) {
         try {
           const createdEnrollment = enrollmentResult[0]
-          const { error: trackError } = await supabase
+          const { error: trackError } = await (supabase as any)
             .rpc('track_referral_enrollment', {
               p_referral_code_id: referralData.referral_code_id,
               p_enrollment_id: createdEnrollment.id,
@@ -550,10 +550,10 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Tanggal:</span>
                   <span>
-                    {(program as any).registration_type === 'lifetime' || 
-                     (program.start_date === program.end_date)
-                      ? 'Lifetime' 
-                      : `${formatDate(program.start_date)} - ${formatDate(program.end_date)}`
+                    {(program as any).registration_type === 'lifetime' ||                                                                               
+                     ((program as any).start_date === (program as any).end_date)
+                      ? 'Lifetime'
+                      : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
                     }
                   </span>
                 </div>

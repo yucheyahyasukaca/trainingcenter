@@ -42,17 +42,17 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
       if (fetchError) throw fetchError
 
       setFormData({
-        title: data.title || '',
-        description: data.description || '',
-        category: data.category || '',
-        price_type: data.is_free || data.price === 0 ? 'gratis' : 'berbayar',
-        price: data.price || 0,
-        status: data.status || 'draft',
-        registration_type: data.registration_type || 'lifetime',
-        min_trainer_level: data.min_trainer_level || 'junior',
-        registration_start_date: data.registration_start_date ? data.registration_start_date.split('T')[0] : '',
-        registration_end_date: data.registration_end_date ? data.registration_end_date.split('T')[0] : '',
-        program_type: data.program_type || 'regular',
+        title: (data as any).title || '',
+        description: (data as any).description || '',
+        category: (data as any).category || '',
+        price_type: (data as any).is_free || (data as any).price === 0 ? 'gratis' : 'berbayar',
+        price: (data as any).price || 0,
+        status: (data as any).status || 'draft',
+        registration_type: (data as any).registration_type || 'lifetime',
+        min_trainer_level: (data as any).min_trainer_level || 'junior',
+        registration_start_date: (data as any).registration_start_date ? (data as any).registration_start_date.split('T')[0] : '',
+        registration_end_date: (data as any).registration_end_date ? (data as any).registration_end_date.split('T')[0] : '',
+        program_type: (data as any).program_type || 'regular',
       })
     } catch (err) {
       console.error('Error fetching program:', err)
@@ -70,7 +70,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
       // Validate registration dates for limited type
       if (formData.registration_type === 'limited') {
         if (!formData.registration_start_date || !formData.registration_end_date) {
-          error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
+          addToast.error('Tanggal pendaftaran harus diisi untuk pendaftaran berbatas waktu', 'Error')
           setLoading(false)
           return
         }
@@ -79,13 +79,13 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         const regEnd = new Date(formData.registration_end_date)
         
         if (regEnd < regStart) {
-          error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
+          addToast.error('Tanggal selesai pendaftaran harus setelah tanggal mulai pendaftaran', 'Error')
           setLoading(false)
           return
         }
       }
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('programs')
         .update({
           title: formData.title.trim(),
@@ -106,11 +106,11 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
 
       if (updateError) throw updateError
 
-      success('Program berhasil diupdate!', 'Berhasil')
+      addToast.success('Program berhasil diupdate!', 'Berhasil')
       router.push('/programs')
     } catch (err: any) {
       console.error('Error updating program:', err)
-      error('Gagal mengupdate program: ' + err.message, 'Error')
+      addToast.error('Gagal mengupdate program: ' + err.message, 'Error')
     } finally {
       setLoading(false)
     }

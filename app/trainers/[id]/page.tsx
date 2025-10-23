@@ -73,8 +73,8 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
                           formData.experience_years >= 5 ? 'trainer_l2' : 'trainer_l1'
 
       // 3. Update user_profiles if user_id exists
-      if (currentTrainer?.user_id) {
-        const { error: userError } = await supabase
+      if ((currentTrainer as any)?.user_id) {
+        const { error: userError } = await (supabase as any)
           .from('user_profiles')
           .update({
             email: formData.email,
@@ -87,13 +87,13 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
             is_active: formData.status === 'active',
             updated_at: new Date().toISOString()
           })
-          .eq('id', currentTrainer.user_id)
+          .eq('id', (currentTrainer as any).user_id)
 
         if (userError) throw userError
       }
 
       // 4. Update trainer record
-      const { error: trainerError } = await supabase
+      const { error: trainerError } = await (supabase as any)
         .from('trainers')
         .update(formData)
         .eq('id', params.id)

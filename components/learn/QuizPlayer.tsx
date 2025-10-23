@@ -61,8 +61,8 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
       if (error) throw error
 
       // Sort options
-      const questionsWithSortedOptions = questionsData?.map(q => ({
-        ...q,
+      const questionsWithSortedOptions = questionsData?.map((q: any) => ({
+        ...(q as any),
         options: q.options?.sort((a: any, b: any) => a.order_index - b.order_index) || []
       }))
 
@@ -116,7 +116,7 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
         attempt_number: 1 // TODO: Track attempt numbers
       }))
 
-      const { error: submitError } = await supabase
+      const { error: submitError } = await (supabase as any)
         .from('quiz_submissions')
         .insert(submissions)
 

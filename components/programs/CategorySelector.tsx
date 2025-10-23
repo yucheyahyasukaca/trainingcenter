@@ -46,7 +46,7 @@ export default function CategorySelector({ value, onChange, required = false }: 
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('program_categories')
         .insert([{
           name: newCategory.name.trim(),

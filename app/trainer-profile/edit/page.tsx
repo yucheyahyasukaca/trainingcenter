@@ -213,7 +213,7 @@ export default function EditTrainerProfilePage() {
       setFormData({
         full_name: profile.full_name || '',
         email: profile.email || '',
-        phone: profile.phone || '',
+        phone: (profile as any).phone || '',
         instansi: (profile as any).instansi || '',
         alamat_instansi: (profile as any).alamat_instansi || '',
         alamat_pribadi: (profile as any).alamat_pribadi || '',
@@ -326,7 +326,7 @@ export default function EditTrainerProfilePage() {
 
       console.log('Update data:', updateData)
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_profiles')
         .update(updateData)
         .eq('id', profile?.id)
@@ -337,7 +337,7 @@ export default function EditTrainerProfilePage() {
       }
 
       console.log('Profile updated successfully!')
-      success('Profil trainer berhasil diperbarui.', 'Berhasil!')
+      addToast.success('Profil trainer berhasil diperbarui.', 'Berhasil!')
 
       // Refresh profile data
       await refreshProfile()
@@ -347,7 +347,7 @@ export default function EditTrainerProfilePage() {
       
     } catch (err) {
       console.error('Error updating profile:', err)
-      error('Gagal memperbarui profil. Silakan coba lagi.', 'Error!')
+      addToast.error('Gagal memperbarui profil. Silakan coba lagi.', 'Error!')
     } finally {
       setSaving(false)
     }

@@ -16,7 +16,7 @@ export default function TrainerReferralPage() {
         return
       }
       
-      if (profile.role !== 'trainer') {
+      if ((profile as any).role !== 'trainer') {
         router.push('/dashboard')
         return
       }
@@ -31,7 +31,7 @@ export default function TrainerReferralPage() {
     )
   }
 
-  if (!profile || profile.role !== 'trainer') {
+  if (!profile || (profile as any).role !== 'trainer') {
     return null
   }
 

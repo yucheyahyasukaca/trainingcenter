@@ -80,7 +80,7 @@ export default function TrainersPage() {
       closeDeleteModal()
     } catch (error) {
       console.error('Error deleting trainer:', error)
-      error('Gagal menghapus trainer', 'Error')
+      addToast.error('Gagal menghapus trainer', 'Error')
       setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }

@@ -121,8 +121,8 @@ export function MyEnrollments() {
         let finalEnrollments = validEnrollments
         
         // For new users, be very aggressive about filtering
-        if (participant && participant.created_at) {
-          const participantTime = new Date(participant.created_at)
+        if (participant && (participant as any).created_at) {
+          const participantTime = new Date((participant as any).created_at)
           if (participantTime > oneHourAgo) {
             console.log('New participant detected - filtering out all enrollments as likely sample data')
             finalEnrollments = []

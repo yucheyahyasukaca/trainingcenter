@@ -18,7 +18,7 @@ export default function TrainerDashboardPage() {
         return
       }
       
-      if (!profile || profile.role !== 'trainer') {
+      if (!profile || (profile as any).role !== 'trainer') {
         // User is authenticated but not a trainer, redirect to dashboard
         router.push('/dashboard')
         return
@@ -38,7 +38,7 @@ export default function TrainerDashboardPage() {
   }
 
   // Show access denied only if user is authenticated but not a trainer
-  if (user && (!profile || profile.role !== 'trainer')) {
+  if (user && (!profile || (profile as any).role !== 'trainer')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">

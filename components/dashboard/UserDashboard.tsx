@@ -99,21 +99,21 @@ export function UserDashboard() {
         const { data: enrollments } = await supabase
           .from('enrollments')
           .select('status, programs(start_date)')
-          .eq('participant_id', participant.id)
+          .eq('participant_id', (participant as any).id)
 
         // Fetch certificates
         const { data: certificates } = await supabase
           .from('certificates')
           .select('id')
-          .eq('participant_id', participant.id)
+          .eq('participant_id', (participant as any).id)
 
         if (enrollments) {
           const now = new Date()
           const enrolledCount = enrollments.length
-          const completedCount = enrollments.filter(e => e.status === 'completed').length
-          const scheduledCount = enrollments.filter(e => {
-            if (!e.programs?.start_date) return false
-            const startDate = new Date(e.programs.start_date)
+          const completedCount = enrollments.filter((e: any) => e.status === 'completed').length
+          const scheduledCount = enrollments.filter((e: any) => {
+            if (!(e as any).programs?.start_date) return false
+            const startDate = new Date((e as any).programs.start_date)
             return startDate > now && e.status === 'approved'
           }).length
 
