@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Upload, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
@@ -13,6 +13,7 @@ import { ProgramWithClasses, ClassWithTrainers } from '@/types'
 
 export default function EnrollProgramPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { profile } = useAuth()
   const { addNotification } = useNotification()
   const [program, setProgram] = useState<ProgramWithClasses | null>(null)
@@ -22,10 +23,61 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [paymentProofUrl, setPaymentProofUrl] = useState('')
   const [error, setError] = useState('')
+  const [referralCode, setReferralCode] = useState('')
+  const [trainerClasses, setTrainerClasses] = useState<ClassWithTrainers[]>([])
 
   useEffect(() => {
     fetchProgram()
   }, [params.id])
+
+  useEffect(() => {
+    // Check for referral code in URL parameters
+    const referral = searchParams.get('referral')
+    if (referral) {
+      setReferralCode(referral)
+      fetchTrainerClasses(referral)
+    }
+  }, [searchParams])
+
+  async function fetchTrainerClasses(referralCode: string) {
+    try {
+      // Find trainer by referral code (assuming referral code is trainer's email or ID)
+      const { data: trainer, error: trainerError } = await supabase
+        .from('trainers')
+        .select('id, name, email')
+        .or(`email.eq.${referralCode},id.eq.${referralCode}`)
+        .single()
+
+      if (trainerError || !trainer) {
+        console.log('Trainer not found for referral code:', referralCode)
+        return
+      }
+
+      // Find classes where this trainer is assigned
+      const { data: classes, error: classesError } = await supabase
+        .from('classes')
+        .select(`
+          *,
+          trainers:class_trainers(
+            *,
+            trainer:trainers(*)
+          )
+        `)
+        .eq('program_id', params.id)
+        .eq('trainers.trainer_id', trainer.id)
+        .order('start_date')
+
+      if (classesError) {
+        console.error('Error fetching trainer classes:', classesError)
+        return
+      }
+
+      setTrainerClasses(classes || [])
+      console.log('Found trainer classes:', classes)
+    } catch (error) {
+      console.error('Error fetching trainer classes:', error)
+    }
+  }
 
   async function fetchProgram() {
     try {
@@ -58,18 +110,12 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         return
       }
 
-      // Now try the full query with classes
+      // Now try the full query with classes - simplified approach
       const { data, error } = await supabase
         .from('programs')
         .select(`
           *,
-          classes:classes(
-            *,
-            trainers:class_trainers(
-              *,
-              trainer:trainers(*)
-            )
-          )
+          classes:classes(*)
         `)
         .eq('id', params.id)
         .single()
@@ -78,22 +124,30 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       if (error) {
         console.error('❌ Full query error:', error)
-        // If full query fails, use simple data but check for classes
         console.log('⚠️ Using simple data due to full query error')
         
         // For simple data, we need to check classes separately
-        const { data: classesData } = await supabase
+        const { data: classesData, error: classesError } = await supabase
           .from('classes')
-          .select('id')
+          .select('*')
           .eq('program_id', params.id)
         
-        if (!classesData || classesData.length === 0) {
-          console.log('⚠️ Program has no available classes (simple data)')
-          setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
-          return
+        console.log('📚 Classes query result:', { classesData, classesError })
+        
+        if (classesError) {
+          console.error('❌ Classes query error:', classesError)
         }
         
-        setProgram(simpleData)
+        if (!classesData || classesData.length === 0) {
+          console.log('⚠️ Program has no available classes (simple data) - allowing enrollment without class selection')
+        } else {
+          console.log('✅ Found classes with simple query:', classesData.length)
+        }
+        
+        setProgram({
+          ...simpleData,
+          classes: classesData || []
+        })
         return
       }
       
@@ -101,18 +155,27 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         console.log('⚠️ No data from full query, using simple data')
         
         // For simple data, we need to check classes separately
-        const { data: classesData } = await supabase
+        const { data: classesData, error: classesError } = await supabase
           .from('classes')
-          .select('id')
+          .select('*')
           .eq('program_id', params.id)
         
-        if (!classesData || classesData.length === 0) {
-          console.log('⚠️ Program has no available classes (no data)')
-          setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
-          return
+        console.log('📚 Classes query result (no data):', { classesData, classesError })
+        
+        if (classesError) {
+          console.error('❌ Classes query error (no data):', classesError)
         }
         
-        setProgram(simpleData)
+        if (!classesData || classesData.length === 0) {
+          console.log('⚠️ Program has no available classes (no data) - allowing enrollment without class selection')
+        } else {
+          console.log('✅ Found classes with simple query (no data):', classesData.length)
+        }
+        
+        setProgram({
+          ...simpleData,
+          classes: classesData || []
+        })
         return
       }
 
@@ -120,14 +183,34 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       console.log('📚 Classes data:', (data as any).classes)
       console.log('📊 Classes count:', (data as any).classes?.length || 0)
       
-      // Check if program has available classes
-      if (!(data as any).classes || (data as any).classes.length === 0) {
-        console.log('⚠️ Program has no available classes')
-        setError('Program ini belum memiliki kelas yang tersedia untuk pendaftaran')
-        return
+      // If we have classes, fetch trainer data for each class
+      if ((data as any).classes && (data as any).classes.length > 0) {
+        const classesWithTrainers = await Promise.all(
+          (data as any).classes.map(async (classItem: any) => {
+            const { data: trainers } = await supabase
+              .from('class_trainers')
+              .select(`
+                *,
+                trainer:trainers(*)
+              `)
+              .eq('class_id', classItem.id)
+            
+            return {
+              ...classItem,
+              trainers: trainers || []
+            }
+          })
+        )
+        
+        setProgram({
+          ...data,
+          classes: classesWithTrainers
+        })
+      } else {
+        // Check if program has available classes - but don't block enrollment
+        console.log('⚠️ Program has no available classes - allowing enrollment without class selection')
+        setProgram(data)
       }
-      
-      setProgram(data)
     } catch (error) {
       console.error('❌ Error fetching program:', error)
       setError('Belum ada Kelas')
@@ -229,7 +312,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         payment_status: program.price === 0 ? 'paid' : 'unpaid',
         amount_paid: program.price === 0 ? program.price : 0,
         payment_proof_url: proofUrl,
-        notes: `Pendaftaran program ${program.title}${selectedClass ? ` - Kelas ${program.classes?.find(c => c.id === selectedClass)?.name}` : ''}`
+        notes: `Pendaftaran program ${program.title}${selectedClass ? ` - Kelas ${program.classes?.find(c => c.id === selectedClass)?.name}` : ' - Menunggu kelas tersedia'}`
       }
 
       console.log('Creating enrollment with data:', enrollmentData)
@@ -471,22 +554,48 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               )}
 
               {/* Class Selection */}
-              {program.classes && program.classes.length > 0 && (
-                <div>
-                  <SearchableSelect
-                    label="Pilih Kelas"
-                    required
-                    value={selectedClass}
-                    onChange={setSelectedClass}
-                    placeholder="Pilih kelas yang ingin diikuti"
-                    searchPlaceholder="Cari kelas..."
-                    options={program.classes.map(classItem => ({
-                      value: classItem.id,
-                      label: `${classItem.name} - ${formatDate(classItem.start_date)} (${classItem.current_participants}/${classItem.max_participants === null || classItem.max_participants === undefined ? 'Unlimited' : classItem.max_participants} peserta)`
-                    }))}
-                  />
-                </div>
-              )}
+              {(() => {
+                // Determine which classes to show: trainer classes if referral code exists, otherwise program classes
+                const classesToShow = referralCode && trainerClasses.length > 0 ? trainerClasses : program.classes
+                const hasClasses = classesToShow && classesToShow.length > 0
+
+                if (hasClasses) {
+                  return (
+                    <div>
+                      {referralCode && trainerClasses.length > 0 && (
+                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            <strong>Kelas dari Trainer:</strong> Menampilkan kelas yang diajar oleh trainer yang direferensikan.
+                          </p>
+                        </div>
+                      )}
+                      <SearchableSelect
+                        label="Pilih Kelas"
+                        required
+                        value={selectedClass}
+                        onChange={setSelectedClass}
+                        placeholder="Pilih kelas yang ingin diikuti"
+                        searchPlaceholder="Cari kelas..."
+                        options={classesToShow.map(classItem => ({
+                          value: classItem.id,
+                          label: `${classItem.name} - ${formatDate(classItem.start_date)} (${classItem.current_participants}/${classItem.max_participants === null || classItem.max_participants === undefined ? 'Unlimited' : classItem.max_participants} peserta)`
+                        }))}
+                      />
+                    </div>
+                  )
+                } else {
+                  return (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        <strong>Info:</strong> {referralCode 
+                          ? 'Trainer yang direferensikan belum memiliki kelas yang tersedia untuk program ini.' 
+                          : 'Program ini belum memiliki kelas yang tersedia.'
+                        } Anda tetap dapat mendaftar dan akan diberitahu ketika kelas tersedia.
+                      </p>
+                    </div>
+                  )
+                }
+              })()}
 
               {/* Payment Proof Upload */}
               {program.price > 0 && (
@@ -554,7 +663,10 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 </Link>
                 <button
                   type="submit"
-                  disabled={submitting || (program.price > 0 && !paymentProof)}
+                  disabled={submitting || (program.price > 0 && !paymentProof) || (() => {
+                    const classesToShow = referralCode && trainerClasses.length > 0 ? trainerClasses : program.classes
+                    return classesToShow && classesToShow.length > 0 && !selectedClass
+                  })()}
                   className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Mendaftar...' : 'Daftar Program'}
