@@ -5,12 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 import CategorySelector from '@/components/programs/CategorySelector'
 
 export default function NewProgramPage() {
   const router = useRouter()
-  const { success, error } = useToastContext()
+  const addToast = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',

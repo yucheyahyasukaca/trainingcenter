@@ -1,188 +1,132 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, AlertTriangle, CheckCircle, Info, AlertCircle } from 'lucide-react'
+import React from 'react'
+import { AlertTriangle, X } from 'lucide-react'
 
-export interface ConfirmDialogProps {
+interface ConfirmDialogProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
   title: string
   message: string
-  type?: 'danger' | 'warning' | 'info' | 'success'
   confirmText?: string
   cancelText?: string
+  type?: 'danger' | 'warning' | 'info'
+  isLoading?: boolean
 }
 
-export function ConfirmDialog({
+export default function ConfirmDialog({
   isOpen,
   onClose,
   onConfirm,
   title,
   message,
+  confirmText = 'Ya, Hapus',
+  cancelText = 'Batal',
   type = 'danger',
-  confirmText = 'Konfirmasi',
-  cancelText = 'Batal'
+  isLoading = false
 }: ConfirmDialogProps) {
-  const [isVisible, setIsVisible] = useState(false)
+  if (!isOpen) return null
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true)
-    } else {
-      setIsVisible(false)
-    }
-  }, [isOpen])
-
-  const handleConfirm = () => {
-    onConfirm()
-    onClose()
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
       onClose()
     }
   }
 
-  if (!isVisible) return null
-
-  const getIcon = () => {
+  const getTypeStyles = () => {
     switch (type) {
       case 'danger':
-        return <AlertCircle className="h-6 w-6 text-red-600" />
+        return {
+          icon: 'text-red-600',
+          confirmButton: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+          iconBg: 'bg-red-100'
+        }
       case 'warning':
-        return <AlertTriangle className="h-6 w-6 text-yellow-600" />
+        return {
+          icon: 'text-yellow-600',
+          confirmButton: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+          iconBg: 'bg-yellow-100'
+        }
       case 'info':
-        return <Info className="h-6 w-6 text-blue-600" />
-      case 'success':
-        return <CheckCircle className="h-6 w-6 text-green-600" />
+        return {
+          icon: 'text-blue-600',
+          confirmButton: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+          iconBg: 'bg-blue-100'
+        }
       default:
-        return <AlertCircle className="h-6 w-6 text-red-600" />
+        return {
+          icon: 'text-red-600',
+          confirmButton: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+          iconBg: 'bg-red-100'
+        }
     }
   }
 
-  const getButtonStyle = () => {
-    switch (type) {
-      case 'danger':
-        return 'bg-red-600 hover:bg-red-700 text-white'
-      case 'warning':
-        return 'bg-yellow-600 hover:bg-yellow-700 text-white'
-      case 'info':
-        return 'bg-blue-600 hover:bg-blue-700 text-white'
-      case 'success':
-        return 'bg-green-600 hover:bg-green-700 text-white'
-      default:
-        return 'bg-red-600 hover:bg-red-700 text-white'
-    }
-  }
+  const styles = getTypeStyles()
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Dialog */}
-      <div 
-        className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
-        style={{
-          opacity: isVisible ? 1 : 0,
-          transform: isVisible ? 'scale(100%)' : 'scale(95%)'
-        }}
-        onKeyDown={handleKeyDown}
-        tabIndex={-1}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            {getIcon()}
-            <h3 className="text-lg font-semibold text-gray-900">
-              {title}
-            </h3>
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      onClick={handleBackdropClick}
+    >
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        
+        {/* Dialog */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${styles.iconBg} sm:mx-0 sm:h-10 sm:w-10`}>
+                <AlertTriangle className={`h-6 w-6 ${styles.icon}`} />
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  {title}
+                </h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    {message}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <p className="text-gray-700 leading-relaxed">
-            {message}
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors font-medium"
-          >
-            {cancelText}
-          </button>
-          <button
-            onClick={handleConfirm}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${getButtonStyle()}`}
-          >
-            {confirmText}
-          </button>
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              className={`
+                w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm
+                ${styles.confirmButton}
+                ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+              onClick={onConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Memproses...
+                </>
+              ) : (
+                confirmText
+              )}
+            </button>
+            <button
+              type="button"
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              {cancelText}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
-}
-
-// Hook untuk menggunakan confirm dialog
-export function useConfirmDialog() {
-  const [dialog, setDialog] = useState<{
-    isOpen: boolean
-    title: string
-    message: string
-    type: 'danger' | 'warning' | 'info' | 'success'
-    onConfirm: () => void
-    confirmText?: string
-    cancelText?: string
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'danger',
-    onConfirm: () => {}
-  })
-
-  const confirm = (
-    title: string,
-    message: string,
-    type: 'danger' | 'warning' | 'info' | 'success' = 'danger',
-    confirmText?: string,
-    cancelText?: string
-  ): Promise<boolean> => {
-    return new Promise((resolve) => {
-      setDialog({
-        isOpen: true,
-        title,
-        message,
-        type,
-        confirmText,
-        cancelText,
-        onConfirm: () => resolve(true)
-      })
-    })
-  }
-
-  const close = () => {
-    setDialog(prev => ({ ...prev, isOpen: false }))
-  }
-
-  return {
-    dialog,
-    confirm,
-    close
-  }
 }

@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         discount_applied,
         created_at
       `)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
 
     if (allTimeError) {
       console.error('Error fetching all-time stats:', allTimeError)
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         discount_applied,
         created_at
       `)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
 
     if (periodError) {
       console.error('Error fetching period stats:', periodError)
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
           title
         )
       `)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10)
 

@@ -50,7 +50,7 @@ export async function PUT(
         updated_at: new Date().toISOString()
       })
       .eq('id', params.id)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
       .select()
 
     if (error) {
@@ -101,7 +101,7 @@ export async function DELETE(
       .from('referral_codes')
       .delete()
       .eq('id', params.id)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
 
     if (error) {
       console.error('Error deleting user referral code:', error)

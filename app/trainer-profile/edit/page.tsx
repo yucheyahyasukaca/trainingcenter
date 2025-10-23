@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, User, MapPin, Building, Mail, Phone, Briefcase, Search, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 
 // Indonesia provinces data
 const provinces = [
@@ -186,7 +186,7 @@ const sectors = [
 export default function EditTrainerProfilePage() {
   const { profile, refreshProfile } = useAuth()
   const router = useRouter()
-  const { success, error } = useToastContext()
+  const addToast = useToast()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({

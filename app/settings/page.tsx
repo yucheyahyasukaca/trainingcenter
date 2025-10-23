@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 import { 
   User, 
   Bell, 
@@ -20,7 +20,7 @@ import {
 
 export default function SettingsPage() {
   const { profile } = useAuth()
-  const { success } = useToastContext()
+  const addToast = useToast()
   const [activeTab, setActiveTab] = useState('profile')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)

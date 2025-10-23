@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             discount_applied,
             created_at
           `)
-          .eq('referrer_id', user.id)
+          .eq('trainer_id', user.id)
 
         if (trackingError) {
           console.error(`Error fetching tracking for user ${user.id}:`, trackingError)
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         const { data: referralCodes, error: codesError } = await supabase
           .from('referral_codes')
           .select('id, is_active')
-          .eq('referrer_id', user.id)
+          .eq('trainer_id', user.id)
 
         const totalReferralCodes = referralCodes?.length || 0
         const activeReferralCodes = referralCodes?.filter(c => c.is_active).length || 0

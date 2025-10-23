@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 interface LearningContent {
@@ -60,7 +60,7 @@ export default function NewMaterialPage({
 }) {
   const router = useRouter()
   const { profile, loading: authLoading } = useAuth()
-  const { success, error } = useToastContext()
+  const addToast = useToast()
   const [classData, setClassData] = useState<any>(null)
   const [programData, setProgramData] = useState<any>(null)
   const [loading, setLoading] = useState(true)

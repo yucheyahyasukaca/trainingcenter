@@ -6,10 +6,10 @@ import { Trainer } from '@/types'
 import { Plus, Search, Edit, Trash2, UserCog } from 'lucide-react'
 import Link from 'next/link'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 
 export default function TrainersPage() {
-  const { error } = useToastContext()
+  const addToast = useToast()
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')

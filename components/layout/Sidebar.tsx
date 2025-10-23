@@ -39,6 +39,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Leaderboard Referral', href: '/admin/referral-leaderboard', roles: ['admin'] },
       { icon: User, label: 'Leaderboard User', href: '/admin/user-referral-leaderboard', roles: ['admin'] },
+      { icon: Settings, label: 'Policy Referral', href: '/admin/referral-policies', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
   }

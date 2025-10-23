@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         valid_until,
         created_at
       `)
-      .eq('referrer_id', user.id)
+      .eq('trainer_id', user.id)
       .order('created_at', { ascending: false })
 
     if (codesError) {
@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
 
     // Generate referral code using the existing function
     const { data: codeData, error: codeError } = await supabase
-      .rpc('create_user_referral_code', {
-        p_referrer_id: user.id,
-        p_referrer_name: profile.full_name,
+      .rpc('create_trainer_referral_code', {
+        p_trainer_id: user.id,
+        p_trainer_name: profile.full_name,
         p_description: description,
         p_max_uses: max_uses,
         p_discount_percentage: discount_percentage,

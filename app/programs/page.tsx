@@ -10,11 +10,11 @@ import { useRouter } from 'next/navigation'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { useToastContext } from '@/components/ToastProvider'
+import { useToast } from '@/hooks/useToast'
 
 export default function ProgramsPage() {
   const { profile } = useAuth()
-  const { error } = useToastContext()
+  const addToast = useToast()
   const router = useRouter()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
@@ -325,7 +325,7 @@ export default function ProgramsPage() {
       closeDeleteModal()
     } catch (error) {
       console.error('Error deleting program:', error)
-      error('Gagal menghapus program', 'Error')
+      addToast.error('Error', 'Gagal menghapus program')
       setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }
