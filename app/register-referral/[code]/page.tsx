@@ -93,6 +93,1550 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
   const [cities, setCities] = useState<any[]>([])
   const [districts, setDistricts] = useState<any[]>([])
 
+  // Indonesia provinces data
+  const indonesiaProvinces = [
+    { id: 'aceh', name: 'Aceh' },
+    { id: 'sumatera-utara', name: 'Sumatera Utara' },
+    { id: 'sumatera-barat', name: 'Sumatera Barat' },
+    { id: 'riau', name: 'Riau' },
+    { id: 'kepulauan-riau', name: 'Kepulauan Riau' },
+    { id: 'jambi', name: 'Jambi' },
+    { id: 'sumatera-selatan', name: 'Sumatera Selatan' },
+    { id: 'bangka-belitung', name: 'Kepulauan Bangka Belitung' },
+    { id: 'bengkulu', name: 'Bengkulu' },
+    { id: 'lampung', name: 'Lampung' },
+    { id: 'dki-jakarta', name: 'DKI Jakarta' },
+    { id: 'jawa-barat', name: 'Jawa Barat' },
+    { id: 'jawa-tengah', name: 'Jawa Tengah' },
+    { id: 'di-yogyakarta', name: 'DI Yogyakarta' },
+    { id: 'jawa-timur', name: 'Jawa Timur' },
+    { id: 'banten', name: 'Banten' },
+    { id: 'bali', name: 'Bali' },
+    { id: 'nusa-tenggara-barat', name: 'Nusa Tenggara Barat' },
+    { id: 'nusa-tenggara-timur', name: 'Nusa Tenggara Timur' },
+    { id: 'kalimantan-barat', name: 'Kalimantan Barat' },
+    { id: 'kalimantan-tengah', name: 'Kalimantan Tengah' },
+    { id: 'kalimantan-selatan', name: 'Kalimantan Selatan' },
+    { id: 'kalimantan-timur', name: 'Kalimantan Timur' },
+    { id: 'kalimantan-utara', name: 'Kalimantan Utara' },
+    { id: 'sulawesi-utara', name: 'Sulawesi Utara' },
+    { id: 'sulawesi-tengah', name: 'Sulawesi Tengah' },
+    { id: 'sulawesi-selatan', name: 'Sulawesi Selatan' },
+    { id: 'sulawesi-tenggara', name: 'Sulawesi Tenggara' },
+    { id: 'gorontalo', name: 'Gorontalo' },
+    { id: 'sulawesi-barat', name: 'Sulawesi Barat' },
+    { id: 'maluku', name: 'Maluku' },
+    { id: 'maluku-utara', name: 'Maluku Utara' },
+    { id: 'papua-barat', name: 'Papua Barat' },
+    { id: 'papua', name: 'Papua' },
+    { id: 'papua-tengah', name: 'Papua Tengah' },
+    { id: 'papua-pegunungan', name: 'Papua Pegunungan' },
+    { id: 'papua-selatan', name: 'Papua Selatan' },
+    { id: 'papua-barat-daya', name: 'Papua Barat Daya' }
+  ]
+
+  // Major cities data for each province
+  const citiesData: { [key: string]: any[] } = {
+    'dki-jakarta': [
+      { id: 'jakarta-pusat', name: 'Jakarta Pusat' },
+      { id: 'jakarta-utara', name: 'Jakarta Utara' },
+      { id: 'jakarta-barat', name: 'Jakarta Barat' },
+      { id: 'jakarta-selatan', name: 'Jakarta Selatan' },
+      { id: 'jakarta-timur', name: 'Jakarta Timur' },
+      { id: 'kepulauan-seribu', name: 'Kepulauan Seribu' }
+    ],
+    'jawa-barat': [
+      { id: 'bandung', name: 'Bandung' },
+      { id: 'bekasi', name: 'Bekasi' },
+      { id: 'depok', name: 'Depok' },
+      { id: 'bogor', name: 'Bogor' },
+      { id: 'tangerang', name: 'Tangerang' },
+      { id: 'cirebon', name: 'Cirebon' },
+      { id: 'tasikmalaya', name: 'Tasikmalaya' },
+      { id: 'sukabumi', name: 'Sukabumi' },
+      { id: 'karawang', name: 'Karawang' },
+      { id: 'purwakarta', name: 'Purwakarta' },
+      { id: 'banjar', name: 'Banjar' },
+      { id: 'cimahi', name: 'Cimahi' },
+      { id: 'cianjur', name: 'Cianjur' },
+      { id: 'garut', name: 'Garut' },
+      { id: 'indramayu', name: 'Indramayu' },
+      { id: 'kuningan', name: 'Kuningan' },
+      { id: 'majalengka', name: 'Majalengka' },
+      { id: 'pangandaran', name: 'Pangandaran' },
+      { id: 'subang', name: 'Subang' },
+      { id: 'sumedang', name: 'Sumedang' }
+    ],
+    'jawa-tengah': [
+      { id: 'semarang', name: 'Semarang' },
+      { id: 'surakarta', name: 'Surakarta' },
+      { id: 'pekalongan', name: 'Pekalongan' },
+      { id: 'salatiga', name: 'Salatiga' },
+      { id: 'magelang', name: 'Magelang' },
+      { id: 'tegal', name: 'Tegal' },
+      { id: 'kudus', name: 'Kudus' },
+      { id: 'purwokerto', name: 'Purwokerto' },
+      { id: 'pati', name: 'Pati' },
+      { id: 'boyolali', name: 'Boyolali' },
+      { id: 'banjarnegara', name: 'Banjarnegara' },
+      { id: 'batang', name: 'Batang' },
+      { id: 'blora', name: 'Blora' },
+      { id: 'brebes', name: 'Brebes' },
+      { id: 'cilacap', name: 'Cilacap' },
+      { id: 'demak', name: 'Demak' },
+      { id: 'grobogan', name: 'Grobogan' },
+      { id: 'jepara', name: 'Jepara' },
+      { id: 'kendal', name: 'Kendal' },
+      { id: 'klaten', name: 'Klaten' },
+      { id: 'pemalang', name: 'Pemalang' },
+      { id: 'purbalingga', name: 'Purbalingga' },
+      { id: 'rembang', name: 'Rembang' },
+      { id: 'sragen', name: 'Sragen' },
+      { id: 'sukoharjo', name: 'Sukoharjo' },
+      { id: 'temanggung', name: 'Temanggung' },
+      { id: 'wonogiri', name: 'Wonogiri' },
+      { id: 'wonosobo', name: 'Wonosobo' }
+    ],
+    'jawa-timur': [
+      { id: 'surabaya', name: 'Surabaya' },
+      { id: 'malang', name: 'Malang' },
+      { id: 'kediri', name: 'Kediri' },
+      { id: 'blitar', name: 'Blitar' },
+      { id: 'probolinggo', name: 'Probolinggo' },
+      { id: 'pasuruan', name: 'Pasuruan' },
+      { id: 'mojokerto', name: 'Mojokerto' },
+      { id: 'madiun', name: 'Madiun' },
+      { id: 'batu', name: 'Batu' },
+      { id: 'jember', name: 'Jember' },
+      { id: 'bangkalan', name: 'Bangkalan' },
+      { id: 'banyuwangi', name: 'Banyuwangi' },
+      { id: 'bondowoso', name: 'Bondowoso' },
+      { id: 'gresik', name: 'Gresik' },
+      { id: 'jombang', name: 'Jombang' },
+      { id: 'lamongan', name: 'Lamongan' },
+      { id: 'lumajang', name: 'Lumajang' },
+      { id: 'nganjuk', name: 'Nganjuk' },
+      { id: 'ngawi', name: 'Ngawi' },
+      { id: 'pacitan', name: 'Pacitan' },
+      { id: 'pamekasan', name: 'Pamekasan' },
+      { id: 'ponorogo', name: 'Ponorogo' },
+      { id: 'sampang', name: 'Sampang' },
+      { id: 'sidoarjo', name: 'Sidoarjo' },
+      { id: 'situbondo', name: 'Situbondo' },
+      { id: 'sumenep', name: 'Sumenep' },
+      { id: 'trenggalek', name: 'Trenggalek' },
+      { id: 'tuban', name: 'Tuban' },
+      { id: 'tulungagung', name: 'Tulungagung' }
+    ],
+    'banten': [
+      { id: 'serang', name: 'Serang' },
+      { id: 'tangerang', name: 'Tangerang' },
+      { id: 'cilegon', name: 'Cilegon' },
+      { id: 'lebak', name: 'Lebak' },
+      { id: 'pandeglang', name: 'Pandeglang' }
+    ],
+    'di-yogyakarta': [
+      { id: 'yogyakarta', name: 'Yogyakarta' },
+      { id: 'sleman', name: 'Sleman' },
+      { id: 'bantul', name: 'Bantul' },
+      { id: 'gunung-kidul', name: 'Gunung Kidul' },
+      { id: 'kulon-progo', name: 'Kulon Progo' }
+    ],
+    'bali': [
+      { id: 'denpasar', name: 'Denpasar' },
+      { id: 'badung', name: 'Badung' },
+      { id: 'gianyar', name: 'Gianyar' },
+      { id: 'klungkung', name: 'Klungkung' },
+      { id: 'bangli', name: 'Bangli' },
+      { id: 'karangasem', name: 'Karangasem' },
+      { id: 'buleleng', name: 'Buleleng' },
+      { id: 'tabanan', name: 'Tabanan' },
+      { id: 'jembrana', name: 'Jembrana' }
+    ],
+    'sumatera-utara': [
+      { id: 'medan', name: 'Medan' },
+      { id: 'binjai', name: 'Binjai' },
+      { id: 'pematang-siantar', name: 'Pematang Siantar' },
+      { id: 'tanjung-balai', name: 'Tanjung Balai' },
+      { id: 'tebing-tinggi', name: 'Tebing Tinggi' },
+      { id: 'sibolga', name: 'Sibolga' },
+      { id: 'padang-sidempuan', name: 'Padang Sidempuan' },
+      { id: 'gunung-sitoli', name: 'Gunung Sitoli' },
+      { id: 'asahan', name: 'Asahan' },
+      { id: 'batubara', name: 'Batubara' },
+      { id: 'dairi', name: 'Dairi' },
+      { id: 'deli-serdang', name: 'Deli Serdang' },
+      { id: 'humbang-hasundutan', name: 'Humbang Hasundutan' },
+      { id: 'karo', name: 'Karo' },
+      { id: 'labuhan-batu', name: 'Labuhan Batu' },
+      { id: 'langkat', name: 'Langkat' },
+      { id: 'mandailing-natal', name: 'Mandailing Natal' },
+      { id: 'nias', name: 'Nias' },
+      { id: 'padang-lawas', name: 'Padang Lawas' },
+      { id: 'pakpak-bharat', name: 'Pakpak Bharat' },
+      { id: 'samosir', name: 'Samosir' },
+      { id: 'serdang-bedagai', name: 'Serdang Bedagai' },
+      { id: 'simalungun', name: 'Simalungun' },
+      { id: 'tapanuli-selatan', name: 'Tapanuli Selatan' },
+      { id: 'tapanuli-tengah', name: 'Tapanuli Tengah' },
+      { id: 'tapanuli-utara', name: 'Tapanuli Utara' },
+      { id: 'toba-samosir', name: 'Toba Samosir' }
+    ],
+    'sumatera-barat': [
+      { id: 'padang', name: 'Padang' },
+      { id: 'payakumbuh', name: 'Payakumbuh' },
+      { id: 'bukittinggi', name: 'Bukittinggi' },
+      { id: 'sawahlunto', name: 'Sawahlunto' },
+      { id: 'solok', name: 'Solok' },
+      { id: 'pariaman', name: 'Pariaman' },
+      { id: 'agam', name: 'Agam' },
+      { id: 'dharmasraya', name: 'Dharmasraya' },
+      { id: 'kepulauan-mentawai', name: 'Kepulauan Mentawai' },
+      { id: 'lima-puluh-kota', name: 'Lima Puluh Kota' },
+      { id: 'padang-pariaman', name: 'Padang Pariaman' },
+      { id: 'pasaman', name: 'Pasaman' },
+      { id: 'pasaman-barat', name: 'Pasaman Barat' },
+      { id: 'pesisir-selatan', name: 'Pesisir Selatan' },
+      { id: 'sijunjung', name: 'Sijunjung' },
+      { id: 'solok-selatan', name: 'Solok Selatan' },
+      { id: 'tanah-datar', name: 'Tanah Datar' }
+    ],
+    'riau': [
+      { id: 'pekanbaru', name: 'Pekanbaru' },
+      { id: 'dumai', name: 'Dumai' },
+      { id: 'bengkalis', name: 'Bengkalis' },
+      { id: 'indragiri-hulu', name: 'Indragiri Hulu' },
+      { id: 'indragiri-hilir', name: 'Indragiri Hilir' },
+      { id: 'pelalawan', name: 'Pelalawan' },
+      { id: 'kampar', name: 'Kampar' },
+      { id: 'kepulauan-meranti', name: 'Kepulauan Meranti' },
+      { id: 'kuantan-singingi', name: 'Kuantan Singingi' },
+      { id: 'rokan-hilir', name: 'Rokan Hilir' },
+      { id: 'rokan-hulu', name: 'Rokan Hulu' },
+      { id: 'siak', name: 'Siak' }
+    ],
+    'sumatera-selatan': [
+      { id: 'palembang', name: 'Palembang' },
+      { id: 'prabumulih', name: 'Prabumulih' },
+      { id: 'pagar-alam', name: 'Pagar Alam' },
+      { id: 'lubuk-linggau', name: 'Lubuk Linggau' },
+      { id: 'banyuasin', name: 'Banyuasin' },
+      { id: 'ogan-komering-ulu', name: 'Ogan Komering Ulu' },
+      { id: 'empang', name: 'Empang' },
+      { id: 'lahat', name: 'Lahat' },
+      { id: 'muara-enim', name: 'Muara Enim' },
+      { id: 'musi-banyuasin', name: 'Musi Banyuasin' },
+      { id: 'musi-rawas', name: 'Musi Rawas' },
+      { id: 'ogan-ilir', name: 'Ogan Ilir' },
+      { id: 'penukal-abab-lematang-ilir', name: 'Penukal Abab Lematang Ilir' }
+    ],
+    'lampung': [
+      { id: 'bandar-lampung', name: 'Bandar Lampung' },
+      { id: 'metro', name: 'Metro' },
+      { id: 'lampung-selatan', name: 'Lampung Selatan' },
+      { id: 'lampung-tengah', name: 'Lampung Tengah' },
+      { id: 'lampung-utara', name: 'Lampung Utara' },
+      { id: 'lampung-barat', name: 'Lampung Barat' },
+      { id: 'lampung-timur', name: 'Lampung Timur' },
+      { id: 'mesuji', name: 'Mesuji' },
+      { id: 'pesawaran', name: 'Pesawaran' },
+      { id: 'pringsewu', name: 'Pringsewu' },
+      { id: 'tanggamus', name: 'Tanggamus' },
+      { id: 'tulang-bawang', name: 'Tulang Bawang' },
+      { id: 'tulang-bawang-barat', name: 'Tulang Bawang Barat' },
+      { id: 'way-kanan', name: 'Way Kanan' }
+    ],
+    'aceh': [
+      { id: 'banda-aceh', name: 'Banda Aceh' },
+      { id: 'langsa', name: 'Langsa' },
+      { id: 'lhokseumawe', name: 'Lhokseumawe' },
+      { id: 'sabang', name: 'Sabang' },
+      { id: 'subulussalam', name: 'Subulussalam' },
+      { id: 'aceh-besar', name: 'Aceh Besar' },
+      { id: 'aceh-barat', name: 'Aceh Barat' },
+      { id: 'aceh-barat-daya', name: 'Aceh Barat Daya' },
+      { id: 'aceh-selatan', name: 'Aceh Selatan' },
+      { id: 'aceh-tenggara', name: 'Aceh Tenggara' },
+      { id: 'aceh-tengah', name: 'Aceh Tengah' },
+      { id: 'aceh-timur', name: 'Aceh Timur' },
+      { id: 'aceh-utara', name: 'Aceh Utara' },
+      { id: 'bener-meriah', name: 'Bener Meriah' },
+      { id: 'bireuen', name: 'Bireuen' },
+      { id: 'gayo-lues', name: 'Gayo Lues' },
+      { id: 'nagan-raya', name: 'Nagan Raya' },
+      { id: 'pidie', name: 'Pidie' },
+      { id: 'pidie-jaya', name: 'Pidie Jaya' },
+      { id: 'simeulue', name: 'Simeulue' }
+    ],
+    'jambi': [
+      { id: 'jambi', name: 'Jambi' },
+      { id: 'sungaipenuh', name: 'Sungaipenuh' },
+      { id: 'batang-hari', name: 'Batang Hari' },
+      { id: 'bungo', name: 'Bungo' },
+      { id: 'kerinci', name: 'Kerinci' },
+      { id: 'merangin', name: 'Merangin' },
+      { id: 'muaro-jambi', name: 'Muaro Jambi' },
+      { id: 'sarolangun', name: 'Sarolangun' },
+      { id: 'tanjung-jabung-barat', name: 'Tanjung Jabung Barat' },
+      { id: 'tanjung-jabung-timur', name: 'Tanjung Jabung Timur' },
+      { id: 'tebo', name: 'Tebo' }
+    ],
+    'bengkulu': [
+      { id: 'bengkulu', name: 'Bengkulu' },
+      { id: 'bengkulu-selatan', name: 'Bengkulu Selatan' },
+      { id: 'bengkulu-tengah', name: 'Bengkulu Tengah' },
+      { id: 'bengkulu-utara', name: 'Bengkulu Utara' },
+      { id: 'kaur', name: 'Kaur' },
+      { id: 'kepahiang', name: 'Kepahiang' },
+      { id: 'lebong', name: 'Lebong' },
+      { id: 'muko-muko', name: 'Muko Muko' },
+      { id: 'rejang-lebong', name: 'Rejang Lebong' },
+      { id: 'seluma', name: 'Seluma' }
+    ],
+    'bangka-belitung': [
+      { id: 'pangkalpinang', name: 'Pangkalpinang' },
+      { id: 'bangka', name: 'Bangka' },
+      { id: 'bangka-barat', name: 'Bangka Barat' },
+      { id: 'bangka-selatan', name: 'Bangka Selatan' },
+      { id: 'bangka-tengah', name: 'Bangka Tengah' },
+      { id: 'belitung', name: 'Belitung' },
+      { id: 'belitung-timur', name: 'Belitung Timur' }
+    ],
+    'kepulauan-riau': [
+      { id: 'tanjungpinang', name: 'Tanjungpinang' },
+      { id: 'batam', name: 'Batam' },
+      { id: 'anambas', name: 'Anambas' },
+      { id: 'bintan', name: 'Bintan' },
+      { id: 'karimun', name: 'Karimun' },
+      { id: 'kepulauan-lingga', name: 'Kepulauan Lingga' },
+      { id: 'natuna', name: 'Natuna' }
+    ],
+    'nusa-tenggara-barat': [
+      { id: 'mataram', name: 'Mataram' },
+      { id: 'bima', name: 'Bima' },
+      { id: 'dompu', name: 'Dompu' },
+      { id: 'lombok-barat', name: 'Lombok Barat' },
+      { id: 'lombok-tengah', name: 'Lombok Tengah' },
+      { id: 'lombok-timur', name: 'Lombok Timur' },
+      { id: 'lombok-utara', name: 'Lombok Utara' },
+      { id: 'sumbawa', name: 'Sumbawa' },
+      { id: 'sumbawa-barat', name: 'Sumbawa Barat' }
+    ],
+    'nusa-tenggara-timur': [
+      { id: 'kupang', name: 'Kupang' },
+      { id: 'alor', name: 'Alor' },
+      { id: 'belu', name: 'Belu' },
+      { id: 'ende', name: 'Ende' },
+      { id: 'flores-timur', name: 'Flores Timur' },
+      { id: 'kupang', name: 'Kupang' },
+      { id: 'lembata', name: 'Lembata' },
+      { id: 'manggarai', name: 'Manggarai' },
+      { id: 'manggarai-barat', name: 'Manggarai Barat' },
+      { id: 'manggarai-timur', name: 'Manggarai Timur' },
+      { id: 'ngada', name: 'Ngada' },
+      { id: 'nusa-tenggara-timur', name: 'Nusa Tenggara Timur' },
+      { id: 'rote-ndao', name: 'Rote Ndao' },
+      { id: 'sabu-raijua', name: 'Sabu Raijua' },
+      { id: 'sikka', name: 'Sikka' },
+      { id: 'sumba-barat', name: 'Sumba Barat' },
+      { id: 'sumba-barat-daya', name: 'Sumba Barat Daya' },
+      { id: 'sumba-tengah', name: 'Sumba Tengah' },
+      { id: 'sumba-timur', name: 'Sumba Timur' },
+      { id: 'timor-tengah-selatan', name: 'Timor Tengah Selatan' },
+      { id: 'timor-tengah-utara', name: 'Timor Tengah Utara' }
+    ],
+    'kalimantan-barat': [
+      { id: 'pontianak', name: 'Pontianak' },
+      { id: 'singkawang', name: 'Singkawang' },
+      { id: 'bengkayang', name: 'Bengkayang' },
+      { id: 'kapuas-hulu', name: 'Kapuas Hulu' },
+      { id: 'kayong-utara', name: 'Kayong Utara' },
+      { id: 'ketapang', name: 'Ketapang' },
+      { id: 'kubu-raya', name: 'Kubu Raya' },
+      { id: 'landak', name: 'Landak' },
+      { id: 'melawi', name: 'Melawi' },
+      { id: 'mempawah', name: 'Mempawah' },
+      { id: 'sambas', name: 'Sambas' },
+      { id: 'sanggau', name: 'Sanggau' },
+      { id: 'sekadau', name: 'Sekadau' },
+      { id: 'sintang', name: 'Sintang' }
+    ],
+    'kalimantan-tengah': [
+      { id: 'palangka-raya', name: 'Palangka Raya' },
+      { id: 'barito-selatan', name: 'Barito Selatan' },
+      { id: 'barito-timur', name: 'Barito Timur' },
+      { id: 'barito-utara', name: 'Barito Utara' },
+      { id: 'gunung-mas', name: 'Gunung Mas' },
+      { id: 'kapuas', name: 'Kapuas' },
+      { id: 'katingan', name: 'Katingan' },
+      { id: 'kotawaringin-barat', name: 'Kotawaringin Barat' },
+      { id: 'kotawaringin-timur', name: 'Kotawaringin Timur' },
+      { id: 'lamandau', name: 'Lamandau' },
+      { id: 'murung-raya', name: 'Murung Raya' },
+      { id: 'pulang-pisau', name: 'Pulang Pisau' },
+      { id: 'sukamara', name: 'Sukamara' },
+      { id: 'seruyan', name: 'Seruyan' }
+    ],
+    'kalimantan-selatan': [
+      { id: 'banjarmasin', name: 'Banjarmasin' },
+      { id: 'banjarbaru', name: 'Banjarbaru' },
+      { id: 'balangan', name: 'Balangan' },
+      { id: 'banjar', name: 'Banjar' },
+      { id: 'barito-kuala', name: 'Barito Kuala' },
+      { id: 'hulu-sungai-selatan', name: 'Hulu Sungai Selatan' },
+      { id: 'hulu-sungai-tengah', name: 'Hulu Sungai Tengah' },
+      { id: 'hulu-sungai-utara', name: 'Hulu Sungai Utara' },
+      { id: 'kotabaru', name: 'Kotabaru' },
+      { id: 'tabalong', name: 'Tabalong' },
+      { id: 'tanah-bumbu', name: 'Tanah Bumbu' },
+      { id: 'tanah-laut', name: 'Tanah Laut' },
+      { id: 'tapin', name: 'Tapin' }
+    ],
+    'kalimantan-timur': [
+      { id: 'samarinda', name: 'Samarinda' },
+      { id: 'balikpapan', name: 'Balikpapan' },
+      { id: 'bontang', name: 'Bontang' },
+      { id: 'berau', name: 'Berau' },
+      { id: 'kutai-barat', name: 'Kutai Barat' },
+      { id: 'kutai-kartanegara', name: 'Kutai Kartanegara' },
+      { id: 'kutai-timur', name: 'Kutai Timur' },
+      { id: 'paser', name: 'Paser' },
+      { id: 'penajam-paser-utara', name: 'Penajam Paser Utara' }
+    ],
+    'kalimantan-utara': [
+      { id: 'tarakan', name: 'Tarakan' },
+      { id: 'bulungan', name: 'Bulungan' },
+      { id: 'malinau', name: 'Malinau' },
+      { id: 'nunukan', name: 'Nunukan' },
+      { id: 'tana-tidung', name: 'Tana Tidung' }
+    ],
+    'sulawesi-utara': [
+      { id: 'manado', name: 'Manado' },
+      { id: 'bitung', name: 'Bitung' },
+      { id: 'kotamobagu', name: 'Kotamobagu' },
+      { id: 'tomohon', name: 'Tomohon' },
+      { id: 'bolaang-mongondow', name: 'Bolaang Mongondow' },
+      { id: 'bolaang-mongondow-selatan', name: 'Bolaang Mongondow Selatan' },
+      { id: 'bolaang-mongondow-timur', name: 'Bolaang Mongondow Timur' },
+      { id: 'bolaang-mongondow-utara', name: 'Bolaang Mongondow Utara' },
+      { id: 'kepulauan-sangihe', name: 'Kepulauan Sangihe' },
+      { id: 'kepulauan-siau-tagulandang-biaro', name: 'Kepulauan Siau Tagulandang Biaro' },
+      { id: 'kepulauan-talaud', name: 'Kepulauan Talaud' },
+      { id: 'minahasa', name: 'Minahasa' },
+      { id: 'minahasa-selatan', name: 'Minahasa Selatan' },
+      { id: 'minahasa-tenggara', name: 'Minahasa Tenggara' },
+      { id: 'minahasa-utara', name: 'Minahasa Utara' }
+    ],
+    'sulawesi-tengah': [
+      { id: 'palu', name: 'Palu' },
+      { id: 'banggai', name: 'Banggai' },
+      { id: 'banggai-kepulauan', name: 'Banggai Kepulauan' },
+      { id: 'banggai-laut', name: 'Banggai Laut' },
+      { id: 'buol', name: 'Buol' },
+      { id: 'donggala', name: 'Donggala' },
+      { id: 'morowali', name: 'Morowali' },
+      { id: 'morowali-utara', name: 'Morowali Utara' },
+      { id: 'parigi-moutong', name: 'Parigi Moutong' },
+      { id: 'poso', name: 'Poso' },
+      { id: 'sigi', name: 'Sigi' },
+      { id: 'tojo-una-una', name: 'Tojo Una Una' },
+      { id: 'toli-toli', name: 'Toli Toli' }
+    ],
+    'sulawesi-selatan': [
+      { id: 'makassar', name: 'Makassar' },
+      { id: 'parepare', name: 'Parepare' },
+      { id: 'palopo', name: 'Palopo' },
+      { id: 'bantaeng', name: 'Bantaeng' },
+      { id: 'barru', name: 'Barru' },
+      { id: 'bone', name: 'Bone' },
+      { id: 'bulukumba', name: 'Bulukumba' },
+      { id: 'enrekang', name: 'Enrekang' },
+      { id: 'gowa', name: 'Gowa' },
+      { id: 'jeneponto', name: 'Jeneponto' },
+      { id: 'kepulauan-selayar', name: 'Kepulauan Selayar' },
+      { id: 'luwu', name: 'Luwu' },
+      { id: 'luwu-timur', name: 'Luwu Timur' },
+      { id: 'luwu-utara', name: 'Luwu Utara' },
+      { id: 'maros', name: 'Maros' },
+      { id: 'pangkajene-dan-kepulauan', name: 'Pangkajene dan Kepulauan' },
+      { id: 'pinrang', name: 'Pinrang' },
+      { id: 'sidenreng-rappang', name: 'Sidenreng Rappang' },
+      { id: 'sinjai', name: 'Sinjai' },
+      { id: 'soppeng', name: 'Soppeng' },
+      { id: 'takalar', name: 'Takalar' },
+      { id: 'tana-toraja', name: 'Tana Toraja' },
+      { id: 'toraja-utara', name: 'Toraja Utara' },
+      { id: 'wajo', name: 'Wajo' }
+    ],
+    'sulawesi-tenggara': [
+      { id: 'kendari', name: 'Kendari' },
+      { id: 'baubau', name: 'Baubau' },
+      { id: 'bombana', name: 'Bombana' },
+      { id: 'buton', name: 'Buton' },
+      { id: 'buton-selatan', name: 'Buton Selatan' },
+      { id: 'buton-tengah', name: 'Buton Tengah' },
+      { id: 'buton-utara', name: 'Buton Utara' },
+      { id: 'kolaka', name: 'Kolaka' },
+      { id: 'kolaka-timur', name: 'Kolaka Timur' },
+      { id: 'kolaka-utara', name: 'Kolaka Utara' },
+      { id: 'konawe', name: 'Konawe' },
+      { id: 'konawe-kepulauan', name: 'Konawe Kepulauan' },
+      { id: 'konawe-selatan', name: 'Konawe Selatan' },
+      { id: 'konawe-utara', name: 'Konawe Utara' },
+      { id: 'muna', name: 'Muna' },
+      { id: 'muna-barat', name: 'Muna Barat' },
+      { id: 'wakatobi', name: 'Wakatobi' }
+    ],
+    'gorontalo': [
+      { id: 'gorontalo', name: 'Gorontalo' },
+      { id: 'boalemo', name: 'Boalemo' },
+      { id: 'bone-bolango', name: 'Bone Bolango' },
+      { id: 'gorontalo-utara', name: 'Gorontalo Utara' },
+      { id: 'gorontalo', name: 'Gorontalo' },
+      { id: 'pohuwato', name: 'Pohuwato' }
+    ],
+    'sulawesi-barat': [
+      { id: 'mamuju', name: 'Mamuju' },
+      { id: 'mamuju-tengah', name: 'Mamuju Tengah' },
+      { id: 'mamuju-utara', name: 'Mamuju Utara' },
+      { id: 'mamuju-tenggara', name: 'Mamuju Tenggara' },
+      { id: 'majene', name: 'Majene' },
+      { id: 'polewali-mandar', name: 'Polewali Mandar' }
+    ],
+    'maluku': [
+      { id: 'ambon', name: 'Ambon' },
+      { id: 'tual', name: 'Tual' },
+      { id: 'buru', name: 'Buru' },
+      { id: 'buru-selatan', name: 'Buru Selatan' },
+      { id: 'kepulauan-aru', name: 'Kepulauan Aru' },
+      { id: 'kepulauan-tanimbar', name: 'Kepulauan Tanimbar' },
+      { id: 'maluku-barat-daya', name: 'Maluku Barat Daya' },
+      { id: 'maluku-tengah', name: 'Maluku Tengah' },
+      { id: 'maluku-tenggara', name: 'Maluku Tenggara' },
+      { id: 'maluku-tenggara-barat', name: 'Maluku Tenggara Barat' },
+      { id: 'seram-bagian-barat', name: 'Seram Bagian Barat' },
+      { id: 'seram-bagian-timur', name: 'Seram Bagian Timur' }
+    ],
+    'maluku-utara': [
+      { id: 'sofifi', name: 'Sofifi' },
+      { id: 'ternate', name: 'Ternate' },
+      { id: 'tidore-kepulauan', name: 'Tidore Kepulauan' },
+      { id: 'halmahera-barat', name: 'Halmahera Barat' },
+      { id: 'halmahera-tengah', name: 'Halmahera Tengah' },
+      { id: 'halmahera-utara', name: 'Halmahera Utara' },
+      { id: 'halmahera-selatan', name: 'Halmahera Selatan' },
+      { id: 'halmahera-timur', name: 'Halmahera Timur' },
+      { id: 'kepulauan-sula', name: 'Kepulauan Sula' },
+      { id: 'pulau-morotai', name: 'Pulau Morotai' }
+    ],
+    'papua-barat': [
+      { id: 'manokwari', name: 'Manokwari' },
+      { id: 'sorong', name: 'Sorong' },
+      { id: 'fakfak', name: 'Fakfak' },
+      { id: 'kaimana', name: 'Kaimana' },
+      { id: 'manokwari-selatan', name: 'Manokwari Selatan' },
+      { id: 'maybrat', name: 'Maybrat' },
+      { id: 'pegunungan-arfak', name: 'Pegunungan Arfak' },
+      { id: 'raja-ampat', name: 'Raja Ampat' },
+      { id: 'sorong-selatan', name: 'Sorong Selatan' },
+      { id: 'tambrauw', name: 'Tambrauw' },
+      { id: 'teluk-bintuni', name: 'Teluk Bintuni' },
+      { id: 'teluk-wondama', name: 'Teluk Wondama' }
+    ],
+    'papua': [
+      { id: 'jayapura', name: 'Jayapura' },
+      { id: 'merauke', name: 'Merauke' },
+      { id: 'asmat', name: 'Asmat' },
+      { id: 'biak-numfor', name: 'Biak Numfor' },
+      { id: 'boven-digoel', name: 'Boven Digoel' },
+      { id: 'deiyai', name: 'Deiyai' },
+      { id: 'dogiyai', name: 'Dogiyai' },
+      { id: 'intan-jaya', name: 'Intan Jaya' },
+      { id: 'jayapura', name: 'Jayapura' },
+      { id: 'jayawijaya', name: 'Jayawijaya' },
+      { id: 'keerom', name: 'Keerom' },
+      { id: 'kepulauan-yapen', name: 'Kepulauan Yapen' },
+      { id: 'lanny-jaya', name: 'Lanny Jaya' },
+      { id: 'mamberamo-raya', name: 'Mamberamo Raya' },
+      { id: 'mamberamo-tengah', name: 'Mamberamo Tengah' },
+      { id: 'mappi', name: 'Mappi' },
+      { id: 'mimika', name: 'Mimika' },
+      { id: 'nabire', name: 'Nabire' },
+      { id: 'nduga', name: 'Nduga' },
+      { id: 'paniai', name: 'Paniai' },
+      { id: 'pegunungan-bintang', name: 'Pegunungan Bintang' },
+      { id: 'puncak', name: 'Puncak' },
+      { id: 'puncak-jaya', name: 'Puncak Jaya' },
+      { id: 'sarmi', name: 'Sarmi' },
+      { id: 'supiori', name: 'Supiori' },
+      { id: 'tolikara', name: 'Tolikara' },
+      { id: 'waropen', name: 'Waropen' },
+      { id: 'yahukimo', name: 'Yahukimo' },
+      { id: 'yalimo', name: 'Yalimo' }
+    ],
+    'papua-tengah': [
+      { id: 'nabire', name: 'Nabire' },
+      { id: 'deiyai', name: 'Deiyai' },
+      { id: 'dogiyai', name: 'Dogiyai' },
+      { id: 'intan-jaya', name: 'Intan Jaya' },
+      { id: 'mimika', name: 'Mimika' },
+      { id: 'puncak', name: 'Puncak' },
+      { id: 'puncak-jaya', name: 'Puncak Jaya' }
+    ],
+    'papua-pegunungan': [
+      { id: 'jayawijaya', name: 'Jayawijaya' },
+      { id: 'lanny-jaya', name: 'Lanny Jaya' },
+      { id: 'mamberamo-tengah', name: 'Mamberamo Tengah' },
+      { id: 'nduga', name: 'Nduga' },
+      { id: 'pegunungan-bintang', name: 'Pegunungan Bintang' },
+      { id: 'tolikara', name: 'Tolikara' },
+      { id: 'yalimo', name: 'Yalimo' }
+    ],
+    'papua-selatan': [
+      { id: 'merauke', name: 'Merauke' },
+      { id: 'asmat', name: 'Asmat' },
+      { id: 'boven-digoel', name: 'Boven Digoel' },
+      { id: 'mappi', name: 'Mappi' }
+    ],
+    'papua-barat-daya': [
+      { id: 'sorong', name: 'Sorong' },
+      { id: 'fakfak', name: 'Fakfak' },
+      { id: 'kaimana', name: 'Kaimana' },
+      { id: 'manokwari-selatan', name: 'Manokwari Selatan' },
+      { id: 'maybrat', name: 'Maybrat' },
+      { id: 'pegunungan-arfak', name: 'Pegunungan Arfak' },
+      { id: 'raja-ampat', name: 'Raja Ampat' },
+      { id: 'sorong-selatan', name: 'Sorong Selatan' },
+      { id: 'tambrauw', name: 'Tambrauw' },
+      { id: 'teluk-bintuni', name: 'Teluk Bintuni' },
+      { id: 'teluk-wondama', name: 'Teluk Wondama' }
+    ]
+  }
+
+  // Districts data for major cities
+  const districtsData: { [key: string]: any[] } = {
+    'jakarta-pusat': [
+      { id: 'gambir', name: 'Gambir' },
+      { id: 'sawah-besar', name: 'Sawah Besar' },
+      { id: 'kemayoran', name: 'Kemayoran' },
+      { id: 'senen', name: 'Senen' },
+      { id: 'cempaka-putih', name: 'Cempaka Putih' },
+      { id: 'menteng', name: 'Menteng' },
+      { id: 'tanah-abang', name: 'Tanah Abang' },
+      { id: 'johar-baru', name: 'Johar Baru' }
+    ],
+    'jakarta-selatan': [
+      { id: 'kebayoran-baru', name: 'Kebayoran Baru' },
+      { id: 'kebayoran-lama', name: 'Kebayoran Lama' },
+      { id: 'pancoran', name: 'Pancoran' },
+      { id: 'cilandak', name: 'Cilandak' },
+      { id: 'pasar-minggu', name: 'Pasar Minggu' },
+      { id: 'jagakarsa', name: 'Jagakarsa' },
+      { id: 'pesanggrahan', name: 'Pesanggrahan' },
+      { id: 'tebet', name: 'Tebet' },
+      { id: 'setiabudi', name: 'Setiabudi' },
+      { id: 'mampang-prapatan', name: 'Mampang Prapatan' }
+    ],
+    'jakarta-utara': [
+      { id: 'koja', name: 'Koja' },
+      { id: 'kelapa-gading', name: 'Kelapa Gading' },
+      { id: 'tanjung-priok', name: 'Tanjung Priok' },
+      { id: 'pademangan', name: 'Pademangan' },
+      { id: 'penjaringan', name: 'Penjaringan' },
+      { id: 'cilincing', name: 'Cilincing' }
+    ],
+    'jakarta-barat': [
+      { id: 'kebon-jeruk', name: 'Kebon Jeruk' },
+      { id: 'kembangan', name: 'Kembangan' },
+      { id: 'palmerah', name: 'Palmerah' },
+      { id: 'grogol-petamburan', name: 'Grogol Petamburan' },
+      { id: 'tambora', name: 'Tambora' },
+      { id: 'kalideres', name: 'Kalideres' },
+      { id: 'cengkareng', name: 'Cengkareng' }
+    ],
+    'jakarta-timur': [
+      { id: 'matraman', name: 'Matraman' },
+      { id: 'pulo-gadung', name: 'Pulo Gadung' },
+      { id: 'jatinegara', name: 'Jatinegara' },
+      { id: 'kramat-jati', name: 'Kramat Jati' },
+      { id: 'pasar-rebo', name: 'Pasar Rebo' },
+      { id: 'cipayung', name: 'Cipayung' },
+      { id: 'makasar', name: 'Makasar' },
+      { id: 'ciracas', name: 'Ciracas' },
+      { id: 'cakung', name: 'Cakung' },
+      { id: 'duren-sawit', name: 'Duren Sawit' }
+    ],
+    'bandung': [
+      { id: 'coblong', name: 'Coblong' },
+      { id: 'sukajadi', name: 'Sukajadi' },
+      { id: 'cidadap', name: 'Cidadap' },
+      { id: 'bandung-wetan', name: 'Bandung Wetan' },
+      { id: 'bandung-kulon', name: 'Bandung Kulon' },
+      { id: 'babakan-ciparay', name: 'Babakan Ciparay' },
+      { id: 'bojongloa-kaler', name: 'Bojongloa Kaler' },
+      { id: 'bojongloa-kidul', name: 'Bojongloa Kidul' },
+      { id: 'cibeunying-kaler', name: 'Cibeunying Kaler' },
+      { id: 'cibeunying-kidul', name: 'Cibeunying Kidul' },
+      { id: 'cicendo', name: 'Cicendo' },
+      { id: 'cimenyan', name: 'Cimenyan' },
+      { id: 'cinambo', name: 'Cinambo' },
+      { id: 'kiaracondong', name: 'Kiaracondong' },
+      { id: 'lengkong', name: 'Lengkong' },
+      { id: 'mandalajati', name: 'Mandalajati' },
+      { id: 'rancamaya', name: 'Rancamaya' },
+      { id: 'regol', name: 'Regol' },
+      { id: 'sumur-bandung', name: 'Sumur Bandung' },
+      { id: 'ujung-berung', name: 'Ujung Berung' }
+    ],
+    'surabaya': [
+      { id: 'genteng', name: 'Genteng' },
+      { id: 'bubutan', name: 'Bubutan' },
+      { id: 'simokerto', name: 'Simokerto' },
+      { id: 'tambaksari', name: 'Tambaksari' },
+      { id: 'gubeng', name: 'Gubeng' },
+      { id: 'gunung-anyar', name: 'Gunung Anyar' },
+      { id: 'sukolilo', name: 'Sukolilo' },
+      { id: 'mulyorejo', name: 'Mulyorejo' },
+      { id: 'rungkut', name: 'Rungkut' },
+      { id: 'wonokromo', name: 'Wonokromo' },
+      { id: 'wonocolo', name: 'Wonocolo' },
+      { id: 'wiyung', name: 'Wiyung' },
+      { id: 'karang-pilang', name: 'Karang Pilang' },
+      { id: 'jambangan', name: 'Jambangan' },
+      { id: 'gayungan', name: 'Gayungan' },
+      { id: 'darmo', name: 'Darmo' },
+      { id: 'krembangan', name: 'Krembangan' },
+      { id: 'semampir', name: 'Semampir' },
+      { id: 'pabean-cantikan', name: 'Pabean Cantikan' },
+      { id: 'bulak', name: 'Bulak' }
+    ],
+    'yogyakarta': [
+      { id: 'gondokusuman', name: 'Gondokusuman' },
+      { id: 'gedongtengen', name: 'Gedongtengen' },
+      { id: 'jetis', name: 'Jetis' },
+      { id: 'tegalrejo', name: 'Tegalrejo' },
+      { id: 'ngampilan', name: 'Ngampilan' },
+      { id: 'wirobrajan', name: 'Wirobrajan' },
+      { id: 'mantrijeron', name: 'Mantrijeron' },
+      { id: 'kraton', name: 'Kraton' },
+      { id: 'gondomanan', name: 'Gondomanan' },
+      { id: 'pakualaman', name: 'Pakualaman' }
+    ],
+    'denpasar': [
+      { id: 'denpasar-selatan', name: 'Denpasar Selatan' },
+      { id: 'denpasar-timur', name: 'Denpasar Timur' },
+      { id: 'denpasar-barat', name: 'Denpasar Barat' },
+      { id: 'denpasar-utara', name: 'Denpasar Utara' }
+    ],
+    'medan': [
+      { id: 'medan-barat', name: 'Medan Barat' },
+      { id: 'medan-barat-daya', name: 'Medan Barat Daya' },
+      { id: 'medan-belawan', name: 'Medan Belawan' },
+      { id: 'medan-delitua', name: 'Medan Delitua' },
+      { id: 'medan-denai', name: 'Medan Denai' },
+      { id: 'medan-helvetia', name: 'Medan Helvetia' },
+      { id: 'medan-johor', name: 'Medan Johor' },
+      { id: 'medan-kota', name: 'Medan Kota' },
+      { id: 'medan-labuhan', name: 'Medan Labuhan' },
+      { id: 'medan-maimun', name: 'Medan Maimun' },
+      { id: 'medan-marelan', name: 'Medan Marelan' },
+      { id: 'medan-perjuangan', name: 'Medan Perjuangan' },
+      { id: 'medan-petisah', name: 'Medan Petisah' },
+      { id: 'medan-polong', name: 'Medan Polong' },
+      { id: 'medan-selayang', name: 'Medan Selayang' },
+      { id: 'medan-sunggal', name: 'Medan Sunggal' },
+      { id: 'medan-tembung', name: 'Medan Tembung' },
+      { id: 'medan-timur', name: 'Medan Timur' },
+      { id: 'medan-tuntungan', name: 'Medan Tuntungan' },
+      { id: 'medan-utara', name: 'Medan Utara' }
+    ],
+    'semarang': [
+      { id: 'banyumanik', name: 'Banyumanik' },
+      { id: 'candisari', name: 'Candisari' },
+      { id: 'gajah-mungkur', name: 'Gajah Mungkur' },
+      { id: 'gayamsari', name: 'Gayamsari' },
+      { id: 'genuk', name: 'Genuk' },
+      { id: 'gunungpati', name: 'Gunungpati' },
+      { id: 'mijen', name: 'Mijen' },
+      { id: 'ngaliyan', name: 'Ngaliyan' },
+      { id: 'pedurungan', name: 'Pedurungan' },
+      { id: 'semarang-barat', name: 'Semarang Barat' },
+      { id: 'semarang-selatan', name: 'Semarang Selatan' },
+      { id: 'semarang-tengah', name: 'Semarang Tengah' },
+      { id: 'semarang-timur', name: 'Semarang Timur' },
+      { id: 'semarang-utara', name: 'Semarang Utara' },
+      { id: 'tembalang', name: 'Tembalang' },
+      { id: 'tugu', name: 'Tugu' }
+    ],
+    'makassar': [
+      { id: 'bontoala', name: 'Bontoala' },
+      { id: 'kepulauan-sangkarrang', name: 'Kepulauan Sangkarrang' },
+      { id: 'mamajang', name: 'Mamajang' },
+      { id: 'manggala', name: 'Manggala' },
+      { id: 'mariso', name: 'Mariso' },
+      { id: 'panakkukang', name: 'Panakkukang' },
+      { id: 'rappocini', name: 'Rappocini' },
+      { id: 'tallo', name: 'Tallo' },
+      { id: 'tamalanrea', name: 'Tamalanrea' },
+      { id: 'tamalate', name: 'Tamalate' },
+      { id: 'ujung-pandang', name: 'Ujung Pandang' },
+      { id: 'wajo', name: 'Wajo' }
+    ],
+    'palembang': [
+      { id: 'ilir-barat-i', name: 'Ilir Barat I' },
+      { id: 'ilir-barat-ii', name: 'Ilir Barat II' },
+      { id: 'ilir-timur-i', name: 'Ilir Timur I' },
+      { id: 'ilir-timur-ii', name: 'Ilir Timur II' },
+      { id: 'ilir-timur-iii', name: 'Ilir Timur III' },
+      { id: 'seberang-ului', name: 'Seberang Ulu I' },
+      { id: 'seberang-ului-ii', name: 'Seberang Ulu II' },
+      { id: 'sukarami', name: 'Sukarami' },
+      { id: 'sako', name: 'Sako' },
+      { id: 'kemuning', name: 'Kemuning' },
+      { id: 'kalidoni', name: 'Kalidoni' },
+      { id: 'bukit-kecil', name: 'Bukit Kecil' },
+      { id: 'gandus', name: 'Gandus' },
+      { id: 'kertapati', name: 'Kertapati' },
+      { id: 'plaju', name: 'Plaju' },
+      { id: 'alang-alang-lebar', name: 'Alang Alang Lebar' }
+    ],
+    'pati': [
+      { id: 'pati', name: 'Pati' },
+      { id: 'jaken', name: 'Jaken' },
+      { id: 'jakenan', name: 'Jakenan' },
+      { id: 'jatiroto', name: 'Jatiroto' },
+      { id: 'juwana', name: 'Juwana' },
+      { id: 'kayen', name: 'Kayen' },
+      { id: 'margorejo', name: 'Margorejo' },
+      { id: 'margoyoso', name: 'Margoyoso' },
+      { id: 'pucakwangi', name: 'Pucakwangi' },
+      { id: 'sukolilo', name: 'Sukolilo' },
+      { id: 'tambakromo', name: 'Tambakromo' },
+      { id: 'tayu', name: 'Tayu' },
+      { id: 'trangkil', name: 'Trangkil' },
+      { id: 'wedarijaksa', name: 'Wedarijaksa' },
+      { id: 'winong', name: 'Winong' }
+    ],
+    'surakarta': [
+      { id: 'banjarsari', name: 'Banjarsari' },
+      { id: 'jebres', name: 'Jebres' },
+      { id: 'laweyan', name: 'Laweyan' },
+      { id: 'pasar-kliwon', name: 'Pasar Kliwon' },
+      { id: 'serengan', name: 'Serengan' }
+    ],
+    'pekalongan': [
+      { id: 'pekalongan-barat', name: 'Pekalongan Barat' },
+      { id: 'pekalongan-selatan', name: 'Pekalongan Selatan' },
+      { id: 'pekalongan-tengah', name: 'Pekalongan Tengah' },
+      { id: 'pekalongan-timur', name: 'Pekalongan Timur' },
+      { id: 'pekalongan-utara', name: 'Pekalongan Utara' }
+    ],
+    'salatiga': [
+      { id: 'argomulyo', name: 'Argomulyo' },
+      { id: 'tingkir', name: 'Tingkir' },
+      { id: 'sidomukti', name: 'Sidomukti' },
+      { id: 'sidorejo', name: 'Sidorejo' }
+    ],
+    'magelang': [
+      { id: 'magelang-selatan', name: 'Magelang Selatan' },
+      { id: 'magelang-tengah', name: 'Magelang Tengah' },
+      { id: 'magelang-utara', name: 'Magelang Utara' }
+    ],
+    'tegal': [
+      { id: 'tegal-barat', name: 'Tegal Barat' },
+      { id: 'tegal-selatan', name: 'Tegal Selatan' },
+      { id: 'tegal-timur', name: 'Tegal Timur' },
+      { id: 'margadana', name: 'Margadana' }
+    ],
+    'kudus': [
+      { id: 'kudus', name: 'Kudus' },
+      { id: 'jati', name: 'Jati' },
+      { id: 'jekulo', name: 'Jekulo' },
+      { id: 'kaliwungu', name: 'Kaliwungu' },
+      { id: 'kota-kudus', name: 'Kota Kudus' },
+      { id: 'mejobo', name: 'Mejobo' },
+      { id: 'undaan', name: 'Undaan' }
+    ],
+    'purwokerto': [
+      { id: 'purwokerto-barat', name: 'Purwokerto Barat' },
+      { id: 'purwokerto-selatan', name: 'Purwokerto Selatan' },
+      { id: 'purwokerto-timur', name: 'Purwokerto Timur' },
+      { id: 'purwokerto-utara', name: 'Purwokerto Utara' }
+    ],
+    'boyolali': [
+      { id: 'boyolali', name: 'Boyolali' },
+      { id: 'ampek', name: 'Ampek' },
+      { id: 'andong', name: 'Andong' },
+      { id: 'banyudono', name: 'Banyudono' },
+      { id: 'ceper', name: 'Ceper' },
+      { id: 'juwangi', name: 'Juwangi' },
+      { id: 'karanggede', name: 'Karanggede' },
+      { id: 'kemusu', name: 'Kemusu' },
+      { id: 'klego', name: 'Klego' },
+      { id: 'mojosongo', name: 'Mojosongo' },
+      { id: 'musuk', name: 'Musuk' },
+      { id: 'ngemplak', name: 'Ngemplak' },
+      { id: 'nogosari', name: 'Nogosari' },
+      { id: 'sambi', name: 'Sambi' },
+      { id: 'sawit', name: 'Sawit' },
+      { id: 'selo', name: 'Selo' },
+      { id: 'simo', name: 'Simo' },
+      { id: 'teras', name: 'Teras' },
+      { id: 'wonoasri', name: 'Wonoasri' }
+    ],
+    // Jawa Barat
+    'bekasi': [
+      { id: 'bekasi-barat', name: 'Bekasi Barat' },
+      { id: 'bekasi-selatan', name: 'Bekasi Selatan' },
+      { id: 'bekasi-timur', name: 'Bekasi Timur' },
+      { id: 'bekasi-utara', name: 'Bekasi Utara' },
+      { id: 'rawalumbu', name: 'Rawalumbu' },
+      { id: 'medan-satria', name: 'Medan Satria' },
+      { id: 'bantargebang', name: 'Bantargebang' },
+      { id: 'pondok-gede', name: 'Pondok Gede' },
+      { id: 'jatisampurna', name: 'Jatisampurna' },
+      { id: 'mustika-jaya', name: 'Mustika Jaya' },
+      { id: 'pancoran-mas', name: 'Pancoran Mas' },
+      { id: 'sawangan', name: 'Sawangan' }
+    ],
+    'depok': [
+      { id: 'beji', name: 'Beji' },
+      { id: 'bojongsari', name: 'Bojongsari' },
+      { id: 'cimanggis', name: 'Cimanggis' },
+      { id: 'cinere', name: 'Cinere' },
+      { id: 'cipayung', name: 'Cipayung' },
+      { id: 'limo', name: 'Limo' },
+      { id: 'pancoran-mas', name: 'Pancoran Mas' },
+      { id: 'sawangan', name: 'Sawangan' },
+      { id: 'sukmajaya', name: 'Sukmajaya' },
+      { id: 'tapos', name: 'Tapos' }
+    ],
+    'bogor': [
+      { id: 'bogor-barat', name: 'Bogor Barat' },
+      { id: 'bogor-selatan', name: 'Bogor Selatan' },
+      { id: 'bogor-tengah', name: 'Bogor Tengah' },
+      { id: 'bogor-timur', name: 'Bogor Timur' },
+      { id: 'bogor-utara', name: 'Bogor Utara' },
+      { id: 'tanah-sareal', name: 'Tanah Sareal' }
+    ],
+    'tangerang': [
+      { id: 'batu-ceper', name: 'Batu Ceper' },
+      { id: 'benda', name: 'Benda' },
+      { id: 'ciledug', name: 'Ciledug' },
+      { id: 'cipondoh', name: 'Cipondoh' },
+      { id: 'jati-uwung', name: 'Jati Uwung' },
+      { id: 'karang-tengah', name: 'Karang Tengah' },
+      { id: 'karawaci', name: 'Karawaci' },
+      { id: 'larangan', name: 'Larangan' },
+      { id: 'negara', name: 'Negara' },
+      { id: 'pinang', name: 'Pinang' },
+      { id: 'periuk', name: 'Periuk' },
+      { id: 'serpong', name: 'Serpong' },
+      { id: 'serpong-utara', name: 'Serpong Utara' },
+      { id: 'tangerang', name: 'Tangerang' }
+    ],
+    'cirebon': [
+      { id: 'cirebon-barat', name: 'Cirebon Barat' },
+      { id: 'cirebon-selatan', name: 'Cirebon Selatan' },
+      { id: 'cirebon-tengah', name: 'Cirebon Tengah' },
+      { id: 'cirebon-timur', name: 'Cirebon Timur' },
+      { id: 'cirebon-utara', name: 'Cirebon Utara' },
+      { id: 'harjamukti', name: 'Harjamukti' },
+      { id: 'kejaksan', name: 'Kejaksan' },
+      { id: 'kesambi', name: 'Kesambi' }
+    ],
+    'tasikmalaya': [
+      { id: 'bungursari', name: 'Bungursari' },
+      { id: 'cibeureum', name: 'Cibeureum' },
+      { id: 'cihideung', name: 'Cihideung' },
+      { id: 'cipeundeuy', name: 'Cipeundeuy' },
+      { id: 'cipocok-jaya', name: 'Cipocok Jaya' },
+      { id: 'citamiang', name: 'Citamiang' },
+      { id: 'indihiang', name: 'Indihiang' },
+      { id: 'kawalu', name: 'Kawalu' },
+      { id: 'mangkubumi', name: 'Mangkubumi' },
+      { id: 'purbaratu', name: 'Purbaratu' },
+      { id: 'tamansari', name: 'Tamansari' },
+      { id: 'tawang', name: 'Tawang' }
+    ],
+    'sukabumi': [
+      { id: 'baros', name: 'Baros' },
+      { id: 'cibeureum', name: 'Cibeureum' },
+      { id: 'cikole', name: 'Cikole' },
+      { id: 'citamiang', name: 'Citamiang' },
+      { id: 'gunung-puyuh', name: 'Gunung Puyuh' },
+      { id: 'lengkong', name: 'Lengkong' },
+      { id: 'subang-jaya', name: 'Subang Jaya' },
+      { id: 'warudoyong', name: 'Warudoyong' }
+    ],
+    'karawang': [
+      { id: 'karawang-barat', name: 'Karawang Barat' },
+      { id: 'karawang-timur', name: 'Karawang Timur' },
+      { id: 'telukjambe-barat', name: 'Telukjambe Barat' },
+      { id: 'telukjambe-timur', name: 'Telukjambe Timur' }
+    ],
+    'purwakarta': [
+      { id: 'purwakarta', name: 'Purwakarta' },
+      { id: 'babakancikao', name: 'Babakancikao' },
+      { id: 'bojong', name: 'Bojong' },
+      { id: 'bungursari', name: 'Bungursari' },
+      { id: 'campaka', name: 'Campaka' },
+      { id: 'cibatu', name: 'Cibatu' },
+      { id: 'darangdan', name: 'Darangdan' },
+      { id: 'jatiluhur', name: 'Jatiluhur' },
+      { id: 'kiara-pedang', name: 'Kiara Pedang' },
+      { id: 'maniis', name: 'Maniis' },
+      { id: 'pasawahan', name: 'Pasawahan' },
+      { id: 'plered', name: 'Plered' },
+      { id: 'pondoksalam', name: 'Pondoksalam' },
+      { id: 'sukasari', name: 'Sukasari' },
+      { id: 'sukatani', name: 'Sukatani' },
+      { id: 'tegalwaru', name: 'Tegalwaru' },
+      { id: 'wanayasa', name: 'Wanayasa' }
+    ],
+    // Jawa Timur
+    'malang': [
+      { id: 'blimbing', name: 'Blimbing' },
+      { id: 'klojen', name: 'Klojen' },
+      { id: 'kedungkandang', name: 'Kedungkandang' },
+      { id: 'lowokwaru', name: 'Lowokwaru' },
+      { id: 'sukun', name: 'Sukun' }
+    ],
+    'kediri': [
+      { id: 'kediri', name: 'Kediri' },
+      { id: 'mojo', name: 'Mojo' },
+      { id: 'pesantren', name: 'Pesantren' }
+    ],
+    'blitar': [
+      { id: 'blitar', name: 'Blitar' },
+      { id: 'kepanjen-kidul', name: 'Kepanjen Kidul' },
+      { id: 'sanan-wetan', name: 'Sanan Wetan' }
+    ],
+    'probolinggo': [
+      { id: 'probolinggo', name: 'Probolinggo' },
+      { id: 'kademangan', name: 'Kademangan' },
+      { id: 'kanigaran', name: 'Kanigaran' },
+      { id: 'kedopok', name: 'Kedopok' },
+      { id: 'mayangan', name: 'Mayangan' },
+      { id: 'wonoasih', name: 'Wonoasih' }
+    ],
+    'pasuruan': [
+      { id: 'pasuruan', name: 'Pasuruan' },
+      { id: 'bugul-kidul', name: 'Bugul Kidul' },
+      { id: 'gadingrejo', name: 'Gadingrejo' },
+      { id: 'panggungrejo', name: 'Panggungrejo' },
+      { id: 'purworejo', name: 'Purworejo' }
+    ],
+    'mojokerto': [
+      { id: 'mojokerto', name: 'Mojokerto' },
+      { id: 'magersari', name: 'Magersari' },
+      { id: 'prajurit-kulon', name: 'Prajurit Kulon' }
+    ],
+    'madiun': [
+      { id: 'madiun', name: 'Madiun' },
+      { id: 'kartoharjo', name: 'Kartoharjo' },
+      { id: 'manguharjo', name: 'Manguharjo' },
+      { id: 'taman', name: 'Taman' }
+    ],
+    'batu': [
+      { id: 'batu', name: 'Batu' },
+      { id: 'bumiaji', name: 'Bumiaji' },
+      { id: 'junrejo', name: 'Junrejo' }
+    ],
+    'jember': [
+      { id: 'jember', name: 'Jember' },
+      { id: 'kaliwates', name: 'Kaliwates' },
+      { id: 'patrang', name: 'Patrang' },
+      { id: 'sumbersari', name: 'Sumbersari' }
+    ],
+    // Sumatera Utara
+    'binjai': [
+      { id: 'binjai-barat', name: 'Binjai Barat' },
+      { id: 'binjai-selatan', name: 'Binjai Selatan' },
+      { id: 'binjai-timur', name: 'Binjai Timur' },
+      { id: 'binjai-utara', name: 'Binjai Utara' },
+      { id: 'binjai-kota', name: 'Binjai Kota' }
+    ],
+    'pematang-siantar': [
+      { id: 'siantar-marihat', name: 'Siantar Marihat' },
+      { id: 'siantar-martoba', name: 'Siantar Martoba' },
+      { id: 'siantar-selatan', name: 'Siantar Selatan' },
+      { id: 'siantar-timur', name: 'Siantar Timur' },
+      { id: 'siantar-utara', name: 'Siantar Utara' },
+      { id: 'siantar-barat', name: 'Siantar Barat' },
+      { id: 'siantar-tengah', name: 'Siantar Tengah' },
+      { id: 'siantar-hilir', name: 'Siantar Hilir' }
+    ],
+    'tanjung-balai': [
+      { id: 'tanjung-balai-selatan', name: 'Tanjung Balai Selatan' },
+      { id: 'tanjung-balai-utara', name: 'Tanjung Balai Utara' },
+      { id: 'seberang-kota', name: 'Seberang Kota' },
+      { id: 'teluk-nibung', name: 'Teluk Nibung' },
+      { id: 'datuk-bandar', name: 'Datuk Bandar' },
+      { id: 'datuk-bandar-timur', name: 'Datuk Bandar Timur' }
+    ],
+    'tebing-tinggi': [
+      { id: 'tebing-tinggi-barat', name: 'Tebing Tinggi Barat' },
+      { id: 'tebing-tinggi-kota', name: 'Tebing Tinggi Kota' },
+      { id: 'tebing-tinggi-timur', name: 'Tebing Tinggi Timur' },
+      { id: 'rambutan', name: 'Rambutan' },
+      { id: 'bajenis', name: 'Bajenis' },
+      { id: 'padang-hilir', name: 'Padang Hilir' }
+    ],
+    'sibolga': [
+      { id: 'sibolga-kota', name: 'Sibolga Kota' },
+      { id: 'sibolga-sambas', name: 'Sibolga Sambas' },
+      { id: 'sibolga-selatan', name: 'Sibolga Selatan' },
+      { id: 'sibolga-utara', name: 'Sibolga Utara' }
+    ],
+    'padang-sidempuan': [
+      { id: 'padang-sidempuan-angkola-julu', name: 'Padang Sidempuan Angkola Julu' },
+      { id: 'padang-sidempuan-batang-natal', name: 'Padang Sidempuan Batang Natal' },
+      { id: 'padang-sidempuan-hutaimbaru', name: 'Padang Sidempuan Hutaimbaru' },
+      { id: 'padang-sidempuan-selatan', name: 'Padang Sidempuan Selatan' },
+      { id: 'padang-sidempuan-tenggara', name: 'Padang Sidempuan Tenggara' },
+      { id: 'padang-sidempuan-utara', name: 'Padang Sidempuan Utara' }
+    ],
+    'gunung-sitoli': [
+      { id: 'gunung-sitoli', name: 'Gunung Sitoli' },
+      { id: 'gunung-sitoli-alo-oa', name: 'Gunung Sitoli Alo Oa' },
+      { id: 'gunung-sitoli-barat', name: 'Gunung Sitoli Barat' },
+      { id: 'gunung-sitoli-idanoi', name: 'Gunung Sitoli Idanoi' },
+      { id: 'gunung-sitoli-selatan', name: 'Gunung Sitoli Selatan' },
+      { id: 'gunung-sitoli-utara', name: 'Gunung Sitoli Utara' }
+    ],
+    // Sumatera Barat
+    'payakumbuh': [
+      { id: 'payakumbuh-barat', name: 'Payakumbuh Barat' },
+      { id: 'payakumbuh-selatan', name: 'Payakumbuh Selatan' },
+      { id: 'payakumbuh-timur', name: 'Payakumbuh Timur' },
+      { id: 'payakumbuh-utara', name: 'Payakumbuh Utara' },
+      { id: 'lamposi-tigo-nagori', name: 'Lamposi Tigo Nagori' }
+    ],
+    'bukittinggi': [
+      { id: 'aur-biru', name: 'Aur Biru' },
+      { id: 'guguk-panjang', name: 'Guguk Panjang' },
+      { id: 'mandiangin-koto-selayan', name: 'Mandiangin Koto Selayan' }
+    ],
+    'sawahlunto': [
+      { id: 'barangin', name: 'Barangin' },
+      { id: 'lembah-segari', name: 'Lembah Segari' },
+      { id: 'silungkang', name: 'Silungkang' },
+      { id: 'talawi', name: 'Talawi' }
+    ],
+    'solok': [
+      { id: 'lubuk-sikarah', name: 'Lubuk Sikarah' },
+      { id: 'tanjung-harapan', name: 'Tanjung Harapan' }
+    ],
+    'pariaman': [
+      { id: 'pariaman-selatan', name: 'Pariaman Selatan' },
+      { id: 'pariaman-tengah', name: 'Pariaman Tengah' },
+      { id: 'pariaman-timur', name: 'Pariaman Timur' },
+      { id: 'pariaman-utara', name: 'Pariaman Utara' }
+    ],
+    // Riau
+    'dumai': [
+      { id: 'dumai-barat', name: 'Dumai Barat' },
+      { id: 'dumai-selatan', name: 'Dumai Selatan' },
+      { id: 'dumai-timur', name: 'Dumai Timur' },
+      { id: 'dumai-utara', name: 'Dumai Utara' },
+      { id: 'medang-kampai', name: 'Medang Kampai' },
+      { id: 'sungai-sembilan', name: 'Sungai Sembilan' }
+    ],
+    // Sumatera Selatan
+    'prabumulih': [
+      { id: 'prabumulih-barat', name: 'Prabumulih Barat' },
+      { id: 'prabumulih-selatan', name: 'Prabumulih Selatan' },
+      { id: 'prabumulih-timur', name: 'Prabumulih Timur' },
+      { id: 'prabumulih-utara', name: 'Prabumulih Utara' }
+    ],
+    'pagar-alam': [
+      { id: 'pagar-alam-selatan', name: 'Pagar Alam Selatan' },
+      { id: 'pagar-alam-utara', name: 'Pagar Alam Utara' },
+      { id: 'dempo-selatan', name: 'Dempo Selatan' },
+      { id: 'dempo-tengah', name: 'Dempo Tengah' },
+      { id: 'dempo-utara', name: 'Dempo Utara' }
+    ],
+    'lubuk-linggau': [
+      { id: 'lubuk-linggau-barat-i', name: 'Lubuk Linggau Barat I' },
+      { id: 'lubuk-linggau-barat-ii', name: 'Lubuk Linggau Barat II' },
+      { id: 'lubuk-linggau-selatan-i', name: 'Lubuk Linggau Selatan I' },
+      { id: 'lubuk-linggau-selatan-ii', name: 'Lubuk Linggau Selatan II' },
+      { id: 'lubuk-linggau-timur-i', name: 'Lubuk Linggau Timur I' },
+      { id: 'lubuk-linggau-timur-ii', name: 'Lubuk Linggau Timur II' },
+      { id: 'lubuk-linggau-utara-i', name: 'Lubuk Linggau Utara I' },
+      { id: 'lubuk-linggau-utara-ii', name: 'Lubuk Linggau Utara II' }
+    ],
+    // Lampung
+    'metro': [
+      { id: 'metro-barat', name: 'Metro Barat' },
+      { id: 'metro-pusat', name: 'Metro Pusat' },
+      { id: 'metro-selatan', name: 'Metro Selatan' },
+      { id: 'metro-timur', name: 'Metro Timur' },
+      { id: 'metro-utara', name: 'Metro Utara' }
+    ],
+    // Aceh
+    'langsa': [
+      { id: 'langsa-barat', name: 'Langsa Barat' },
+      { id: 'langsa-baru', name: 'Langsa Baru' },
+      { id: 'langsa-kota', name: 'Langsa Kota' },
+      { id: 'langsa-lama', name: 'Langsa Lama' },
+      { id: 'langsa-timur', name: 'Langsa Timur' }
+    ],
+    'lhokseumawe': [
+      { id: 'baktia', name: 'Baktia' },
+      { id: 'bantayan', name: 'Bantayan' },
+      { id: 'blang-mangat', name: 'Blang Mangat' },
+      { id: 'muara-dua', name: 'Muara Dua' }
+    ],
+    'sabang': [
+      { id: 'sukajaya', name: 'Sukajaya' },
+      { id: 'sukakarya', name: 'Sukakarya' }
+    ],
+    'subulussalam': [
+      { id: 'longkib', name: 'Longkib' },
+      { id: 'penanggalan', name: 'Penanggalan' },
+      { id: 'rundeng', name: 'Rundeng' },
+      { id: 'simpang-kiri', name: 'Simpang Kiri' },
+      { id: 'sultan-daulat', name: 'Sultan Daulat' }
+    ],
+    // Jambi
+    'sungaipenuh': [
+      { id: 'sungaipenuh', name: 'Sungaipenuh' },
+      { id: 'hamparan-rawang', name: 'Hamparan Rawang' },
+      { id: 'koto-baru', name: 'Koto Baru' },
+      { id: 'kumun-debai', name: 'Kumun Debai' },
+      { id: 'pondok-tinggi', name: 'Pondok Tinggi' }
+    ],
+    // Bengkulu
+    'bengkulu': [
+      { id: 'gading-cempaka', name: 'Gading Cempaka' },
+      { id: 'kampung-meling', name: 'Kampung Meling' },
+      { id: 'muara-bang-kahulu', name: 'Muara Bang Kahulu' },
+      { id: 'ratu-agung', name: 'Ratu Agung' },
+      { id: 'ratu-samban', name: 'Ratu Samban' },
+      { id: 'selebar', name: 'Selebar' },
+      { id: 'singaran-pati', name: 'Singaran Pati' },
+      { id: 'sungai-serut', name: 'Sungai Serut' },
+      { id: 'teluk-segara', name: 'Teluk Segara' }
+    ],
+    // Bangka Belitung
+    'pangkalpinang': [
+      { id: 'gerunggang', name: 'Gerunggang' },
+      { id: 'girimaya', name: 'Girimaya' },
+      { id: 'pangkalan-balam', name: 'Pangkalan Balam' },
+      { id: 'rantau-prapat', name: 'Rantau Prapat' },
+      { id: 'taman-sari', name: 'Taman Sari' }
+    ],
+    // Kepulauan Riau
+    'tanjungpinang': [
+      { id: 'bukit-bestari', name: 'Bukit Bestari' },
+      { id: 'tanjungpinang-barat', name: 'Tanjungpinang Barat' },
+      { id: 'tanjungpinang-kota', name: 'Tanjungpinang Kota' },
+      { id: 'tanjungpinang-timur', name: 'Tanjungpinang Timur' }
+    ],
+    'batam': [
+      { id: 'batam-kota', name: 'Batam Kota' },
+      { id: 'batam-kepulauan', name: 'Batam Kepulauan' },
+      { id: 'belakang-padang', name: 'Belakang Padang' },
+      { id: 'bulang', name: 'Bulang' },
+      { id: 'galang', name: 'Galang' },
+      { id: 'lubuk-baja', name: 'Lubuk Baja' },
+      { id: 'nongsa', name: 'Nongsa' },
+      { id: 'sagulung', name: 'Sagulung' },
+      { id: 'seibeduk', name: 'Seibeduk' },
+      { id: 'sekupang', name: 'Sekupang' },
+      { id: 'sungai-beduk', name: 'Sungai Beduk' },
+      { id: 'tunggul-hitam', name: 'Tunggul Hitam' }
+    ],
+    // Nusa Tenggara Barat
+    'mataram': [
+      { id: 'ampenan', name: 'Ampenan' },
+      { id: 'cakranegara', name: 'Cakranegara' },
+      { id: 'mataram', name: 'Mataram' },
+      { id: 'sandubaya', name: 'Sandubaya' },
+      { id: 'selaparang', name: 'Selaparang' },
+      { id: 'sekarbela', name: 'Sekarbela' }
+    ],
+    'bima': [
+      { id: 'asakota', name: 'Asakota' },
+      { id: 'mada-pangga', name: 'Mada Pangga' },
+      { id: 'rasanae-barat', name: 'Rasanae Barat' },
+      { id: 'rasanae-timur', name: 'Rasanae Timur' }
+    ],
+    'dompu': [
+      { id: 'dompu', name: 'Dompu' },
+      { id: 'huu', name: 'Huu' },
+      { id: 'kilo', name: 'Kilo' },
+      { id: 'kempo', name: 'Kempo' },
+      { id: 'manggalewa', name: 'Manggalewa' },
+      { id: 'pajo', name: 'Pajo' },
+      { id: 'pekat', name: 'Pekat' },
+      { id: 'woja', name: 'Woja' }
+    ],
+    // Nusa Tenggara Timur
+    'kupang': [
+      { id: 'alak', name: 'Alak' },
+      { id: 'kelapa-lima', name: 'Kelapa Lima' },
+      { id: 'kota-lama', name: 'Kota Lama' },
+      { id: 'kota-raja', name: 'Kota Raja' },
+      { id: 'maulafa', name: 'Maulafa' },
+      { id: 'oebobo', name: 'Oebobo' }
+    ],
+    // Kalimantan Barat
+    'pontianak': [
+      { id: 'pontianak-barat', name: 'Pontianak Barat' },
+      { id: 'pontianak-kota', name: 'Pontianak Kota' },
+      { id: 'pontianak-selatan', name: 'Pontianak Selatan' },
+      { id: 'pontianak-tenggara', name: 'Pontianak Tenggara' },
+      { id: 'pontianak-timur', name: 'Pontianak Timur' },
+      { id: 'pontianak-utara', name: 'Pontianak Utara' }
+    ],
+    'singkawang': [
+      { id: 'singkawang-barat', name: 'Singkawang Barat' },
+      { id: 'singkawang-selatan', name: 'Singkawang Selatan' },
+      { id: 'singkawang-tengah', name: 'Singkawang Tengah' },
+      { id: 'singkawang-timur', name: 'Singkawang Timur' },
+      { id: 'singkawang-utara', name: 'Singkawang Utara' }
+    ],
+    // Kalimantan Tengah
+    'palangka-raya': [
+      { id: 'bukit-batu', name: 'Bukit Batu' },
+      { id: 'jekan-raya', name: 'Jekan Raya' },
+      { id: 'pahandut', name: 'Pahandut' },
+      { id: 'rakumpit', name: 'Rakumpit' },
+      { id: 'sabangau', name: 'Sabangau' }
+    ],
+    // Kalimantan Selatan
+    'banjarmasin': [
+      { id: 'banjarmasin-barat', name: 'Banjarmasin Barat' },
+      { id: 'banjarmasin-selatan', name: 'Banjarmasin Selatan' },
+      { id: 'banjarmasin-tengah', name: 'Banjarmasin Tengah' },
+      { id: 'banjarmasin-timur', name: 'Banjarmasin Timur' },
+      { id: 'banjarmasin-utara', name: 'Banjarmasin Utara' }
+    ],
+    'banjarbaru': [
+      { id: 'banjarbaru-selatan', name: 'Banjarbaru Selatan' },
+      { id: 'banjarbaru-utara', name: 'Banjarbaru Utara' },
+      { id: 'cempaka', name: 'Cempaka' },
+      { id: 'landasan-ulin', name: 'Landasan Ulin' },
+      { id: 'liang-anggang', name: 'Liang Anggang' }
+    ],
+    // Kalimantan Timur
+    'samarinda': [
+      { id: 'samarinda-ilir', name: 'Samarinda Ilir' },
+      { id: 'samarinda-kota', name: 'Samarinda Kota' },
+      { id: 'samarinda-seberang', name: 'Samarinda Seberang' },
+      { id: 'samarinda-ulu', name: 'Samarinda Ulu' },
+      { id: 'samarinda-utara', name: 'Samarinda Utara' },
+      { id: 'sambutan', name: 'Sambutan' },
+      { id: 'sungai-kuning', name: 'Sungai Kuning' },
+      { id: 'sungai-pinang', name: 'Sungai Pinang' },
+      { id: 'sungai-tengah', name: 'Sungai Tengah' }
+    ],
+    'balikpapan': [
+      { id: 'balikpapan-barat', name: 'Balikpapan Barat' },
+      { id: 'balikpapan-kota', name: 'Balikpapan Kota' },
+      { id: 'balikpapan-selatan', name: 'Balikpapan Selatan' },
+      { id: 'balikpapan-tengah', name: 'Balikpapan Tengah' },
+      { id: 'balikpapan-timur', name: 'Balikpapan Timur' },
+      { id: 'balikpapan-utara', name: 'Balikpapan Utara' }
+    ],
+    'bontang': [
+      { id: 'bontang-barat', name: 'Bontang Barat' },
+      { id: 'bontang-selatan', name: 'Bontang Selatan' },
+      { id: 'bontang-utara', name: 'Bontang Utara' }
+    ],
+    // Kalimantan Utara
+    'tarakan': [
+      { id: 'tarakan-barat', name: 'Tarakan Barat' },
+      { id: 'tarakan-tengah', name: 'Tarakan Tengah' },
+      { id: 'tarakan-timur', name: 'Tarakan Timur' },
+      { id: 'tarakan-utara', name: 'Tarakan Utara' }
+    ],
+    // Sulawesi Utara
+    'manado': [
+      { id: 'bunaken', name: 'Bunaken' },
+      { id: 'bunaken-kepulauan', name: 'Bunaken Kepulauan' },
+      { id: 'malalayang', name: 'Malalayang' },
+      { id: 'mapanget', name: 'Mapanget' },
+      { id: 'paal-ii', name: 'Paal II' },
+      { id: 'sario', name: 'Sario' },
+      { id: 'singkil', name: 'Singkil' },
+      { id: 'tuminting', name: 'Tuminting' },
+      { id: 'wenang', name: 'Wenang' },
+      { id: 'wanea', name: 'Wanea' }
+    ],
+    'bitung': [
+      { id: 'bitung-barat', name: 'Bitung Barat' },
+      { id: 'bitung-selatan', name: 'Bitung Selatan' },
+      { id: 'bitung-tengah', name: 'Bitung Tengah' },
+      { id: 'bitung-timur', name: 'Bitung Timur' },
+      { id: 'bitung-utara', name: 'Bitung Utara' },
+      { id: 'girian', name: 'Girian' },
+      { id: 'lembeh-selatan', name: 'Lembeh Selatan' },
+      { id: 'lembeh-utara', name: 'Lembeh Utara' },
+      { id: 'madidir', name: 'Madidir' },
+      { id: 'maesa', name: 'Maesa' },
+      { id: 'matuari', name: 'Matuari' },
+      { id: 'ranowulu', name: 'Ranowulu' }
+    ],
+    'kotamobagu': [
+      { id: 'kotamobagu-barat', name: 'Kotamobagu Barat' },
+      { id: 'kotamobagu-selatan', name: 'Kotamobagu Selatan' },
+      { id: 'kotamobagu-timur', name: 'Kotamobagu Timur' },
+      { id: 'kotamobagu-utara', name: 'Kotamobagu Utara' }
+    ],
+    'tomohon': [
+      { id: 'tomohon-barat', name: 'Tomohon Barat' },
+      { id: 'tomohon-selatan', name: 'Tomohon Selatan' },
+      { id: 'tomohon-tengah', name: 'Tomohon Tengah' },
+      { id: 'tomohon-timur', name: 'Tomohon Timur' },
+      { id: 'tomohon-utara', name: 'Tomohon Utara' }
+    ],
+    // Sulawesi Tengah
+    'palu': [
+      { id: 'palu-barat', name: 'Palu Barat' },
+      { id: 'palu-selatan', name: 'Palu Selatan' },
+      { id: 'palu-timur', name: 'Palu Timur' },
+      { id: 'palu-utara', name: 'Palu Utara' },
+      { id: 'tatanga', name: 'Tatanga' },
+      { id: 'ulujadi', name: 'Ulujadi' }
+    ],
+    // Sulawesi Selatan
+    'parepare': [
+      { id: 'bacukiki', name: 'Bacukiki' },
+      { id: 'bacukiki-barat', name: 'Bacukiki Barat' },
+      { id: 'soreang', name: 'Soreang' },
+      { id: 'ulaweng', name: 'Ulaweng' }
+    ],
+    'palopo': [
+      { id: 'bara', name: 'Bara' },
+      { id: 'mungkajang', name: 'Mungkajang' },
+      { id: 'sendana', name: 'Sendana' },
+      { id: 'wara', name: 'Wara' },
+      { id: 'wara-barat', name: 'Wara Barat' },
+      { id: 'wara-selatan', name: 'Wara Selatan' },
+      { id: 'wara-timur', name: 'Wara Timur' },
+      { id: 'wara-utara', name: 'Wara Utara' }
+    ],
+    // Sulawesi Tenggara
+    'kendari': [
+      { id: 'abeli', name: 'Abeli' },
+      { id: 'baruga', name: 'Baruga' },
+      { id: 'kadia', name: 'Kadia' },
+      { id: 'kambu', name: 'Kambu' },
+      { id: 'kendari', name: 'Kendari' },
+      { id: 'kendari-barat', name: 'Kendari Barat' },
+      { id: 'mandonga', name: 'Mandonga' },
+      { id: 'poasia', name: 'Poasia' },
+      { id: 'puuwatu', name: 'Puuwatu' },
+      { id: 'wua-wua', name: 'Wua Wua' }
+    ],
+    'baubau': [
+      { id: 'betoambari', name: 'Betoambari' },
+      { id: 'bungi', name: 'Bungi' },
+      { id: 'kokalukuna', name: 'Kokalukuna' },
+      { id: 'lemo', name: 'Lemo' },
+      { id: 'murhum', name: 'Murhum' },
+      { id: 'sora-walia', name: 'Sora Walia' },
+      { id: 'wolio', name: 'Wolio' }
+    ],
+    // Gorontalo
+    'gorontalo': [
+      { id: 'dumbo-raya', name: 'Dumbo Raya' },
+      { id: 'hulonthalangi', name: 'Hulonthalangi' },
+      { id: 'kota-barat', name: 'Kota Barat' },
+      { id: 'kota-selatan', name: 'Kota Selatan' },
+      { id: 'kota-tengah', name: 'Kota Tengah' },
+      { id: 'kota-timur', name: 'Kota Timur' },
+      { id: 'kota-utara', name: 'Kota Utara' },
+      { id: 'sipatana', name: 'Sipatana' }
+    ],
+    // Sulawesi Barat
+    'mamuju': [
+      { id: 'banggae', name: 'Banggae' },
+      { id: 'banggae-timur', name: 'Banggae Timur' },
+      { id: 'mamuju', name: 'Mamuju' },
+      { id: 'mamuju-utara', name: 'Mamuju Utara' },
+      { id: 'pabiringan', name: 'Pabiringan' },
+      { id: 'sendana', name: 'Sendana' },
+      { id: 'tammerodo-sendana', name: 'Tammerodo Sendana' }
+    ],
+    // Maluku
+    'ambon': [
+      { id: 'baguala', name: 'Baguala' },
+      { id: 'leitimur-selatan', name: 'Leitimur Selatan' },
+      { id: 'nusaniwe', name: 'Nusaniwe' },
+      { id: 'sirimau', name: 'Sirimau' },
+      { id: 'teluk-ambon', name: 'Teluk Ambon' }
+    ],
+    'tual': [
+      { id: 'kur-selatan', name: 'Kur Selatan' },
+      { id: 'kur-utara', name: 'Kur Utara' },
+      { id: 'pulau-dullah-selatan', name: 'Pulau Dullah Selatan' },
+      { id: 'pulau-dullah-utara', name: 'Pulau Dullah Utara' },
+      { id: 'pulau-tayando-tam', name: 'Pulau Tayando Tam' }
+    ],
+    // Maluku Utara
+    'ternate': [
+      { id: 'ternate-barat', name: 'Ternate Barat' },
+      { id: 'ternate-selatan', name: 'Ternate Selatan' },
+      { id: 'ternate-tengah', name: 'Ternate Tengah' },
+      { id: 'ternate-timur', name: 'Ternate Timur' },
+      { id: 'ternate-utara', name: 'Ternate Utara' }
+    ],
+    'tidore-kepulauan': [
+      { id: 'tidore', name: 'Tidore' },
+      { id: 'tidore-selatan', name: 'Tidore Selatan' },
+      { id: 'tidore-timur', name: 'Tidore Timur' },
+      { id: 'tidore-utara', name: 'Tidore Utara' }
+    ],
+    // Papua Barat
+    'manokwari': [
+      { id: 'manokwari-barat', name: 'Manokwari Barat' },
+      { id: 'manokwari-selatan', name: 'Manokwari Selatan' },
+      { id: 'manokwari-timur', name: 'Manokwari Timur' },
+      { id: 'manokwari-utara', name: 'Manokwari Utara' }
+    ],
+    'sorong': [
+      { id: 'sorong-barat', name: 'Sorong Barat' },
+      { id: 'sorong-kepulauan', name: 'Sorong Kepulauan' },
+      { id: 'sorong-manoi', name: 'Sorong Manoi' },
+      { id: 'sorong-timur', name: 'Sorong Timur' },
+      { id: 'sorong-utara', name: 'Sorong Utara' }
+    ],
+    // Papua
+    'jayapura': [
+      { id: 'jayapura-selatan', name: 'Jayapura Selatan' },
+      { id: 'jayapura-utara', name: 'Jayapura Utara' },
+      { id: 'muara-tami', name: 'Muara Tami' },
+      { id: 'south-jayapura', name: 'South Jayapura' }
+    ],
+    'merauke': [
+      { id: 'merauke', name: 'Merauke' },
+      { id: 'anim-ha', name: 'Anim Ha' },
+      { id: 'elikobel', name: 'Elikobel' },
+      { id: 'ilwayab', name: 'Ilwayab' },
+      { id: 'jagebob', name: 'Jagebob' },
+      { id: 'kaptel', name: 'Kaptel' },
+      { id: 'kimaam', name: 'Kimaam' },
+      { id: 'kurik', name: 'Kurik' },
+      { id: 'malind', name: 'Malind' },
+      { id: 'muting', name: 'Muting' },
+      { id: 'naukenjerai', name: 'Naukenjerai' },
+      { id: 'okaba', name: 'Okaba' },
+      { id: 'semangga', name: 'Semangga' },
+      { id: 'sota', name: 'Sota' },
+      { id: 'tabonji', name: 'Tabonji' },
+      { id: 'tanah-miring', name: 'Tanah Miring' },
+      { id: 'tubang', name: 'Tubang' },
+      { id: 'ulilin', name: 'Ulilin' },
+      { id: 'waan', name: 'Waan' },
+      { id: 'weriagar', name: 'Weriagar' }
+    ]
+  }
+
   // Background options with descriptions
   const backgroundOptions = [
     {
@@ -293,6 +1837,9 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         full_name: profile.full_name || '',
         email: profile.email || ''
       }))
+      
+      // Initialize provinces data
+      setProvinces(indonesiaProvinces)
       
       validateReferralCode()
     }
@@ -540,11 +2087,13 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     // Load dependent data
     if (type === 'province' && value) {
       // Load cities for selected province
-      // This would typically call an API
-      setCities([]) // Placeholder
+      const provinceCities = citiesData[value] || []
+      setCities(provinceCities)
+      setDistricts([])
     } else if (type === 'city' && value) {
       // Load districts for selected city
-      setDistricts([]) // Placeholder
+      const cityDistricts = districtsData[value] || []
+      setDistricts(cityDistricts)
     }
   }
 
@@ -867,20 +2416,20 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Pendaftaran dengan Referral</h1>
-          <p className="text-gray-600 mt-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Pendaftaran dengan Referral</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-2">
             Lengkapi data diri Anda untuk melanjutkan pendaftaran dengan kode referral
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Program Info */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Program Detail</h3>
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:sticky lg:top-8">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Program Detail</h3>
               
               <div className="space-y-4">
                 <div>
@@ -921,9 +2470,9 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
           </div>
 
           {/* Form */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">Data Diri</h3>
+          <div className="lg:col-span-2 order-1 lg:order-2">
+            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Data Diri</h3>
               
               <div className="space-y-6">
                 {/* Accordion 1: Personal Information */}
@@ -931,33 +2480,33 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                   <button
                     type="button"
                     onClick={() => toggleAccordion('personal')}
-                    className="w-full px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Informasi Pribadi</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Pribadi</span>
                       {isSectionComplete('personal') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                           ✓ Lengkap
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
                           {getMissingFields('personal').length} field kosong
                         </span>
                       )}
                     </div>
                     {accordionStates.personal ? (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     )}
                   </button>
                   
                   {accordionStates.personal && (
-                  <div className="space-y-4">
+                  <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -969,7 +2518,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.full_name}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
                       
@@ -983,7 +2532,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.email}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
                       
@@ -999,7 +2548,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             onFocus={() => setIsBackgroundDropdownOpen(true)}
                             placeholder="Pilih latar belakang"
                             required
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                            className="w-full px-3 py-2 pr-10 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                           />
                           <button
                             type="button"
@@ -1007,7 +2556,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                           >
                             <svg
-                              className={`h-5 w-5 transition-transform ${isBackgroundDropdownOpen ? 'rotate-180' : ''}`}
+                              className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${isBackgroundDropdownOpen ? 'rotate-180' : ''}`}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1018,15 +2567,15 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                         </div>
                         
                         {isBackgroundDropdownOpen && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 sm:max-h-60 overflow-auto">
                             {filteredBackgroundOptions.length > 0 ? (
                               filteredBackgroundOptions.map((option, index) => (
                                 <div
                                   key={index}
                                   onClick={() => handleBackgroundSelect(option)}
-                                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                 >
-                                  <div className="font-medium text-gray-900 text-sm">
+                                  <div className="font-medium text-gray-900 text-xs sm:text-sm">
                                     {option.label}
                                   </div>
                                   <div className="text-xs text-gray-500 mt-1">
@@ -1035,7 +2584,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                                 </div>
                               ))
                             ) : (
-                              <div className="px-4 py-3 text-gray-500 text-sm">
+                              <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-xs sm:text-sm">
                                 Tidak ada pilihan yang sesuai
                               </div>
                             )}
@@ -1052,7 +2601,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.gender}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Jenis Kelamin</option>
                           <option value="male">Laki-laki</option>
@@ -1071,7 +2620,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.date_of_birth}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
                       
@@ -1086,7 +2635,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           onChange={handleInputChange}
                           placeholder="08xxxxxxxxxx"
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
                       
@@ -1099,10 +2648,14 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.province}
                           onChange={(e) => handleLocationChange('province', e.target.value)}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Provinsi</option>
-                          {/* Provinces would be loaded here */}
+                          {provinces.map((province) => (
+                            <option key={province.id} value={province.id}>
+                              {province.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       
@@ -1119,7 +2672,11 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                         >
                           <option value="">Pilih Kabupaten</option>
-                          {/* Cities would be loaded here */}
+                          {cities.map((city) => (
+                            <option key={city.id} value={city.id}>
+                              {city.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       
@@ -1136,7 +2693,11 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                         >
                           <option value="">Pilih Kota</option>
-                          {/* Districts would be loaded here */}
+                          {districts.map((district) => (
+                            <option key={district.id} value={district.id}>
+                              {district.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -1149,33 +2710,33 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                   <button
                     type="button"
                     onClick={() => toggleAccordion('career')}
-                    className="w-full px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Karier & Pendidikan</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">Karier & Pendidikan</span>
                       {isSectionComplete('career') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                           ✓ Lengkap
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
                           {getMissingFields('career').length} field kosong
                         </span>
                       )}
                     </div>
                     {accordionStates.career ? (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     )}
                   </button>
                   
                   {accordionStates.career && (
-                  <div className="space-y-4">
+                  <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="relative education-dropdown-container">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1189,7 +2750,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             onFocus={() => setIsEducationDropdownOpen(true)}
                             placeholder="Pilih pendidikan terakhir"
                             required
-                            className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                            className="w-full px-3 py-2 pr-10 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                           />
                           <button
                             type="button"
@@ -1197,7 +2758,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                           >
                             <svg
-                              className={`h-5 w-5 transition-transform ${isEducationDropdownOpen ? 'rotate-180' : ''}`}
+                              className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${isEducationDropdownOpen ? 'rotate-180' : ''}`}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1208,15 +2769,15 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                         </div>
                         
                         {isEducationDropdownOpen && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 sm:max-h-60 overflow-auto">
                             {filteredEducationOptions.length > 0 ? (
                               filteredEducationOptions.map((option, index) => (
                                 <div
                                   key={index}
                                   onClick={() => handleEducationSelect(option)}
-                                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                  className="px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                 >
-                                  <div className="font-medium text-gray-900 text-sm">
+                                  <div className="font-medium text-gray-900 text-xs sm:text-sm">
                                     {option.label}
                                   </div>
                                   <div className="text-xs text-gray-500 mt-1">
@@ -1225,7 +2786,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                                 </div>
                               ))
                             ) : (
-                              <div className="px-4 py-3 text-gray-500 text-sm">
+                              <div className="px-3 sm:px-4 py-2 sm:py-3 text-gray-500 text-xs sm:text-sm">
                                 Tidak ada pilihan yang sesuai
                               </div>
                             )}
@@ -1242,7 +2803,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.education_status}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Status Pendidikan</option>
                           <option value="sedang">Sedang Menempuh Pendidikan</option>
@@ -1259,7 +2820,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.employment_status}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Status Pekerjaan</option>
                           <option value="bekerja">Sedang Bekerja</option>
@@ -1276,33 +2837,33 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                   <button
                     type="button"
                     onClick={() => toggleAccordion('other')}
-                    className="w-full px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Informasi Lainnya</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Lainnya</span>
                       {isSectionComplete('other') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
                           ✓ Lengkap
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
                           {getMissingFields('other').length} field kosong
                         </span>
                       )}
                     </div>
                     {accordionStates.other ? (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     ) : (
-                      <svg className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     )}
                   </button>
                   
                   {accordionStates.other && (
-                  <div className="space-y-4">
+                  <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1313,7 +2874,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.it_background}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Jawaban</option>
                           <option value="ya">Ya</option>
@@ -1330,7 +2891,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           value={formData.disability}
                           onChange={handleInputChange}
                           required
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
+                          className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         >
                           <option value="">Pilih Jawaban</option>
                           <option value="ya">Ya</option>
@@ -1354,7 +2915,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                               onChange={handleInputChange}
                               className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
-                            <span className="text-sm text-gray-700">{option}</span>
+                            <span className="text-xs sm:text-sm text-gray-700">{option}</span>
                           </label>
                         ))}
                       </div>
@@ -1365,8 +2926,8 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
               </div>
 
               {/* Consent Section - Always visible at the bottom */}
-              <div className="mt-8 border rounded-lg p-4 bg-gray-50">
-                <h4 className="font-medium text-gray-900 mb-4">Pernyataan Persetujuan</h4>
+              <div className="mt-6 sm:mt-8 border rounded-lg p-3 sm:p-4 bg-gray-50">
+                <h4 className="font-medium text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Pernyataan Persetujuan</h4>
                 
                 <div className="space-y-3">
                   <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
@@ -1378,7 +2939,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       required
                       className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-xs sm:text-sm text-gray-700">
                       Saya menyetujui penggunaan data pribadi saya sesuai dengan kebijakan privasi yang berlaku. *
                     </span>
                   </label>
@@ -1392,7 +2953,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       required
                       className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-xs sm:text-sm text-gray-700">
                       Saya menyetujui untuk dihubungi melalui email atau telepon untuk keperluan program. *
                     </span>
                   </label>
@@ -1406,7 +2967,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       required
                       className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <span className="text-sm text-gray-700">
+                    <span className="text-xs sm:text-sm text-gray-700">
                       Saya menyetujui syarat dan ketentuan yang berlaku. *
                     </span>
                   </label>
@@ -1414,11 +2975,11 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
               </div>
 
               {/* Submit Button */}
-              <div className="mt-6 flex justify-end">
+              <div className="mt-4 sm:mt-6 flex justify-end">
                 <button
                   type="submit"
                   disabled={submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms}
-                  className={`px-6 py-3 rounded-lg flex items-center gap-2 ${
+                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 text-sm sm:text-base ${
                     submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms
                       ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -1426,8 +2987,9 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                 >
                   {submitting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Memproses...
+                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                      <span className="hidden sm:inline">Memproses...</span>
+                      <span className="sm:hidden">Proses...</span>
                     </>
                   ) : (
                     'Daftar Program'
