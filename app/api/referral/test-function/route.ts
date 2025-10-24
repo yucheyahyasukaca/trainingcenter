@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
 
     // Test the function with minimal data
     console.log('🧪 Testing create_trainer_referral_code function...')
-    const { data: codeData, error: codeError } = await supabase
+    const { data: codeData, error: codeError } = await (supabase as any)
       .rpc('create_trainer_referral_code', {
-        p_trainer_id: profile.id,
+        p_trainer_id: (profile as any).id,
         p_description: 'Test referral code',
         p_max_uses: 10,
         p_discount_percentage: 0,
@@ -67,9 +67,9 @@ export async function GET(request: NextRequest) {
           email: user.email
         },
         profile: {
-          id: profile.id,
-          role: profile.role,
-          full_name: profile.full_name
+          id: (profile as any).id,
+          role: (profile as any).role,
+          full_name: (profile as any).full_name
         },
         function_result: codeData
       }

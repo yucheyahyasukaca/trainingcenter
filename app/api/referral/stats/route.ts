@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'trainer') {
+    if ((profile as any).role !== 'trainer') {
       return NextResponse.json({ 
         success: false,
         error: 'Access denied. Trainer role required.' 
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     const { data: stats, error: statsError } = await supabase
       .from('trainer_referral_stats')
       .select('*')
-      .eq('trainer_id', profile.id)
+      .eq('trainer_id', (profile as any).id)
       .single()
 
     if (statsError) {
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
           email
         )
       `)
-      .eq('trainer_id', profile.id)
+      .eq('trainer_id', (profile as any).id)
       .order('created_at', { ascending: false })
 
     if (detailedError) {

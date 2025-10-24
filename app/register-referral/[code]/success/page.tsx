@@ -60,8 +60,8 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
         return
       }
 
-      if (data && data.programs) {
-        setProgram(data.programs)
+      if (data && (data as any).programs) {
+        setProgram((data as any).programs)
       }
 
     } catch (error) {

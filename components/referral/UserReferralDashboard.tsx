@@ -126,7 +126,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
       const { data: referralTracking, error: trackingError } = await supabase
         .from('referral_tracking')
         .select('*')
-        .in('referral_code_id', referralCodes?.map(code => code.id) || [])
+        .in('referral_code_id', referralCodes?.map(code => (code as any).id) || [])
 
       if (trackingError) {
         console.error('Error fetching referral tracking:', trackingError)
@@ -135,12 +135,12 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
 
       // Calculate stats
       const totalReferrals = referralTracking?.length || 0
-      const confirmedReferrals = referralTracking?.filter(tracking => tracking.status === 'confirmed').length || 0
-      const pendingReferrals = referralTracking?.filter(tracking => tracking.status === 'pending').length || 0
-      const cancelledReferrals = referralTracking?.filter(tracking => tracking.status === 'cancelled').length || 0
-      const totalCommissionEarned = referralTracking?.reduce((sum, tracking) => sum + (tracking.commission_earned || 0), 0) || 0
-      const confirmedCommission = referralTracking?.filter(tracking => tracking.status === 'confirmed').reduce((sum, tracking) => sum + (tracking.commission_earned || 0), 0) || 0
-      const totalDiscountGiven = referralTracking?.reduce((sum, tracking) => sum + (tracking.discount_applied || 0), 0) || 0
+      const confirmedReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'confirmed').length || 0
+      const pendingReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'pending').length || 0
+      const cancelledReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'cancelled').length || 0
+      const totalCommissionEarned = referralTracking?.reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
+      const confirmedCommission = referralTracking?.filter(tracking => (tracking as any).status === 'confirmed').reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
+      const totalDiscountGiven = referralTracking?.reduce((sum, tracking) => sum + ((tracking as any).discount_applied || 0), 0) || 0
       const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
       const statsData: UserReferralStats = {
@@ -162,13 +162,13 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
           total_discount_given: totalDiscountGiven
         },
         recent_referrals: referralTracking?.slice(0, 5).map(tracking => ({
-          id: tracking.id,
+          id: (tracking as any).id,
           participant_name: 'Participant', // You might need to join with participants table
           program_title: 'Program', // You might need to join with programs table
-          status: tracking.status,
-          commission_earned: tracking.commission_earned || 0,
-          discount_applied: tracking.discount_applied || 0,
-          created_at: tracking.created_at
+          status: (tracking as any).status,
+          commission_earned: (tracking as any).commission_earned || 0,
+          discount_applied: (tracking as any).discount_applied || 0,
+          created_at: (tracking as any).created_at
         })) || []
       }
 
@@ -248,7 +248,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
 
       const referralCode = generateReferralCode()
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('referral_codes')
         .insert({
           code: referralCode,
@@ -300,7 +300,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
     try {
       console.log('Updating user referral code:', { id, codeData })
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('referral_codes')
         .update({
           program_id: codeData.program_id,
@@ -646,7 +646,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
                         <span className="text-gray-600 block text-xs">Total Komisi</span>
                         <span className="font-medium text-green-600">
                           {formatCurrency(
-                            code.referral_stats?.reduce((sum: number, stat: any) => 
+                            (code as any).referral_stats?.reduce((sum: number, stat: any) => 
                               sum + (stat.commission_earned || 0), 0
                             ) || 0
                           )}

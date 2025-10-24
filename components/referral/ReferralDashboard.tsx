@@ -186,7 +186,7 @@ export default function ReferralDashboard() {
       const filteredStats = detailedStats?.filter(stat => {
         if (selectedPeriod === 'all') return true
         
-        const statDate = new Date(stat.created_at)
+        const statDate = new Date((stat as any).created_at)
         
         switch (selectedPeriod) {
           case 'week':
@@ -206,27 +206,27 @@ export default function ReferralDashboard() {
       // Calculate period stats
       const periodStats = {
         total_referrals: filteredStats.length,
-        confirmed_referrals: filteredStats.filter(s => s.status === 'confirmed').length,
-        pending_referrals: filteredStats.filter(s => s.status === 'pending').length,
-        cancelled_referrals: filteredStats.filter(s => s.status === 'cancelled').length,
-        total_commission: filteredStats.reduce((sum, s) => sum + (s.commission_earned || 0), 0),
+        confirmed_referrals: filteredStats.filter(s => (s as any).status === 'confirmed').length,
+        pending_referrals: filteredStats.filter(s => (s as any).status === 'pending').length,
+        cancelled_referrals: filteredStats.filter(s => (s as any).status === 'cancelled').length,
+        total_commission: filteredStats.reduce((sum, s) => sum + ((s as any).commission_earned || 0), 0),
         confirmed_commission: filteredStats
-          .filter(s => s.status === 'confirmed')
-          .reduce((sum, s) => sum + (s.commission_earned || 0), 0),
-        total_discount: filteredStats.reduce((sum, s) => sum + (s.discount_applied || 0), 0)
+          .filter(s => (s as any).status === 'confirmed')
+          .reduce((sum, s) => sum + ((s as any).commission_earned || 0), 0),
+        total_discount: filteredStats.reduce((sum, s) => sum + ((s as any).discount_applied || 0), 0)
       }
 
       // Get recent referrals
       const recentReferrals = filteredStats.slice(0, 10).map(stat => ({
-        id: stat.id,
-        participant_name: stat.participant?.name,
-        participant_email: stat.participant?.email,
-        program_title: stat.program?.title,
-        program_price: stat.program?.price,
-        status: stat.status,
-        commission_earned: stat.commission_earned,
-        discount_applied: stat.discount_applied,
-        created_at: stat.created_at
+        id: (stat as any).id,
+        participant_name: (stat as any).participant?.name,
+        participant_email: (stat as any).participant?.email,
+        program_title: (stat as any).program?.title,
+        program_price: (stat as any).program?.price,
+        status: (stat as any).status,
+        commission_earned: (stat as any).commission_earned,
+        discount_applied: (stat as any).discount_applied,
+        created_at: (stat as any).created_at
       }))
 
       setStats({
@@ -333,7 +333,7 @@ export default function ReferralDashboard() {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('referral_codes')
         .update({ is_active: !isActive })
         .eq('id', codeId)
@@ -687,7 +687,7 @@ export default function ReferralDashboard() {
                         <span className="text-gray-600 block text-xs">Total Komisi</span>
                         <span className="font-medium text-green-600">
                           {formatCurrency(
-                            code.referral_stats?.reduce((sum: number, stat: any) => 
+                            (code as any).referral_stats?.reduce((sum: number, stat: any) => 
                               sum + (stat.commission_earned || 0), 0
                             ) || 0
                           )}

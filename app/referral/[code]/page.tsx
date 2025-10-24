@@ -70,30 +70,30 @@ export default function ReferralPage({ params }: { params: { code: string } }) {
       }
 
       // Check if referral code is expired
-      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+      if ((data as any).valid_until && new Date((data as any).valid_until) < new Date()) {
         setError('Kode referral sudah expired')
         return
       }
 
       // Check if referral code has reached max uses
-      if (data.max_uses && data.current_uses >= data.max_uses) {
+      if ((data as any).max_uses && (data as any).current_uses >= (data as any).max_uses) {
         setError('Kode referral sudah mencapai batas penggunaan')
         return
       }
 
       // Transform data to match interface
       const referralCodeData: ReferralCodeData = {
-        id: data.id,
-        code: data.code,
-        description: data.description,
-        trainer_id: data.trainer_id,
-        is_active: data.is_active,
-        valid_until: data.valid_until,
-        max_uses: data.max_uses,
-        current_uses: data.current_uses,
+        id: (data as any).id,
+        code: (data as any).code,
+        description: (data as any).description,
+        trainer_id: (data as any).trainer_id,
+        is_active: (data as any).is_active,
+        valid_until: (data as any).valid_until,
+        max_uses: (data as any).max_uses,
+        current_uses: (data as any).current_uses,
         trainer: {
-          full_name: data.user_profiles?.full_name || 'Unknown Trainer',
-          email: data.user_profiles?.email || 'unknown@example.com'
+          full_name: (data as any).user_profiles?.full_name || 'Unknown Trainer',
+          email: (data as any).user_profiles?.email || 'unknown@example.com'
         }
       }
 

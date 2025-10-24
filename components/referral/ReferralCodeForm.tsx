@@ -66,7 +66,7 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
 
       if (editingCode) {
         // Update existing code
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('referral_codes')
           .update(submitData)
           .eq('id', editingCode.id)
@@ -97,7 +97,7 @@ export default function ReferralCodeForm({ isOpen, onClose, onSuccess, editingCo
 
         const referralCode = generateReferralCode(profile.full_name || 'USER')
 
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('referral_codes')
           .insert({
             trainer_id: profile.id,

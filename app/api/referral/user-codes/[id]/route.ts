@@ -22,7 +22,7 @@ export async function PUT(
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -31,13 +31,13 @@ export async function PUT(
       }, { status: 404 })
     }
 
-    if (profile.role !== 'user') {
+    if ((profile as any).role !== 'user') {
       return NextResponse.json({ 
         error: 'Access denied. User role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const body = await request.json()
     const {
@@ -57,7 +57,7 @@ export async function PUT(
         is_active,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', params.id as string)
       .eq('trainer_id', userData.id)
       .select()
 
@@ -103,7 +103,7 @@ export async function DELETE(
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -112,19 +112,19 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    if (profile.role !== 'user') {
+    if ((profile as any).role !== 'user') {
       return NextResponse.json({ 
         error: 'Access denied. User role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     // Delete the referral code
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('referral_codes')
       .delete()
-      .eq('id', params.id)
+      .eq('id', params.id as string)
       .eq('trainer_id', userData.id)
 
     if (error) {

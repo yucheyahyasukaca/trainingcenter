@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -41,14 +41,14 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'trainer') {
+    if ((profile as any).role !== 'trainer') {
       return NextResponse.json({ 
         success: false, 
         error: 'Access denied. Trainer role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     // Get referral codes for this trainer
     const { data: referralCodes, error: codesError } = await (supabase as any)
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role, full_name')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -143,13 +143,13 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'trainer') {
+    if ((profile as any).role !== 'trainer') {
       return NextResponse.json({ 
         error: 'Access denied. Trainer role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const body = await request.json()
     const {
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       return `${baseCode}${timestamp}`
     }
 
-    const referralCode = generateReferralCode(profile.full_name)
+    const referralCode = generateReferralCode((profile as any).full_name)
     
     console.log('Creating referral code manually:', {
       trainer_id: userData.id,
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Insert referral code directly
-    const { data: newCode, error: createError } = await supabase
+    const { data: newCode, error: createError } = await (supabase as any)        
       .from('referral_codes')
       .insert({
         trainer_id: userData.id,
@@ -265,7 +265,7 @@ export async function PUT(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -274,13 +274,13 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'trainer') {
+    if ((profile as any).role !== 'trainer') {
       return NextResponse.json({ 
         error: 'Access denied. Trainer role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const body = await request.json()
     const { id, ...updateData } = body
@@ -379,7 +379,7 @@ export async function DELETE(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -388,13 +388,13 @@ export async function DELETE(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'trainer') {
+    if ((profile as any).role !== 'trainer') {
       return NextResponse.json({ 
         error: 'Access denied. Trainer role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')

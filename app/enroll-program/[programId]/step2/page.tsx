@@ -89,8 +89,8 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
       }
 
       setProgram({
-        ...programData,
-        trainer: programData.user_profiles
+        ...(programData as any),
+        trainer: (programData as any).user_profiles
       })
 
     } catch (error) {
@@ -161,7 +161,7 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
         notes: enrollmentData.referral_code ? `Referral Code: ${enrollmentData.referral_code}` : ''
       }
 
-      const { data: enrollment, error: enrollmentError } = await supabase
+      const { data: enrollment, error: enrollmentError } = await (supabase as any)
         .from('enrollments')
         .insert(enrollmentRecord)
         .select()
@@ -182,11 +182,11 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
           .single()
 
         if (!referralError && referralCodeData) {
-          const { error: trackingError } = await supabase
+          const { error: trackingError } = await (supabase as any)
             .from('referral_tracking')
             .insert({
-              referral_code_id: referralCodeData.id,
-              trainer_id: referralCodeData.trainer_id,
+              referral_code_id: (referralCodeData as any).id,
+              trainer_id: (referralCodeData as any).trainer_id,
               participant_id: enrollmentData.participant_id,
               enrollment_id: enrollment.id,
               program_id: programId,

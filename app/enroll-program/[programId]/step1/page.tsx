@@ -123,8 +123,8 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
       }
 
       setProgram({
-        ...programData,
-        trainer: programData.user_profiles
+        ...(programData as any),
+        trainer: (programData as any).user_profiles
       })
 
       // Fetch referral data if referral code exists
@@ -227,7 +227,7 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
 
       if (!existingParticipant) {
         // Create participant record
-        const { data: newParticipant, error: createParticipantError } = await supabase
+        const { data: newParticipant, error: createParticipantError } = await (supabase as any)
           .from('participants')
           .insert({
             user_id: profile.id,
@@ -247,7 +247,7 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
         participantId = newParticipant.id
       } else {
         // Update existing participant
-        const { error: updateParticipantError } = await supabase
+        const { error: updateParticipantError } = await (supabase as any)        
           .from('participants')
           .update({
             name: formData.full_name,
@@ -258,10 +258,10 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
             emergency_contact_name: formData.emergency_contact,
             emergency_contact_phone: formData.emergency_phone
           })
-          .eq('id', existingParticipant.id)
+          .eq('id', (existingParticipant as any).id)
 
         if (updateParticipantError) throw updateParticipantError
-        participantId = existingParticipant.id
+        participantId = (existingParticipant as any).id
       }
 
       // Store form data in sessionStorage for next step

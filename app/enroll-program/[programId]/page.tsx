@@ -88,8 +88,8 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
       }
 
       setProgram({
-        ...programData,
-        trainer: programData.user_profiles
+        ...(programData as any),
+        trainer: (programData as any).user_profiles
       })
 
       // Fetch referral data if referral code exists
@@ -143,7 +143,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
       setEnrolling(true)
 
       // Create participant record first
-      const { data: participantData, error: participantError } = await supabase
+      const { data: participantData, error: participantError } = await (supabase as any)
         .from('participants')
         .insert({
           user_id: profile.id,
@@ -168,11 +168,11 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
         }
       }
 
-      const participantId = participantData?.id || (await supabase
+      const participantId = (participantData as any)?.id || ((await supabase
         .from('participants')
         .select('id')
         .eq('user_id', profile.id)
-        .single()).data?.id
+        .single()).data as any)?.id
 
       if (!participantId) {
         throw new Error('Failed to get participant ID')
@@ -188,7 +188,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
         notes: referralCode ? `Referral Code: ${referralCode}` : ''
       }
 
-      const { data: enrollment, error: enrollmentError } = await supabase
+      const { data: enrollment, error: enrollmentError } = await (supabase as any)
         .from('enrollments')
         .insert(enrollmentData)
         .select()
@@ -200,7 +200,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
 
       // Create referral tracking if referral code exists
       if (referralCode && referralData) {
-        const { error: trackingError } = await supabase
+        const { error: trackingError } = await (supabase as any)
           .from('referral_tracking')
           .insert({
             referral_code_id: referralData.id,

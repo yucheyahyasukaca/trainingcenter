@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
 
     // Test inserting a simple record
     const testCode = `TEST${Date.now().toString().slice(-3)}`
-    const { data: insertData, error: insertError } = await supabase
+    const { data: insertData, error: insertError } = await (supabase as any)      
       .from('referral_codes')
       .insert({
-        trainer_id: profile.id,
+        trainer_id: (profile as any).id,
         code: testCode,
         description: 'Test code',
         is_active: true
@@ -78,9 +78,9 @@ export async function GET(request: NextRequest) {
           email: user.email
         },
         profile: {
-          id: profile.id,
-          role: profile.role,
-          full_name: profile.full_name
+          id: (profile as any).id,
+          role: (profile as any).role,
+          full_name: (profile as any).full_name
         },
         table_tests: {
           referral_codes_read: !codesError,

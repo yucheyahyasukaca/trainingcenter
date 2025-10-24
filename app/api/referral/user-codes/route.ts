@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -30,14 +30,14 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'user') {
+    if ((profile as any).role !== 'user') {
       return NextResponse.json({ 
         success: false, 
         error: 'Access denied. User role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     // Get user's referral codes
     const { data: codes, error: codesError } = await supabase
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role, full_name')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     console.log('User profile query result:', { profile, error: profileError?.message })
@@ -143,21 +143,21 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'user') {
+    if ((profile as any).role !== 'user') {
       return NextResponse.json({ 
         error: 'Access denied. User role required.' 
       }, { status: 403 })
     }
 
     // Check if user has full_name
-    if (!profile.full_name) {
+    if (!(profile as any).full_name) {
       console.error('User does not have full_name:', profile)
       return NextResponse.json({ 
         error: 'User profile incomplete. Full name is required.' 
       }, { status: 400 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const body = await request.json()
     const {
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
       return `${baseCode}${timestamp}`
     }
 
-    const referralCode = generateReferralCode(profile.full_name)
+    const referralCode = generateReferralCode((profile as any).full_name)
     
     console.log('Creating referral code manually:', {
       trainer_id: userData.id,
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Insert referral code directly
-    const { data: codeData, error: codeError } = await supabase
+    const { data: codeData, error: codeError } = await (supabase as any)
       .from('referral_codes')
       .insert({
         trainer_id: userData.id,

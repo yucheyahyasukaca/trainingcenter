@@ -62,36 +62,36 @@ export default function RegisterPage() {
       }
 
       // Check if referral code is expired
-      if (data.valid_until && new Date(data.valid_until) < new Date()) {
+      if ((data as any).valid_until && new Date((data as any).valid_until) < new Date()) {
         console.log('Referral code expired')
         return
       }
 
       // Check if referral code has reached max uses
-      if (data.max_uses && data.current_uses >= data.max_uses) {
+      if ((data as any).max_uses && (data as any).current_uses >= (data as any).max_uses) {
         console.log('Referral code max uses reached')
         return
       }
 
       // Store referral data in sessionStorage
       const referralData = {
-        id: data.id,
-        code: data.code,
-        description: data.description,
-        trainer_id: data.trainer_id,
-        program_id: data.program_id,
-        discount_percentage: data.discount_percentage,
-        discount_amount: data.discount_amount,
+        id: (data as any).id,
+        code: (data as any).code,
+        description: (data as any).description,
+        trainer_id: (data as any).trainer_id,
+        program_id: (data as any).program_id,
+        discount_percentage: (data as any).discount_percentage,
+        discount_amount: (data as any).discount_amount,
         trainer: {
-          full_name: data.user_profiles?.full_name || 'Unknown Trainer',
-          email: data.user_profiles?.email || 'unknown@example.com'
+          full_name: (data as any).user_profiles?.full_name || 'Unknown Trainer',
+          email: (data as any).user_profiles?.email || 'unknown@example.com'
         },
         program: {
-          id: data.programs?.id,
-          title: data.programs?.title || 'Unknown Program',
-          description: data.programs?.description || '',
-          price: data.programs?.price || 0,
-          category: data.programs?.category || ''
+          id: (data as any).programs?.id,
+          title: (data as any).programs?.title || 'Unknown Program',
+          description: (data as any).programs?.description || '',
+          price: (data as any).programs?.price || 0,
+          category: (data as any).programs?.category || ''
         }
       }
 

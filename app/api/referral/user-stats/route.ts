@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', (user as any).id)
       .single()
 
     if (profileError || !profile) {
@@ -41,14 +41,14 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    if (profile.role !== 'user') {
+    if ((profile as any).role !== 'user') {
       return NextResponse.json({ 
         success: false, 
         error: 'Access denied. User role required.' 
       }, { status: 403 })
     }
 
-    const userData = { id: profile.id }
+    const userData = { id: (profile as any).id }
 
     const { searchParams } = new URL(request.url)
     const period = searchParams.get('period') || 'all'
