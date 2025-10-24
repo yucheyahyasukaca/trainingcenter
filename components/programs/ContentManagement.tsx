@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   Plus, Edit, Trash2, Video, FileText, HelpCircle, File, 
-  X, Save, ChevronUp, ChevronDown, Eye, Upload, PlayCircle, EyeOff
+  ChevronUp, ChevronDown, Eye, Upload, PlayCircle, EyeOff
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import Link from 'next/link'
-import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 interface LearningContent {
   id: string
@@ -42,24 +41,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   const { profile } = useAuth()
   const [contents, setContents] = useState<LearningContent[]>([])
   const [loading, setLoading] = useState(true)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [editingContent, setEditingContent] = useState<LearningContent | null>(null)
-  const [newContent, setNewContent] = useState<Partial<LearningContent>>({
-    class_id: classId,
-    title: '',
-    description: '',
-    content_type: 'text',
-    content_data: {},
-    order_index: 0,
-    is_free: false,
-    status: 'draft',
-    is_required: false,
-    estimated_duration: 10,
-    material_type: 'sub',
-    level: 1
-  })
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchContents()
@@ -109,91 +90,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   }
 
 
-  async function handleCreateContent() {
-    if (!newContent.title || !selectedParentId) return
 
-    try {
-      // Get the next order index for sub-materials
-      const parentContent = contents.find(c => c.id === selectedParentId)
-      const nextOrderIndex = parentContent?.sub_materials?.length || 0
-
-      const { data, error } = await (supabase as any)
-        .from('learning_contents')
-        .insert({
-          class_id: classId,
-          created_by: profile?.id,
-          title: newContent.title,
-          description: newContent.description,
-          content_type: newContent.content_type,
-          content_data: newContent.content_data,
-          order_index: nextOrderIndex,
-          is_free: newContent.is_free,
-          status: newContent.status,
-          is_required: newContent.is_required,
-          estimated_duration: newContent.estimated_duration,
-          parent_id: selectedParentId,
-          material_type: 'sub',
-          level: 2
-        })
-        .select()
-
-      if (error) throw error
-
-      // Refresh contents to show the new sub-material
-      await fetchContents()
-      setShowAddModal(false)
-      setNewContent({
-        class_id: classId,
-        title: '',
-        description: '',
-        content_type: 'text',
-        content_data: {},
-        order_index: 0,
-        is_free: false,
-        status: 'draft',
-        is_required: false,
-        estimated_duration: 10,
-        material_type: 'sub',
-        level: 1
-      })
-      setSelectedParentId(null)
-    } catch (error) {
-      console.error('Error creating content:', error)
-      alert('Gagal menambahkan sub materi')
-    }
-  }
-
-  async function handleUpdateContent() {
-    if (!editingContent) return
-
-    try {
-      const { error } = await (supabase as any)
-        .from('learning_contents')
-        .update({
-          title: editingContent.title,
-          description: editingContent.description,
-          content_type: editingContent.content_type,
-          content_data: editingContent.content_data,
-          is_free: editingContent.is_free,
-          status: editingContent.status,
-          is_required: editingContent.is_required,
-          estimated_duration: editingContent.estimated_duration,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingContent.id)
-
-      if (error) throw error
-
-      setContents(contents.map(c => 
-        c.id === editingContent.id ? editingContent : c
-      ))
-      setShowEditModal(false)
-      setEditingContent(null)
-    } catch (error) {
-      console.error('Error updating content:', error)
-      alert('Gagal mengupdate materi')
-    }
-  }
 
   async function handleDeleteContent(id: string) {
     if (!confirm('Apakah Anda yakin ingin menghapus materi ini?')) return
@@ -245,10 +142,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   }
 
 
-  function openEditModal(content: LearningContent) {
-    setEditingContent(content)
-    setShowEditModal(true)
-  }
 
   const getContentIcon = (type: string) => {
     switch (type) {
@@ -370,16 +263,13 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => {
-                        setSelectedParentId(content.id)
-                        setShowAddModal(true)
-                      }}
+                    <Link
+                      href={`/programs/${programId}/classes/${classId}/content/new?parent=${content.id}`}
                       className="p-2 rounded hover:bg-gray-100 text-green-600"
                       title="Tambah Sub Materi"
                     >
                       <Plus className="w-4 h-4" />
-                    </button>
+                    </Link>
                     <a
                       href={`/learn/${programId}/${classId}?content=${content.id}`}
                       target="_blank"
@@ -397,13 +287,13 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                         <HelpCircle className="w-4 h-4" />
                       </a>
                     )}
-                    <button
-                      onClick={() => openEditModal(content)}
+                    <Link
+                      href={`/programs/${programId}/classes/${classId}/content/${content.id}/edit`}
                       className="p-2 rounded hover:bg-gray-100 text-blue-600"
                       title="Edit"
                     >
                       <Edit className="w-4 h-4" />
-                    </button>
+                    </Link>
                     <button
                       onClick={() => handleDeleteContent(content.id)}
                       className="p-2 rounded hover:bg-gray-100 text-red-600"
@@ -492,13 +382,13 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                               <HelpCircle className="w-3 h-3" />
                             </a>
                           )}
-                          <button
-                            onClick={() => openEditModal(subMaterial)}
+                          <Link
+                            href={`/programs/${programId}/classes/${classId}/content/${subMaterial.id}/edit`}
                             className="p-1 rounded hover:bg-gray-200 text-blue-600"
                             title="Edit"
                           >
                             <Edit className="w-3 h-3" />
-                          </button>
+                          </Link>
                           <button
                             onClick={() => handleDeleteContent(subMaterial.id)}
                             className="p-1 rounded hover:bg-gray-200 text-red-600"
@@ -518,435 +408,11 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       )}
 
 
-      {/* Add Content Modal */}
-      {showAddModal && (
-        <ContentFormModal
-          content={newContent}
-          onSave={handleCreateContent}
-          onClose={() => {
-            setShowAddModal(false)
-            setNewContent({
-              class_id: classId,
-              title: '',
-              description: '',
-              content_type: 'text',
-              content_data: {},
-              order_index: 0,
-              is_free: false,
-              status: 'draft',
-              is_required: false,
-              estimated_duration: 10,
-              material_type: 'sub',
-              level: 1
-            })
-            setSelectedParentId(null)
-          }}
-          title="Tambah Sub Materi"
-          onChange={(content) => setNewContent(content)}
-          selectedParentId={selectedParentId}
-          setSelectedParentId={setSelectedParentId}
-          contents={contents}
-        />
-      )}
 
-      {/* Edit Content Modal */}
-      {showEditModal && editingContent && (
-        <ContentFormModal
-          content={editingContent}
-          onSave={handleUpdateContent}
-          onClose={() => {
-            setShowEditModal(false)
-            setEditingContent(null)
-          }}
-          title="Edit Materi"
-          onChange={(content) => setEditingContent(content as LearningContent)}
-          selectedParentId={editingContent.parent_id || null}
-          setSelectedParentId={(id) => setEditingContent({ ...editingContent, parent_id: id })}
-          contents={contents}
-        />
-      )}
     </div>
   )
 }
 
-// Content Form Modal Component
-interface ContentFormModalProps {
-  content: Partial<LearningContent>
-  onSave: () => void
-  onClose: () => void
-  title: string
-  onChange: (content: Partial<LearningContent>) => void
-  selectedParentId: string | null
-  setSelectedParentId: (id: string | null) => void
-  contents: LearningContent[]
-}
 
-function ContentFormModal({ content, onSave, onClose, title, onChange, selectedParentId, setSelectedParentId, contents }: ContentFormModalProps) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg max-w-3xl w-full max-h-[95vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <h3 className="text-lg sm:text-xl font-bold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <div className="p-4 sm:p-6 space-y-4">
-          {/* Material Type Selection - Only show if not adding sub-material */}
-          {selectedParentId === null && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Jenis Materi <span className="text-red-500">*</span>
-              </label>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="materialType"
-                    value="main"
-                    checked={selectedParentId === null}
-                    onChange={() => setSelectedParentId(null)}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Materi Utama</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="materialType"
-                    value="sub"
-                    checked={selectedParentId !== null}
-                    onChange={() => setSelectedParentId('')}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Sub Materi</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Show parent material info if adding sub-material */}
-          {selectedParentId !== null && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-700">
-                <strong>Menambahkan Sub Materi untuk:</strong> {contents.find(c => c.id === selectedParentId)?.title}
-              </p>
-            </div>
-          )}
-
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Judul Materi <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={content.title || ''}
-              onChange={(e) => onChange({ ...content, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Contoh: Pengenalan Python"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi
-            </label>
-            <textarea
-              value={content.description || ''}
-              onChange={(e) => onChange({ ...content, description: e.target.value })}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Deskripsi singkat tentang materi ini..."
-            />
-          </div>
-
-          {/* Parent Material Selection (only for sub-materials) */}
-          {selectedParentId !== null && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Materi Induk
-              </label>
-              <select
-                value={selectedParentId || ''}
-                onChange={(e) => setSelectedParentId(e.target.value || null)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="">Pilih Materi Induk</option>
-                {contents.map((mainContent) => (
-                  <option key={mainContent.id} value={mainContent.id}>
-                    {mainContent.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Content Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipe Konten <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={content.content_type || 'text'}
-              onChange={(e) => onChange({ ...content, content_type: e.target.value as any })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="text">📝 Teks / Artikel</option>
-              <option value="video">🎥 Video</option>
-              <option value="quiz">❓ Quiz / Kuis</option>
-              <option value="document">📄 Dokumen (PDF, PPT, dll)</option>
-              <option value="assignment">📋 Tugas / Assignment</option>
-            </select>
-          </div>
-
-          {/* Content Data based on type */}
-          <ContentDataForm 
-            contentType={content.content_type || 'text'}
-            contentData={content.content_data || {}}
-            onChange={(data) => onChange({ ...content, content_data: data })}
-          />
-
-          {/* Estimated Duration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estimasi Durasi (menit)
-            </label>
-            <input
-              type="number"
-              value={content.estimated_duration || 10}
-              onChange={(e) => onChange({ ...content, estimated_duration: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              min="1"
-            />
-          </div>
-
-          {/* Settings Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                value={content.status || 'draft'}
-                onChange={(e) => onChange({ ...content, status: e.target.value as any })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-
-            {/* Is Required */}
-            <div className="flex items-center justify-center sm:justify-start">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={content.is_required || false}
-                  onChange={(e) => onChange({ ...content, is_required: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Materi Wajib</span>
-              </label>
-            </div>
-
-            {/* Is Free */}
-            <div className="flex items-center justify-center sm:justify-start sm:col-span-2 lg:col-span-1">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={content.is_free || false}
-                  onChange={(e) => onChange({ ...content, is_free: e.target.checked })}
-                  className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Akses Gratis</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 border-t">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium"
-          >
-            Batal
-          </button>
-          <button
-            onClick={onSave}
-            disabled={!content.title}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-          >
-            <Save className="w-4 h-4" />
-            Simpan
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Content Data Form based on content type
-interface ContentDataFormProps {
-  contentType: string
-  contentData: any
-  onChange: (data: any) => void
-}
-
-function ContentDataForm({ contentType, contentData, onChange }: ContentDataFormProps) {
-  switch (contentType) {
-    case 'video':
-      return (
-        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL Video <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="url"
-              value={contentData?.video_url || ''}
-              onChange={(e) => onChange({ ...contentData, video_url: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="https://youtube.com/watch?v=..."
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Support: YouTube, Vimeo, atau URL direct video
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Thumbnail URL (optional)
-            </label>
-            <input
-              type="url"
-              value={contentData?.thumbnail || ''}
-              onChange={(e) => onChange({ ...contentData, thumbnail: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Durasi Video (detik)
-            </label>
-            <input
-              type="number"
-              value={contentData?.duration || 0}
-              onChange={(e) => onChange({ ...contentData, duration: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              min="0"
-            />
-          </div>
-        </div>
-      )
-
-    case 'text':
-      return (
-        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <RichTextEditor
-            value={contentData?.body || ''}
-            onChange={(value) => onChange({ ...contentData, body: value })}
-            placeholder="Tuliskan konten materi di sini... Gunakan toolbar untuk formatting, insert gambar, dan lainnya"
-            height={300}
-          />
-        </div>
-      )
-
-    case 'document':
-      return (
-        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL Dokumen <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="url"
-              value={contentData?.file_url || ''}
-              onChange={(e) => onChange({ ...contentData, file_url: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipe File
-            </label>
-            <select
-              value={contentData?.file_type || 'pdf'}
-              onChange={(e) => onChange({ ...contentData, file_type: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="pdf">PDF</option>
-              <option value="pptx">PowerPoint</option>
-              <option value="docx">Word Document</option>
-              <option value="xlsx">Excel</option>
-              <option value="other">Lainnya</option>
-            </select>
-          </div>
-        </div>
-      )
-
-    case 'quiz':
-      return (
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-700">
-            ℹ️ Quiz/Kuis akan dikonfigurasi setelah materi disimpan.
-            Anda bisa menambahkan pertanyaan dan opsi jawaban di halaman edit.
-          </p>
-        </div>
-      )
-
-    case 'assignment':
-      return (
-        <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Instruksi Tugas <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={contentData?.instructions || ''}
-              onChange={(e) => onChange({ ...contentData, instructions: e.target.value })}
-              rows={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="Jelaskan apa yang harus dikerjakan siswa..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deadline (optional)
-            </label>
-            <input
-              type="datetime-local"
-              value={contentData?.deadline || ''}
-              onChange={(e) => onChange({ ...contentData, deadline: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Maksimal Skor
-            </label>
-            <input
-              type="number"
-              value={contentData?.max_score || 100}
-              onChange={(e) => onChange({ ...contentData, max_score: parseInt(e.target.value) })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              min="1"
-            />
-          </div>
-        </div>
-      )
-
-    default:
-      return null
-  }
-}
 
 

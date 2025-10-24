@@ -19,17 +19,44 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
   const handleImageUpload = async (file: File) => {
     setUploading(true)
     try {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File terlalu besar. Maksimal 5MB.')
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        throw new Error('File harus berupa gambar.')
+      }
+
       // Create FormData for file upload
       const formData = new FormData()
       formData.append('file', file)
       
-      // Upload to Supabase Storage or your preferred storage service
-      const { data, error } = await fetch('/api/forum/upload', {
+      // Generate unique filename with timestamp
+      const timestamp = Date.now()
+      const fileExtension = file.name.split('.').pop()
+      const fileName = `image_${timestamp}.${fileExtension}`
+      const path = `images/${fileName}`
+      
+      formData.append('path', path)
+      
+      // Upload to Supabase Storage
+      const response = await fetch('/api/forum/upload', {
         method: 'POST',
         body: formData,
-      }).then(res => res.json())
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
+      }
+
+      const data = await response.json()
+
+      if (!data.url) {
+        throw new Error('URL gambar tidak ditemukan')
+      }
 
       // Insert image into textarea
       const textarea = textareaRef.current
@@ -46,9 +73,9 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
           textarea.setSelectionRange(start + imageTag.length, start + imageTag.length)
         }, 0)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error)
-      alert('Gagal mengupload gambar')
+      alert(`Gagal mengupload gambar: ${error.message}`)
     } finally {
       setUploading(false)
     }
