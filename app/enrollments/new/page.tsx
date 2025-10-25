@@ -152,17 +152,25 @@ export default function NewEnrollmentPage() {
   // Show access denied for non-admin/manager users
   if (!isAdminOrManager) {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ArrowLeft className="w-8 h-8 text-red-600" />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
-          <p className="text-gray-600 mb-6">Halaman ini hanya dapat diakses oleh Admin atau Manager.</p>
-          <Link href="/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali ke Daftar Program
-          </Link>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Hai! 👋</h1>
+          <p className="text-gray-600 mb-6 text-lg">Halaman ini khusus untuk Admin dan Manager saja nih!</p>
+          <p className="text-gray-500 text-sm mb-8">Tapi tenang, kamu masih bisa melihat program-program menarik lainnya! 🎯</p>
+          <a 
+            href="/programs" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Lihat Program Tersedia
+          </a>
         </div>
       </div>
     )

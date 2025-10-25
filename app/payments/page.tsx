@@ -171,11 +171,25 @@ export default function PaymentsPage() {
 
   if (profile?.role !== 'admin' && profile?.role !== 'manager') {
     return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
-          <p className="text-gray-600">Anda tidak memiliki izin untuk mengakses halaman ini.</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 via-orange-50 to-amber-50">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">Oops! 😅</h1>
+          <p className="text-gray-600 mb-6 text-lg">Halaman ini khusus untuk Admin dan Manager saja nih!</p>
+          <p className="text-gray-500 text-sm mb-8">Tapi jangan sedih, masih banyak fitur menarik lainnya yang bisa kamu akses! ✨</p>
+          <a 
+            href="/dashboard" 
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-medium rounded-xl hover:from-red-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Kembali ke Dashboard
+          </a>
         </div>
       </div>
     )
