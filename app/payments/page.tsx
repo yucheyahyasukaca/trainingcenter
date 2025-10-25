@@ -44,6 +44,7 @@ export default function PaymentsPage() {
 
   async function approvePayment(id: string) {
     try {
+      // Update enrollment status
       const { error } = await (supabase as any)
         .from('enrollments')
         .update({ 
@@ -53,6 +54,21 @@ export default function PaymentsPage() {
         .eq('id', id)
 
       if (error) throw error
+
+      // Explicitly update referral status as backup (in case trigger doesn't work)
+      try {
+        const { error: referralError } = await (supabase as any)
+          .rpc('update_enrollment_referral_status', { p_enrollment_id: id })
+        
+        if (referralError) {
+          console.warn('Referral status update failed (trigger should handle this):', referralError)
+        } else {
+          console.log('Referral status updated successfully for enrollment:', id)
+        }
+      } catch (referralError) {
+        console.warn('Referral status update failed (trigger should handle this):', referralError)
+      }
+
       fetchPayments()
       addNotification({
         type: 'success',
@@ -76,6 +92,7 @@ export default function PaymentsPage() {
     if (!reason) return
 
     try {
+      // Update enrollment status
       const { error } = await (supabase as any)
         .from('enrollments')
         .update({
@@ -85,6 +102,21 @@ export default function PaymentsPage() {
         .eq('id', id)
 
       if (error) throw error
+
+      // Explicitly update referral status as backup (in case trigger doesn't work)
+      try {
+        const { error: referralError } = await (supabase as any)
+          .rpc('update_enrollment_referral_status', { p_enrollment_id: id })
+        
+        if (referralError) {
+          console.warn('Referral status update failed (trigger should handle this):', referralError)
+        } else {
+          console.log('Referral status updated successfully for enrollment:', id)
+        }
+      } catch (referralError) {
+        console.warn('Referral status update failed (trigger should handle this):', referralError)
+      }
+
       fetchPayments()
       addNotification({
         type: 'warning',
