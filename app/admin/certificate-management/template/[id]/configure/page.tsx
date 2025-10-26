@@ -431,33 +431,49 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                   )}
                   
                   {/* Preview Fields */}
-                  {Object.entries(fields).map(([key, field]) => (
-                    <div
-                      key={key}
-                      onClick={() => setSelectedField(key)}
-                      onMouseDown={(e) => handleMouseDown(e, key)}
-                      onContextMenu={(e) => handleContextMenu(e, key)}
-                      className={`absolute border-2 ${selectedField === key ? 'border-blue-500 shadow-lg' : 'border-dashed border-gray-400'} ${isDragging && dragField === key ? 'cursor-grabbing' : 'cursor-grab'} bg-white bg-opacity-50 hover:bg-opacity-75 z-10 transition-all`}
-                      style={{
-                        left: `${field.position.x}px`,
-                        top: `${field.position.y}px`,
-                        width: `${field.width}px`,
-                        fontFamily: field.font.family,
-                        fontSize: `${field.font.size}px`,
-                        fontWeight: field.font.weight,
-                        color: field.font.color,
-                        textAlign: field.align as 'left' | 'center' | 'right',
-                        boxShadow: selectedField === key ? '0 0 0 2px rgba(59, 130, 246, 0.3)' : 'none'
-                      }}
-                    >
-                      {field.value || `${key} placeholder`}
-                      {selectedField === key && (
-                        <div className="absolute -top-6 left-0 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
-                          Selected (Use Arrow Keys)
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {Object.entries(fields).map(([key, field]) => {
+                    // Calculate text positioning based on alignment
+                    const getTextPosition = () => {
+                      const padding = 4
+                      const textContent = field.value || `${key} placeholder`
+                      
+                      if (field.align === 'center') {
+                        return { justifyContent: 'center', paddingLeft: padding, paddingRight: padding }
+                      } else if (field.align === 'right') {
+                        return { justifyContent: 'flex-end', paddingLeft: padding, paddingRight: padding }
+                      } else {
+                        return { justifyContent: 'flex-start', paddingLeft: padding, paddingRight: padding }
+                      }
+                    }
+                    
+                    const textStyle = getTextPosition()
+                    
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => setSelectedField(key)}
+                        onMouseDown={(e) => handleMouseDown(e, key)}
+                        onContextMenu={(e) => handleContextMenu(e, key)}
+                        className={`absolute border-2 ${selectedField === key ? 'border-blue-500 shadow-lg' : 'border-dashed border-gray-400'} ${isDragging && dragField === key ? 'cursor-grabbing' : 'cursor-grab'} bg-white bg-opacity-50 hover:bg-opacity-75 z-10 transition-all flex items-center`}
+                        style={{
+                          left: `${field.position.x}px`,
+                          top: `${field.position.y}px`,
+                          width: `${field.width}px`,
+                          minHeight: `${field.font.size * 1.5}px`,
+                          fontFamily: field.font.family,
+                          fontSize: `${field.font.size}px`,
+                          fontWeight: field.font.weight,
+                          color: field.font.color,
+                          ...textStyle,
+                          boxShadow: selectedField === key ? '0 0 0 2px rgba(59, 130, 246, 0.3)' : 'none'
+                        }}
+                      >
+                        <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+                          {field.value || `${key} placeholder`}
+                        </span>
+                      </div>
+                    )
+                  })}
 
                   {/* QR Code Preview */}
                   <div
@@ -476,11 +492,6 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                     <div className="flex items-center justify-center h-full text-xs text-purple-700">
                       QR Code
                     </div>
-                    {selectedField === 'qr_code' && (
-                      <div className="absolute -top-6 left-0 text-xs bg-purple-500 text-white px-2 py-1 rounded whitespace-nowrap">
-                        Selected (Use Arrow Keys)
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

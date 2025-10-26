@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
+import { CertificatePreviewModal } from '@/components/admin/CertificatePreviewModal'
 import { 
   Plus, 
   Upload, 
@@ -80,6 +81,10 @@ export default function CertificateManagementPage() {
   // Common state
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Preview modal state
+  const [previewModalOpen, setPreviewModalOpen] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile?.role === 'admin') {
@@ -329,7 +334,10 @@ export default function CertificateManagementPage() {
 
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => window.open(template.template_pdf_url, '_blank')}
+                      onClick={() => {
+                        setSelectedTemplateId(template.id)
+                        setPreviewModalOpen(true)
+                      }}
                       className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       <Eye className="w-4 h-4 mr-1" />
@@ -463,6 +471,18 @@ export default function CertificateManagementPage() {
         )}
 
       </div>
+
+      {/* Certificate Preview Modal */}
+      {selectedTemplateId && (
+        <CertificatePreviewModal
+          templateId={selectedTemplateId}
+          isOpen={previewModalOpen}
+          onClose={() => {
+            setPreviewModalOpen(false)
+            setSelectedTemplateId(null)
+          }}
+        />
+      )}
     </div>
   )
 }

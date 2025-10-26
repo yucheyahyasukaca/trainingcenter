@@ -20,25 +20,20 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
 
-  // Try to get admin notifications if user is admin
-  let adminNotifications: any[] = []
-  let adminUnreadCount = 0
-  let markAsRead: any = null
-  let markAllAsRead: any = null
-  let removeNotification: any = null
-  
+  // Always call hooks at the top level to avoid React Hooks order violations
+  let adminNotifResult: any = null
   try {
-    if (profile?.role === 'admin') {
-      const adminNotif = useAdminNotifications()
-      adminNotifications = adminNotif.notifications
-      adminUnreadCount = adminNotif.getUnreadCount()
-      markAsRead = adminNotif.markAsRead
-      markAllAsRead = adminNotif.markAllAsRead
-      removeNotification = adminNotif.removeNotification
-    }
+    adminNotifResult = useAdminNotifications()
   } catch (error) {
-    // Not in admin context, ignore
+    // Not in admin context, will use empty values below
   }
+
+  // Extract admin notification data only if available and user is admin
+  const adminNotifications = (profile?.role === 'admin' && adminNotifResult) ? adminNotifResult.notifications : []
+  const adminUnreadCount = (profile?.role === 'admin' && adminNotifResult) ? adminNotifResult.getUnreadCount() : 0
+  const markAsRead = (profile?.role === 'admin' && adminNotifResult) ? adminNotifResult.markAsRead : null
+  const markAllAsRead = (profile?.role === 'admin' && adminNotifResult) ? adminNotifResult.markAllAsRead : null
+  const removeNotification = (profile?.role === 'admin' && adminNotifResult) ? adminNotifResult.removeNotification : null
 
   // Combine regular and admin notifications
   const allNotifications = [...notifications, ...adminNotifications]

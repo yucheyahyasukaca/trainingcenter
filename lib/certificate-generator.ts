@@ -32,6 +32,9 @@ export interface CertificateTemplate {
   completion_date_field: string
   trainer_name_field: string
   trainer_level_field: string
+  qr_code_size?: number
+  qr_code_position_x?: number
+  qr_code_position_y?: number
 }
 
 /**
@@ -164,22 +167,104 @@ export async function generateCertificatePDF(
 
     // Fill text fields based on template configuration
     if (template.template_fields) {
+      console.log('===== CERTIFICATE GENERATOR DEBUG =====')
+      console.log('Page size:', { width, height })
+      console.log('Template fields to render:', JSON.stringify(template.template_fields, null, 2))
+      console.log('Available text data:', textData)
+      
       for (const [fieldName, fieldConfig] of Object.entries(template.template_fields)) {
         const textValue = textData[fieldName] || ''
-        if (fieldConfig && typeof fieldConfig === 'object' && fieldConfig.x && fieldConfig.y) {
-          const fontSize = fieldConfig.fontSize || 12
-          const fontToUse = fieldConfig.bold ? boldFont : font
-          const color = fieldConfig.color ? 
-            rgb(fieldConfig.color.r || 0, fieldConfig.color.g || 0, fieldConfig.color.b || 0) : 
-            rgb(0, 0, 0)
+        
+        console.log(`\n[FIELD] ${fieldName}:`, {
+          config: JSON.stringify(fieldConfig, null, 2),
+          textValue,
+          hasPosition: fieldConfig?.position,
+          hasX: fieldConfig?.position?.x !== undefined,
+          hasY: fieldConfig?.position?.y !== undefined,
+          align: fieldConfig?.align,
+          width: fieldConfig?.width
+        })
+        
+        if (fieldConfig && typeof fieldConfig === 'object') {
+          // Get position from fieldConfig (new structure from configure page)
+          const position = fieldConfig.position
+          const fontConfig = fieldConfig.font || {}
+          
+          if (position && position.x !== undefined && position.y !== undefined) {
+            const fontSize = fontConfig.size || 12
+            const fontToUse = (fontConfig.weight === 'bold') ? boldFont : font
+            const fontColor = fontConfig.color || '#000000'
+            
+            // Convert color from hex to RGB
+            const hexColor = fontColor.replace('#', '')
+            const r = parseInt(hexColor.substring(0, 2), 16) / 255
+            const g = parseInt(hexColor.substring(2, 4), 16) / 255
+            const b = parseInt(hexColor.substring(4, 6), 16) / 255
 
-          firstPage.drawText(textValue, {
-            x: fieldConfig.x,
-            y: height - fieldConfig.y,
-            size: fontSize,
-            font: fontToUse,
-            color: color
-          })
+            // Convert Y coordinate from top-left (HTML) to bottom-left (PDF)
+            // PDF text is positioned from baseline, not top-left
+            // PDF y=0 is at bottom, HTML y=0 is at top
+            // We need to add a bit more offset to match the visual position in editor
+            const fontAscent = fontToUse.heightAtSize(fontSize)
+            const additionalOffset = fontSize * 0.3 // Add extra offset to lower the text
+            const pdfY = height - position.y - fontAscent - additionalOffset
+            
+            // Handle text alignment (left, center, right)
+            let finalX = position.x
+            const align = fieldConfig.align || 'left'
+            const fieldWidth = fieldConfig.width || 200
+            
+            if (align === 'center' || align === 'centre') {
+              // Calculate text width and center it
+              const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
+              // Center calculation: 
+              // fieldLeftEdge = position.x
+              // fieldCenter = position.x + (fieldWidth / 2)
+              // textLeft = fieldCenter - (textWidth / 2)
+              finalX = position.x + (fieldWidth / 2) - (textWidth / 2)
+              
+              console.log(`[CENTER CALC] ${fieldName}:`, {
+                fieldLeft: position.x,
+                fieldCenter: position.x + (fieldWidth / 2),
+                textWidth,
+                finalX,
+                calculation: `finalX = ${position.x} + (${fieldWidth} / 2) - (${textWidth} / 2) = ${finalX}`
+              })
+            } else if (align === 'right') {
+              // Right align text
+              const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
+              finalX = position.x + fieldWidth - textWidth
+            }
+            
+            const actualTextWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
+            
+            console.log(`[DRAW] ${fieldName}:`, {
+              originalX: position.x,
+              finalX,
+              pdfY,
+              originalY: position.y,
+              size: fontSize,
+              align,
+              fieldWidth,
+              textWidth: actualTextWidth,
+              fieldLeftEdge: position.x,
+              fieldRightEdge: position.x + fieldWidth,
+              fieldCenterX: position.x + fieldWidth / 2,
+              textLeftEdge: finalX,
+              textRightEdge: finalX + actualTextWidth,
+              text: textValue,
+              pageCenterX: width / 2,
+              offsetFromPageCenter: finalX - (width / 2)
+            })
+
+            firstPage.drawText(textValue, {
+              x: finalX,
+              y: pdfY,
+              size: fontSize,
+              font: fontToUse,
+              color: rgb(r, g, b)
+            })
+          }
         }
       }
     }
@@ -194,11 +279,41 @@ export async function generateCertificatePDF(
       // Embed QR code image
       const qrCodeImage = await pdfDoc.embedPng(qrCodeBytes)
       
-      // Add QR code to bottom right corner
-      const qrCodeSize = 100
+      // Get QR code size and position from template configuration
+      // Note: PDF coordinates start from bottom-left (0,0 at bottom-left corner)
+      // But the configure page uses top-left coordinate system (0,0 at top-left)
+      // So we need to convert: pdf_y = page_height - html_y - object_height
+      const qrCodeSize = template.qr_code_size || 100
+      
+      // Default to bottom right corner if not configured
+      let qrCodeX = template.qr_code_position_x ?? (width - qrCodeSize - 20)
+      let qrCodeY = 20
+      
+      // Convert Y coordinate from top-left (HTML) to bottom-left (PDF) system
+      if (template.qr_code_position_y !== undefined && template.qr_code_position_y !== null) {
+        // In configure page: y=0 means top, y=595 means bottom
+        // In PDF: y=0 means bottom, y=height means top
+        // Conversion: pdf_y = height - html_y - qrCodeSize
+        qrCodeY = height - template.qr_code_position_y - qrCodeSize
+      } else {
+        // Default position at bottom right
+        qrCodeY = 20
+      }
+      
+      // Debug logging
+      console.log('QR Code Positioning:', {
+        pageSize: { width, height },
+        configuredX: template.qr_code_position_x,
+        configuredY: template.qr_code_position_y,
+        configuredSize: template.qr_code_size,
+        finalX: qrCodeX,
+        finalY: qrCodeY,
+        qrCodeSize
+      })
+      
       firstPage.drawImage(qrCodeImage, {
-        x: width - qrCodeSize - 20,
-        y: 20,
+        x: qrCodeX,
+        y: qrCodeY,
         width: qrCodeSize,
         height: qrCodeSize
       })
