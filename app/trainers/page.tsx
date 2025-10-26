@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { Trainer } from '@/types'
 import { Search, UserCog, Calendar, Award, TrendingUp, Star, Briefcase, MapPin, ArrowRight, BookOpen, Users } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
+import { PublicNav } from '@/components/layout/PublicNav'
 
 export default function TrainersPage() {
   const { profile } = useAuth()
@@ -56,88 +56,7 @@ export default function TrainersPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Public Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 flex items-center justify-center transition-transform hover:scale-105">
-                <Image
-                  src="/logo-06.png"
-                  alt="Garuda Academy Logo"
-                  width={64}
-                  height={64}
-                  className="object-contain w-full h-full"
-                />
-              </div>
-              <div className="hidden sm:block">
-                <h3 className="text-lg font-bold text-gray-900">Garuda Academy</h3>
-                <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
-              </div>
-            </Link>
-
-            <div className="flex items-center space-x-4 lg:space-x-6">
-              <Link
-                href="/programs"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Program
-              </Link>
-              <Link
-                href="/trainers"
-                className="hidden lg:inline-block text-sm font-medium text-primary-600 border-b-2 border-primary-600"
-              >
-                Trainer
-              </Link>
-              <Link
-                href="/about"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Tentang
-              </Link>
-              <Link
-                href="/contact"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Kontak
-              </Link>
-
-              <div className="flex items-center space-x-3 lg:space-x-4">
-                {profile ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                    >
-                      Profil Saya
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
-                    >
-                      Masuk
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                    >
-                      Daftar Sekarang
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <PublicNav activeLink="trainers" />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-50 via-white to-red-50 pt-32 pb-16">

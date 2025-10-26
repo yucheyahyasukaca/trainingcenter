@@ -22,13 +22,18 @@ import {
   BookOpen,
   Medal,
   Sparkles,
-  Search
+  Search,
+  Menu,
+  X,
+  ArrowUpRight,
+  ChevronDown
 } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [scrolled, setScrolled] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     // Check if user is already logged in
@@ -165,13 +170,14 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center transition-transform hover:scale-105">
+            {/* Logo */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center transition-transform hover:scale-105">
                 <Image
                   src="/logo-06.png"
                   alt="Garuda Academy Logo"
-                  width={64}
-                  height={64}
+                  width={80}
+                  height={80}
                   className="object-contain w-full h-full"
                 />
               </div>
@@ -181,9 +187,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-                         <div className="flex items-center space-x-4 lg:space-x-6">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-4 lg:space-x-6">
                {/* Search Bar */}
-               <div className="hidden md:flex items-center relative">
+               <div className="flex items-center relative">
                  <Search className="absolute left-3 w-4 h-4 text-gray-400" />
                  <input
                    type="text"
@@ -193,7 +200,7 @@ export default function LandingPage() {
                </div>
 
                {/* Header Menu */}
-               <nav className="hidden lg:flex items-center space-x-6">
+               <nav className="flex items-center space-x-6">
                  <Link
                    href="/programs"
                    className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
@@ -224,7 +231,7 @@ export default function LandingPage() {
                <div className="flex items-center space-x-3 lg:space-x-4">
                  <Link
                    href="/login"
-                   className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
+                   className="inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
                  >
                    Masuk
                  </Link>
@@ -236,9 +243,106 @@ export default function LandingPage() {
                  </Link>
                </div>
              </div>
+
+             {/* Mobile Hamburger Button */}
+             <button
+               onClick={() => setIsMobileMenuOpen(true)}
+               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+               aria-label="Open menu"
+             >
+               <Menu className="w-6 h-6 text-gray-600" strokeWidth={2} />
+             </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Overlay - Outside nav to ensure solid background */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[9999] bg-white">
+            {/* Header with Search and Close */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              {/* Search Bar */}
+              <div className="flex-1 mr-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Apa yang ingin Anda pelajari?"
+                    className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6 text-gray-600" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Action Buttons - Login & Register */}
+            <div className="flex gap-3 px-4 py-4 border-b border-gray-200">
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex-1 px-4 py-3 text-center font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Masuk
+              </Link>
+              <Link
+                href="/register"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex-1 px-4 py-3 text-center font-medium text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
+              >
+                Daftar
+              </Link>
+            </div>
+
+            {/* Navigation Links */}
+            <div className="px-4 py-2">
+              <nav className="space-y-1">
+                <Link
+                  href="/programs"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium">Program</span>
+                  <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                </Link>
+                
+                <Link
+                  href="/trainers"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium">Trainer</span>
+                  <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                </Link>
+                
+                <Link
+                  href="/about"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium">Tentang</span>
+                  <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                </Link>
+                
+                <Link
+                  href="/contact"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium">Kontak</span>
+                  <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                </Link>
+              </nav>
+            </div>
+          </div>
+        )}
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-50 via-white to-red-50 relative overflow-hidden">
