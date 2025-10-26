@@ -9,8 +9,24 @@ export function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing required Supabase environment variables')
+  if (!supabaseUrl) {
+    console.error('❌ NEXT_PUBLIC_SUPABASE_URL is not set')
+    throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL')
+  }
+
+  if (!supabaseKey) {
+    console.error('❌ SUPABASE_SERVICE_ROLE_KEY is not set')
+    console.error('Please add SUPABASE_SERVICE_ROLE_KEY to your environment variables')
+    throw new Error('Missing required environment variable: SUPABASE_SERVICE_ROLE_KEY')
+  }
+
+  // Check if running in production
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  if (isProduction) {
+    console.log('✓ Using Supabase admin client in production')
+    console.log('✓ Supabase URL:', supabaseUrl)
+    console.log('✓ Service role key:', supabaseKey.substring(0, 20) + '...')
   }
 
   return createClient<Database>(supabaseUrl, supabaseKey)

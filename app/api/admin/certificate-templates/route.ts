@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id')
     const programId = searchParams.get('program_id')
     const isActive = searchParams.get('is_active')
+    
+    console.log('GET /api/admin/certificate-templates called with params:', { id, programId, isActive })
 
     let query = supabaseAdmin
       .from('certificate_templates')
@@ -58,9 +60,17 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ data })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in GET /api/admin/certificate-templates:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error message:', error?.message)
+    console.error('Error stack:', error?.stack)
+    
+    // Return more detailed error for debugging
+    const errorMessage = error?.message || 'Internal server error'
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    }, { status: 500 })
   }
 }
 

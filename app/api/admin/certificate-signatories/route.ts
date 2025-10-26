@@ -28,9 +28,14 @@ export async function GET(request: NextRequest) {
       success: true,
       data: signatories || []
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in GET /api/admin/certificate-signatories:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error message:', error?.message)
+    const errorMessage = error?.message || 'Internal server error'
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    }, { status: 500 })
   }
 }
 
