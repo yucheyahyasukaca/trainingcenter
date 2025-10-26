@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Edit, User, MapPin, Building, Mail, Phone, Briefcase } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function ViewTrainerProfilePage() {
   const { profile, refreshProfile } = useAuth()
@@ -66,6 +67,23 @@ export default function ViewTrainerProfilePage() {
         {/* Profile Information */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-8 space-y-8">
+            {/* Profile Photo */}
+            <div className="flex items-center justify-center py-6 border-b border-gray-200">
+              {profile?.avatar_url ? (
+                <Image
+                  src={profile.avatar_url}
+                  alt="Profile Avatar"
+                  width={150}
+                  height={150}
+                  className="w-40 h-40 rounded-full object-cover border-4 border-primary-100"
+                />
+              ) : (
+                <div className="w-40 h-40 rounded-full bg-gray-200 flex items-center justify-center border-4 border-primary-100">
+                  <User className="w-20 h-20 text-gray-400" />
+                </div>
+              )}
+            </div>
+
             {/* Personal Information */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">

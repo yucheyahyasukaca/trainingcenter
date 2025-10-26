@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, User, MapPin, Building, Mail, Phone, Briefcase, Search, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Save, User, MapPin, Building, Mail, Phone, Briefcase, Search, ChevronDown, Camera, X } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/hooks/useToast'
+import Image from 'next/image'
 
 // Indonesia provinces data
 const provinces = [
@@ -189,6 +190,9 @@ export default function EditTrainerProfilePage() {
   const addToast = useToast()
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -224,6 +228,7 @@ export default function EditTrainerProfilePage() {
       })
       setProvinceSearch((profile as any).provinsi || '')
       setKabupatenSearch((profile as any).kabupaten || '')
+      setAvatarPreview(profile.avatar_url || null)
     }
   }, [profile])
 
@@ -297,6 +302,122 @@ export default function EditTrainerProfilePage() {
   const handleKabupatenKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setShowKabupatenDropdown(false)
+    }
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      addToast.error('Format file tidak valid. Silakan upload file gambar.', 'Error!')
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      addToast.error('Ukuran file terlalu besar. Maksimal 5MB.', 'Error!')
+      return
+    }
+
+    setUploading(true)
+
+    try {
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+            // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile?.id}_${Date.now()}.${fileExt}`
+      // Use user_id as folder name to match RLS policy
+      const filePath = `${profile?.id}/avatars/${fileName}`
+
+      let bucketName = 'payment-proofs'
+      let avatarUrl = ''
+      
+      // Upload to payment-proofs bucket (using user_id folder to match RLS)
+      const { error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(filePath, file, { cacheControl: '3600', upsert: true })
+      
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath)
+      avatarUrl = data.publicUrl
+
+      // Update profile with avatar URL
+      const { error: updateError } = await (supabase as any)
+        .from('user_profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', profile?.id)
+
+      if (updateError) throw updateError
+
+      // Also update trainers table if user is a trainer
+      const { data: trainerData } = await supabase
+        .from('trainers')
+        .select('id')
+        .eq('user_id', profile?.id)
+        .single()
+
+      if (trainerData) {
+        await supabase
+          .from('trainers')
+          .update({ avatar_url: avatarUrl })
+          .eq('id', trainerData.id)
+      }
+
+      addToast.success('Foto profil berhasil diupload.', 'Berhasil!')
+      await refreshProfile()
+
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      addToast.error('Gagal mengupload foto profil. Silakan coba lagi.', 'Error!')
+      setAvatarPreview(profile?.avatar_url || null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    try {
+      const { error } = await (supabase as any)
+        .from('user_profiles')
+        .update({ avatar_url: null })
+        .eq('id', profile?.id)
+
+      if (error) throw error
+
+      // Also update trainers table if user is a trainer
+      const { data: trainerData } = await supabase
+        .from('trainers')
+        .select('id')
+        .eq('user_id', profile?.id)
+        .single()
+
+      if (trainerData) {
+        await supabase
+          .from('trainers')
+          .update({ avatar_url: null })
+          .eq('id', trainerData.id)
+      }
+
+      setAvatarPreview(null)
+      addToast.success('Foto profil berhasil dihapus.', 'Berhasil!')
+      await refreshProfile()
+
+    } catch (error) {
+      console.error('Error removing avatar:', error)
+      addToast.error('Gagal menghapus foto profil.', 'Error!')
     }
   }
 
@@ -392,6 +513,67 @@ export default function EditTrainerProfilePage() {
         {/* Form */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            {/* Profile Photo Upload */}
+            <div className="flex items-center space-x-6 pb-8 border-b border-gray-200">
+              <div className="relative">
+                {avatarPreview ? (
+                  <Image
+                    src={avatarPreview}
+                    alt="Profile Avatar"
+                    width={120}
+                    height={120}
+                    className="w-30 h-30 rounded-full object-cover border-4 border-primary-100"
+                  />
+                ) : (
+                  <div className="w-30 h-30 rounded-full bg-gray-200 flex items-center justify-center border-4 border-primary-100">
+                    <User className="w-16 h-16 text-gray-400" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="absolute bottom-0 right-0 w-10 h-10 bg-primary-600 text-white rounded-full flex items-center justify-center hover:bg-primary-700 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Foto Profil</h3>
+                <p className="text-sm text-gray-600 mb-4">Upload foto profil Anda (Maksimal 5MB)</p>
+                <div className="flex space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {uploading ? 'Uploading...' : 'Pilih Foto'}
+                  </button>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveAvatar}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Hapus Foto
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
             {/* Personal Information */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
