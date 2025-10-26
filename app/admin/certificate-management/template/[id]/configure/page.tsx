@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
-import { ArrowLeft, Save, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
+import { ArrowLeft, Save, RotateCcw, ZoomIn, ZoomOut, Edit, Trash2, ArrowUp, ArrowDown, ArrowRight, ArrowLeft as ArrowLeftIcon, Move } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -45,11 +45,190 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
   const [qrCodeSize, setQrCodeSize] = useState(150)
   const [qrCodePosition, setQrCodePosition] = useState({ x: 100, y: 100 })
 
+  // Drag and context menu states
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragField, setDragField] = useState<string | null>(null)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; field: string | null } | null>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (profile?.role === 'admin') {
       fetchTemplate()
     }
   }, [profile, params.id])
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu(null)
+    }
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [contextMenu])
+
+  // Handle keyboard arrow keys for moving selected field
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedField || e.ctrlKey || e.altKey || e.metaKey) return
+
+      let direction: 'up' | 'down' | 'left' | 'right' | null = null
+
+      switch (e.key) {
+        case 'ArrowUp':
+          direction = 'up'
+          break
+        case 'ArrowDown':
+          direction = 'down'
+          break
+        case 'ArrowLeft':
+          direction = 'left'
+          break
+        case 'ArrowRight':
+          direction = 'right'
+          break
+        default:
+          return
+      }
+
+      if (direction) {
+        e.preventDefault()
+        const step = e.shiftKey ? 1 : 10 // Shift + Arrow = fine movement (1px), normal = 10px
+        
+        const deltaX = direction === 'left' ? -step : direction === 'right' ? step : 0
+        const deltaY = direction === 'up' ? -step : direction === 'down' ? step : 0
+
+        if (selectedField === 'qr_code') {
+          setQrCodePosition(prev => {
+            const currentSize = qrCodeSize
+            return {
+              x: Math.max(0, Math.min(842 - currentSize, prev.x + deltaX)),
+              y: Math.max(0, Math.min(595 - currentSize, prev.y + deltaY))
+            }
+          })
+        } else {
+          setFields(prev => {
+            const field = prev[selectedField]
+            if (!field) return prev
+            
+            return {
+              ...prev,
+              [selectedField]: {
+                ...prev[selectedField],
+                position: {
+                  x: Math.max(0, Math.min(842 - field.width, field.position.x + deltaX)),
+                  y: Math.max(0, Math.min(595, field.position.y + deltaY))
+                }
+              }
+            }
+          })
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedField, qrCodeSize])
+
+  // Handle mouse move for dragging
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging && dragField && canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect()
+        const scaleX = rect.width / (842 * zoom)
+        const scaleY = rect.height / (595 * zoom)
+        
+        const deltaX = (e.clientX - dragStart.x) / scaleX / zoom
+        const deltaY = (e.clientY - dragStart.y) / scaleY / zoom
+
+        if (dragField === 'qr_code') {
+          setQrCodePosition(prev => ({
+            x: Math.max(0, Math.min(842 - qrCodeSize, prev.x + deltaX)),
+            y: Math.max(0, Math.min(595 - qrCodeSize, prev.y + deltaY))
+          }))
+        } else if (fields[dragField]) {
+          setFields(prev => ({
+            ...prev,
+            [dragField]: {
+              ...prev[dragField],
+              position: {
+                x: Math.max(0, Math.min(842 - prev[dragField].width, prev[dragField].position.x + deltaX)),
+                y: Math.max(0, Math.min(595, prev[dragField].position.y + deltaY))
+              }
+            }
+          }))
+        }
+        setDragStart({ x: e.clientX, y: e.clientY })
+      }
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+      setDragField(null)
+    }
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragField, dragStart, fields, zoom, qrCodeSize])
+
+  const handleMouseDown = (e: React.MouseEvent, fieldName: string) => {
+    e.stopPropagation()
+    setIsDragging(true)
+    setDragField(fieldName)
+    setDragStart({ x: e.clientX, y: e.clientY })
+    setSelectedField(fieldName)
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, fieldName: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, field: fieldName })
+    setSelectedField(fieldName)
+  }
+
+  const moveField = useCallback((direction: 'up' | 'down' | 'left' | 'right', step: number = 10, fieldName?: string) => {
+    const currentSelectedField = fieldName || selectedField
+    if (!currentSelectedField) return
+
+    const deltaX = direction === 'left' ? -step : direction === 'right' ? step : 0
+    const deltaY = direction === 'up' ? -step : direction === 'down' ? step : 0
+
+    if (currentSelectedField === 'qr_code') {
+      setQrCodePosition(prev => {
+        const currentSize = qrCodeSize
+        return {
+          x: Math.max(0, Math.min(842 - currentSize, prev.x + deltaX)),
+          y: Math.max(0, Math.min(595 - currentSize, prev.y + deltaY))
+        }
+      })
+    } else {
+      setFields(prev => {
+        const field = prev[currentSelectedField]
+        if (!field) return prev
+        
+        return {
+          ...prev,
+          [currentSelectedField]: {
+            ...prev[currentSelectedField],
+            position: {
+              x: Math.max(0, Math.min(842 - field.width, field.position.x + deltaX)),
+              y: Math.max(0, Math.min(595, field.position.y + deltaY))
+            }
+          }
+        }
+      })
+    }
+  }, [selectedField, qrCodeSize])
 
   const fetchTemplate = async () => {
     try {
@@ -208,31 +387,40 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
           <p className="mt-2 text-gray-600">{template.template_name}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Panel - Editor Canvas */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-8">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Preview Template</h2>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-                    className="p-2 rounded-md border border-gray-300 hover:bg-gray-50"
-                  >
-                    <ZoomOut className="w-4 h-4" />
-                  </button>
-                  <span className="text-sm font-medium">{Math.round(zoom * 100)}%</span>
-                  <button
-                    onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-                    className="p-2 rounded-md border border-gray-300 hover:bg-gray-50"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xl font-semibold">Preview Template</h2>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
+                      className="p-2 rounded-md border border-gray-300 hover:bg-gray-50"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm font-medium">{Math.round(zoom * 100)}%</span>
+                    <button
+                      onClick={() => setZoom(Math.min(2, zoom + 0.1))}
+                      className="p-2 rounded-md border border-gray-300 hover:bg-gray-50"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+                <p className="text-sm text-gray-600">
+                  💡 Tips: Drag untuk menggeser, klik kanan untuk menu, gunakan tombol panah keyboard (Shift+Arrow = 1px, Arrow = 10px)
+                </p>
               </div>
 
-              <div className="border border-gray-300 rounded-md overflow-hidden bg-white" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
-                <div className="relative bg-gray-100" style={{ width: '595px', height: '842px' }}> {/* A4 size */}
+              <div className="border border-gray-300 rounded-md overflow-auto bg-white" style={{ maxHeight: '80vh' }}>
+                <div 
+                  ref={canvasRef}
+                  className="relative bg-gray-100" 
+                  style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: '842px', height: '595px' }}
+                > {/* A4 Landscape */}
                   {template.template_pdf_url && (
                     <iframe
                       key={template.template_pdf_url}
@@ -247,7 +435,9 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                     <div
                       key={key}
                       onClick={() => setSelectedField(key)}
-                      className={`absolute border-2 ${selectedField === key ? 'border-blue-500' : 'border-dashed border-gray-400'} cursor-pointer bg-white bg-opacity-50 hover:bg-opacity-75 z-10`}
+                      onMouseDown={(e) => handleMouseDown(e, key)}
+                      onContextMenu={(e) => handleContextMenu(e, key)}
+                      className={`absolute border-2 ${selectedField === key ? 'border-blue-500 shadow-lg' : 'border-dashed border-gray-400'} ${isDragging && dragField === key ? 'cursor-grabbing' : 'cursor-grab'} bg-white bg-opacity-50 hover:bg-opacity-75 z-10 transition-all`}
                       style={{
                         left: `${field.position.x}px`,
                         top: `${field.position.y}px`,
@@ -256,35 +446,150 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                         fontSize: `${field.font.size}px`,
                         fontWeight: field.font.weight,
                         color: field.font.color,
-                        textAlign: field.align as 'left' | 'center' | 'right'
+                        textAlign: field.align as 'left' | 'center' | 'right',
+                        boxShadow: selectedField === key ? '0 0 0 2px rgba(59, 130, 246, 0.3)' : 'none'
                       }}
                     >
                       {field.value || `${key} placeholder`}
+                      {selectedField === key && (
+                        <div className="absolute -top-6 left-0 text-xs bg-blue-500 text-white px-2 py-1 rounded whitespace-nowrap">
+                          Selected (Use Arrow Keys)
+                        </div>
+                      )}
                     </div>
                   ))}
 
                   {/* QR Code Preview */}
                   <div
-                    className="absolute border-2 border-purple-500 bg-purple-100 bg-opacity-50 cursor-pointer z-10"
+                    onMouseDown={(e) => handleMouseDown(e, 'qr_code')}
+                    onContextMenu={(e) => handleContextMenu(e, 'qr_code')}
+                    className={`absolute border-2 ${selectedField === 'qr_code' ? 'border-purple-600 shadow-lg' : 'border-purple-500'} bg-purple-100 bg-opacity-50 ${isDragging && dragField === 'qr_code' ? 'cursor-grabbing' : 'cursor-grab'} z-10 transition-all`}
                     style={{
                       left: `${qrCodePosition.x}px`,
                       top: `${qrCodePosition.y}px`,
                       width: `${qrCodeSize}px`,
-                      height: `${qrCodeSize}px`
+                      height: `${qrCodeSize}px`,
+                      boxShadow: selectedField === 'qr_code' ? '0 0 0 2px rgba(147, 51, 234, 0.3)' : 'none'
                     }}
                     onClick={() => setSelectedField('qr_code')}
                   >
                     <div className="flex items-center justify-center h-full text-xs text-purple-700">
                       QR Code
                     </div>
+                    {selectedField === 'qr_code' && (
+                      <div className="absolute -top-6 left-0 text-xs bg-purple-500 text-white px-2 py-1 rounded whitespace-nowrap">
+                        Selected (Use Arrow Keys)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {/* Context Menu */}
+              {contextMenu && (
+                <div
+                  className="fixed bg-white border border-gray-300 rounded-lg shadow-lg py-2 z-50"
+                  style={{
+                    left: `${contextMenu.x}px`,
+                    top: `${contextMenu.y}px`,
+                    minWidth: '180px'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      if (contextMenu.field) {
+                        setSelectedField(contextMenu.field)
+                        setContextMenu(null)
+                      }
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-sm"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Properties
+                  </button>
+                  {contextMenu.field && contextMenu.field !== 'qr_code' && fields[contextMenu.field] && (
+                    <button
+                      onClick={() => {
+                        if (contextMenu.field) {
+                          const newFields = { ...fields }
+                          delete newFields[contextMenu.field]
+                          setFields(newFields)
+                          setSelectedField(null)
+                          setContextMenu(null)
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center text-sm text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove Field
+                    </button>
+                  )}
+                  <div className="border-t border-gray-200 my-2"></div>
+                  <div className="px-2 py-1 text-xs text-gray-500 font-medium">Move Position</div>
+                  <div className="grid grid-cols-3 gap-1 px-2">
+                    <div></div>
+                    <button
+                      onClick={() => {
+                        if (contextMenu.field) {
+                          setSelectedField(contextMenu.field)
+                          moveField('up', 10, contextMenu.field)
+                          setContextMenu(null)
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded flex items-center justify-center"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <div></div>
+                    <button
+                      onClick={() => {
+                        if (contextMenu.field) {
+                          setSelectedField(contextMenu.field)
+                          moveField('left', 10, contextMenu.field)
+                          setContextMenu(null)
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded flex items-center justify-center"
+                      title="Move Left"
+                    >
+                      <ArrowLeftIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (contextMenu.field) {
+                          setSelectedField(contextMenu.field)
+                          moveField('down', 10, contextMenu.field)
+                          setContextMenu(null)
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded flex items-center justify-center"
+                      title="Move Down"
+                    >
+                      <Move className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (contextMenu.field) {
+                          setSelectedField(contextMenu.field)
+                          moveField('right', 10, contextMenu.field)
+                          setContextMenu(null)
+                        }
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded flex items-center justify-center"
+                      title="Move Right"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right Panel - Configuration */}
-          <div className="space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             {/* Available Fields */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold mb-4">Available Fields</h2>
@@ -344,6 +649,42 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quick Move (10px)</label>
+                    <div className="grid grid-cols-3 gap-1">
+                      <div></div>
+                      <button
+                        onClick={() => moveField('up', 10, selectedField)}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <div></div>
+                      <button
+                        onClick={() => moveField('left', 10, selectedField)}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Left"
+                      >
+                        <ArrowLeftIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveField('down', 10, selectedField)}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Down"
+                      >
+                        <Move className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveField('right', 10, selectedField)}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Right"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -478,6 +819,42 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                         onChange={(e) => setQrCodePosition({ ...qrCodePosition, y: parseFloat(e.target.value) })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Quick Move (10px)</label>
+                    <div className="grid grid-cols-3 gap-1">
+                      <div></div>
+                      <button
+                        onClick={() => moveField('up', 10, 'qr_code')}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <div></div>
+                      <button
+                        onClick={() => moveField('left', 10, 'qr_code')}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Left"
+                      >
+                        <ArrowLeftIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveField('down', 10, 'qr_code')}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Down"
+                      >
+                        <Move className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveField('right', 10, 'qr_code')}
+                        className="p-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center"
+                        title="Move Right"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
