@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Initialize Supabase client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 // GET /api/admin/certificate-templates - Get all certificate templates
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const programId = searchParams.get('program_id')
@@ -72,6 +67,7 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/certificate-templates - Create new certificate template
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     // Parse FormData since we're uploading files
     const formData = await request.formData()
     
@@ -202,6 +198,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/admin/certificate-templates/[id] - Update certificate template
 export async function PUT(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const templateId = searchParams.get('id')
     
@@ -302,6 +299,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/admin/certificate-templates/[id] - Delete certificate template
 export async function DELETE(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const templateId = searchParams.get('id')
     

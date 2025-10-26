@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Initialize Supabase client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 // GET /api/admin/certificates - Get all certificates
 export async function GET(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const programId = searchParams.get('program_id')
     const classId = searchParams.get('class_id')
@@ -88,6 +83,7 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/certificates/generate - Generate certificate manually
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()
     const { enrollment_id, program_id, trainer_id, class_id, recipient_type } = body
 
@@ -173,6 +169,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/admin/certificates/[id] - Update certificate
 export async function PUT(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const certificateId = searchParams.get('id')
     
@@ -226,6 +223,7 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/admin/certificates/[id] - Delete certificate
 export async function DELETE(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const certificateId = searchParams.get('id')
     

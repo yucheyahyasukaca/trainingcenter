@@ -1,14 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from './supabase-admin'
 import QRCode from 'qrcode'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import fs from 'fs'
 import path from 'path'
-
-// Initialize Supabase client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export interface CertificateData {
   certificate_number: string
@@ -45,6 +39,7 @@ export interface CertificateTemplate {
  */
 export async function generateQRCode(certificateNumber: string): Promise<{ qrCodeDataUrl: string; qrCodeUrl: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/certificate/verify/${certificateNumber}`
     
     // Generate QR code as data URL
@@ -138,6 +133,7 @@ export async function generateCertificatePDF(
   qrCodeDataUrl: string
 ): Promise<{ pdfBuffer: Uint8Array; pdfUrl: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     // Download template PDF
     const templatePdfBytes = await downloadTemplatePDF(template.template_pdf_url)
     
@@ -267,6 +263,7 @@ export async function generateCompleteCertificate(
   certificateData: CertificateData
 ): Promise<{ certificateId: string; pdfUrl: string; qrCodeUrl: string }> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     // Get template data
     const { data: template, error: templateError } = await supabaseAdmin
       .from('certificate_templates')

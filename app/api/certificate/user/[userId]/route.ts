@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-// Initialize Supabase client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 // GET /api/certificate/user/[userId] - Get user's certificates
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { userId } = await params
     const { searchParams } = new URL(request.url)
     const recipientType = searchParams.get('recipient_type') || 'participant'
