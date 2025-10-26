@@ -96,32 +96,46 @@ export default function CertificateManagementPage() {
 
   const fetchTemplates = async () => {
     try {
+      console.log('📥 Fetching certificate templates...')
       const response = await fetch('/api/admin/certificate-templates')
+      console.log('📥 Response status:', response.status)
+      console.log('📥 Response ok:', response.ok)
+      
       const result = await response.json()
+      console.log('📥 Response data:', result)
       
       if (response.ok) {
         setTemplates(result.data || [])
+        console.log('✅ Templates loaded:', result.data?.length || 0)
       } else {
-        toast.error('Error fetching templates')
+        console.error('❌ Error fetching templates:', result)
+        toast.error(result.error || 'Error fetching templates')
       }
     } catch (error) {
-      console.error('Error fetching templates:', error)
+      console.error('❌ Exception fetching templates:', error)
       toast.error('Error fetching templates')
     }
   }
 
   const fetchRequirements = async () => {
     try {
+      console.log('📥 Fetching certificate requirements...')
       const response = await fetch('/api/admin/certificate-requirements')
+      console.log('📥 Response status:', response.status)
+      console.log('📥 Response ok:', response.ok)
+      
       const result = await response.json()
+      console.log('📥 Response data:', result)
       
       if (response.ok) {
         setRequirements(result.data || [])
+        console.log('✅ Requirements loaded:', result.data?.length || 0)
       } else {
-        toast.error('Error fetching requirements')
+        console.error('❌ Error fetching requirements:', result)
+        toast.error(result.error || 'Error fetching requirements')
       }
     } catch (error) {
-      console.error('Error fetching requirements:', error)
+      console.error('❌ Exception fetching requirements:', error)
       toast.error('Error fetching requirements')
     } finally {
       setLoading(false)
