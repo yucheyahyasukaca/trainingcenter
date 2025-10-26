@@ -4,11 +4,11 @@ import { createServerClient } from '@/lib/supabase'
 // PUT /api/admin/referral-policies/[id] - Update referral policy
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServerClient()
-    const policyId = params.id
+    const { id: policyId } = await params
 
     const body = await request.json()
     const {
@@ -67,11 +67,11 @@ export async function PUT(
 // DELETE /api/admin/referral-policies/[id] - Delete referral policy
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createServerClient()
-    const policyId = params.id
+    const { id: policyId } = await params
 
     // Delete the policy
     const { error } = await (supabase as any)

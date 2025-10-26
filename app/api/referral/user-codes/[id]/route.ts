@@ -4,9 +4,10 @@ import { createServerClient } from '@/lib/supabase-server'
 // PUT /api/referral/user-codes/[id] - Update user referral code
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: codeId } = await params
     const supabase = createServerClient()
 
     // Get authenticated user
@@ -57,7 +58,7 @@ export async function PUT(
         is_active,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.id as string)
+      .eq('id', codeId)
       .eq('trainer_id', userData.id)
       .select()
 
@@ -85,9 +86,10 @@ export async function PUT(
 // DELETE /api/referral/user-codes/[id] - Delete user referral code
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: codeId } = await params
     const supabase = createServerClient()
 
     // Get authenticated user
@@ -124,7 +126,7 @@ export async function DELETE(
     const { error } = await (supabase as any)
       .from('referral_codes')
       .delete()
-      .eq('id', params.id as string)
+      .eq('id', codeId)
       .eq('trainer_id', userData.id)
 
     if (error) {

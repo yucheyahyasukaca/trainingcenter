@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Daftar routes yang tidak memerlukan authentication
-const publicRoutes = ['/', '/login', '/register']
+const publicRoutes = ['/', '/login', '/register', '/certificate/verify', '/certificate']
 
 // Daftar routes yang memerlukan authentication
 const protectedRoutes = [

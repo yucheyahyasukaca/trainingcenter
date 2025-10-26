@@ -388,6 +388,16 @@ export default function CertificateVerificationPage() {
                   <p className="text-sm text-gray-900">{certificate.template.signatory_position}</p>
                 </div>
               </div>
+              {certificate.template.signatory_signature_url && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Signature</label>
+                  <img
+                    src={certificate.template.signatory_signature_url}
+                    alt={`Signature of ${certificate.template.signatory_name}`}
+                    className="h-20 object-contain"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Verification Information */}
