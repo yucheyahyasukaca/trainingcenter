@@ -75,11 +75,11 @@ export default function MyCertificatesPage() {
       if (response.ok) {
         setCertificates(result.data || [])
       } else {
-        toast.error('Error fetching certificates')
+        toast.error('Gagal memuat sertifikat')
       }
     } catch (error) {
       console.error('Error fetching certificates:', error)
-      toast.error('Error fetching certificates')
+      toast.error('Gagal memuat sertifikat')
     } finally {
       setLoading(false)
     }
@@ -93,18 +93,18 @@ export default function MyCertificatesPage() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `certificate-${certificateNumber}.pdf`
+        a.download = `sertifikat-${certificateNumber}.pdf`
         document.body.appendChild(a)
         a.click()
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
-        toast.success('Certificate downloaded')
+        toast.success('Sertifikat berhasil diunduh')
       } else {
-        toast.error('Failed to download certificate')
+        toast.error('Gagal mengunduh sertifikat')
       }
     } catch (error) {
       console.error('Error downloading certificate:', error)
-      toast.error('Error downloading certificate')
+      toast.error('Gagal mengunduh sertifikat')
     }
   }
 
@@ -114,8 +114,8 @@ export default function MyCertificatesPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'My Certificate',
-          text: 'Check out my certificate!',
+          title: 'Sertifikat Saya',
+          text: 'Lihat sertifikat saya!',
           url: verificationUrl
         })
       } catch (error) {
@@ -124,10 +124,10 @@ export default function MyCertificatesPage() {
     } else {
       try {
         await navigator.clipboard.writeText(verificationUrl)
-        toast.success('Certificate link copied to clipboard')
+        toast.success('Link sertifikat berhasil disalin')
       } catch (error) {
         console.error('Error copying link:', error)
-        toast.error('Failed to copy link')
+        toast.error('Gagal menyalin link')
       }
     }
   }
@@ -172,8 +172,8 @@ export default function MyCertificatesPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Please Login</h1>
-          <p className="text-gray-600">You need to be logged in to view your certificates.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Mohon Masuk</h1>
+          <p className="text-gray-600">Anda harus masuk untuk melihat sertifikat Anda.</p>
         </div>
       </div>
     )
@@ -182,7 +182,7 @@ export default function MyCertificatesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500"></div>
       </div>
     )
   }
@@ -192,8 +192,8 @@ export default function MyCertificatesPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Certificates</h1>
-          <p className="mt-2 text-gray-600">View and manage all your certificates</p>
+          <h1 className="text-3xl font-bold text-gray-900">Sertifikat Saya</h1>
+          <p className="mt-2 text-gray-600">Lihat dan kelola semua sertifikat Anda</p>
         </div>
 
         {/* Certificates Grid */}
@@ -202,7 +202,7 @@ export default function MyCertificatesPage() {
             <div key={certificate.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center flex-1">
-                  <FileText className="w-8 h-8 text-blue-500 mr-3" />
+                  <FileText className="w-8 h-8 text-red-500 mr-3" />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{certificate.program_title}</h3>
                     <p className="text-sm text-gray-600">{certificate.template.template_name}</p>
@@ -217,13 +217,13 @@ export default function MyCertificatesPage() {
               <div className="mb-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   certificate.recipient_type === 'participant' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-purple-100 text-purple-800'
+                    ? 'bg-red-100 text-red-800' 
+                    : 'bg-red-200 text-red-900'
                 }`}>
                   {certificate.recipient_type === 'participant' ? (
                     <>
                       <Users className="w-3 h-3 mr-1" />
-                      Participant
+                      Peserta
                     </>
                   ) : (
                     <>
@@ -233,27 +233,27 @@ export default function MyCertificatesPage() {
                   )}
                 </span>
                 <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(certificate.status)}`}>
-                  {certificate.status}
+                  {certificate.status === 'issued' ? 'Diterbitkan' : certificate.status === 'revoked' ? 'Dicabut' : 'Kedaluwarsa'}
                 </span>
               </div>
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center text-sm text-gray-600">
-                  <span className="font-medium mr-2">Certificate #:</span>
+                  <span className="font-medium mr-2">Nomor Sertifikat:</span>
                   <span className="font-mono text-xs">{certificate.certificate_number}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>Completed: {new Date(certificate.completion_date).toLocaleDateString()}</span>
+                  <span>Selesai: {new Date(certificate.completion_date).toLocaleDateString('id-ID')}</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>Issued: {new Date(certificate.issued_at).toLocaleDateString()}</span>
+                  <span>Diterbitkan: {new Date(certificate.issued_at).toLocaleDateString('id-ID')}</span>
                 </div>
                 {certificate.classes && (
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="w-4 h-4 mr-2" />
-                    <span>Class: {certificate.classes.name}</span>
+                    <span>Kelas: {certificate.classes.name}</span>
                   </div>
                 )}
                 {certificate.trainer_level && (
@@ -267,26 +267,26 @@ export default function MyCertificatesPage() {
               <div className="flex space-x-2">
                 <button
                   onClick={() => window.open(`/certificate/verify/${certificate.certificate_number}`, '_blank')}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   <Eye className="w-4 h-4 mr-1" />
-                  View
+                  Lihat
                 </button>
                 {certificate.certificate_pdf_url && (
                   <button
                     onClick={() => handleDownloadPDF(certificate.certificate_number, certificate.certificate_pdf_url)}
-                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
                     <Download className="w-4 h-4 mr-1" />
-                    Download
+                    Unduh
                   </button>
                 )}
                 <button
                   onClick={() => handleShareCertificate(certificate.certificate_number)}
-                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   <Share className="w-4 h-4 mr-1" />
-                  Share
+                  Bagikan
                 </button>
               </div>
             </div>
@@ -297,16 +297,16 @@ export default function MyCertificatesPage() {
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No certificates found
+              Belum Ada Sertifikat
             </h3>
             <p className="text-gray-600 mb-4">
-              You haven't received any certificates yet.
+              Anda belum menerima sertifikat apapun.
             </p>
             <button
               onClick={handleBrowsePrograms}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              Browse Programs
+              Jelajahi Program
             </button>
           </div>
         )}

@@ -202,9 +202,12 @@ export default function ProgramsPage() {
         .eq('user_id', profile.id)
         .maybeSingle()
 
+      console.log('Participant lookup:', { userId: profile.id, participant, participantError })
+
       if (participantError || !participant) {
-        console.log('No participant record found for user')
+        console.log('No participant record found for user, returning empty enrollments')
         setUserEnrollments([])
+        setEnrollmentMap({})
         setEnrollmentsLoading(false)
         return
       }
@@ -219,8 +222,12 @@ export default function ProgramsPage() {
         .select('program_id, status, created_at, notes')
         .eq('participant_id', (participant as any).id)
 
+      console.log('Enrollments query result:', { data, error })
+
       if (error) {
         console.error('Error fetching user enrollments:', error)
+        setUserEnrollments([])
+        setEnrollmentMap({})
         setEnrollmentsLoading(false)
         return
       }

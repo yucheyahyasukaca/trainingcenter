@@ -34,18 +34,14 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
       if (programError) throw programError
 
-      // Fetch classes
+      // Fetch classes (simplified query to avoid foreign key issues)
       const { data: classesData, error: classesError } = await supabase
         .from('classes')
-        .select(`
-          *,
-          trainers:class_trainers(
-            *,
-            trainer:trainers(*)
-          )
-        `)
+        .select('*')
         .eq('program_id', params.id)
         .order('start_date')
+
+      console.log('Classes fetched:', classesData?.length || 0)
 
       if (classesError) throw classesError
 
@@ -81,153 +77,82 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             }
           }
         }
-      } else {
-        // Regular user - check enrollment by participant_id
-        // First try to find participant record
-        const { data: participant, error: participantError } = await supabase
-          .from('participants')
-          .select('id')
-          .eq('user_id', profile?.id || '')
-          .single()
-
-        let participantId = null
-        
-        if (!participantError && participant) {
-          participantId = participant.id
-          console.log('Participant found:', participant)
-        } else {
-          console.log('No participant found for user:', profile?.id, participantError)
+              } else {
+          // Regular user - find participant first, then check enrollment
+          console.log('🔍 Looking for participant for user:', profile?.id)
           
-          // If no participant record, try to check enrollment directly by user_id
-          // First, let's see if there's an enrollment with participant_id that we can find
-          const { data: directEnrollment, error: directError } = await supabase
-            .from('enrollments')
-            .select(`
-              *,
-              class:classes(*),
-              participant:participants(*)
-            `)
-            .eq('program_id', params.id)
+          const { data: participant, error: participantError } = await supabase
+            .from('participants')
+            .select('id, user_id, email, name')
+            .eq('user_id', profile?.id || '')
             .maybeSingle()
-          
-          if (directEnrollment && (directEnrollment as any).participant?.user_id === profile?.id) {
-            participantId = (directEnrollment as any).participant_id
-          }
-        }
 
-        if (!participantId) {
-          console.log('No participant ID found, checking enrollments directly...')
-          
-          // Last resort: check all enrollments for this program
-          const { data: allEnrollments } = await supabase
-            .from('enrollments')
-            .select(`
-              *,
-              class:classes(*),
-              participant:participants(*)
-            `)
-            .eq('program_id', params.id)
-          
-          // Find enrollment where participant.user_id matches current user
-          const userEnrollment = allEnrollments?.find((e: any) => 
-            e.participant?.user_id === profile?.id
-          )
-          
-          if (userEnrollment) {
-            participantId = userEnrollment.participant_id
-            console.log('Found enrollment via direct search:', userEnrollment)
-            
-            // If enrollment found but not approved, try to auto-approve for free programs
-            if (userEnrollment.status !== 'approved' && programData?.price === 0) {
-              console.log('Auto-approving free program enrollment...')
-              const { error: updateError } = await supabase
-                .from('enrollments')
-                .update({ 
-                  status: 'approved', 
-                  payment_status: 'paid',
-                  amount_paid: 0
-                })
-                .eq('id', userEnrollment.id)
+          console.log('👤 Participant lookup result:', { 
+            found: !!participant, 
+            participantId: participant?.id, 
+            email: participant?.email,
+            error: participantError 
+          })
 
-              if (!updateError) {
-                console.log('Enrollment auto-approved')
-                setEnrollment({ ...userEnrollment, status: 'approved', payment_status: 'paid' })
-                return
-              }
-            }
-          } else {
-            console.log('No enrollment found for this user')
+          if (participantError || !participant) {
+            console.log('❌ No participant record found for user:', profile?.id, participantError)
             setEnrollment(null)
             return
           }
-        }
 
-        console.log('Checking enrollment for participant:', participantId, 'program:', params.id)
-        
-        const { data: enrollmentData, error: enrollmentError } = await supabase
-          .from('enrollments')
-          .select(`
-            *,
-            class:classes(*)
-          `)
-          .eq('participant_id', participantId)
-          .eq('program_id', params.id)
-          .eq('status', 'approved')
-          .maybeSingle()
+          console.log('✅ Participant found:', participant.id)
 
-        console.log('Enrollment query result:', { enrollmentData, enrollmentError })
-
-        if (enrollmentError && enrollmentError.code !== 'PGRST116') {
-          console.error('Enrollment error:', enrollmentError)
-          setEnrollment(null)
-          return
-        }
-
-        // If no approved enrollment found, check for any enrollment (including pending)
-        if (!enrollmentData) {
-          console.log('No approved enrollment found, checking for any enrollment...')
-          const { data: anyEnrollmentData, error: anyEnrollmentError } = await supabase
+          // Now check enrollment for this participant
+          const { data: enrollmentData, error: enrollmentError } = await supabase
             .from('enrollments')
             .select(`
               *,
               class:classes(*)
             `)
-            .eq('participant_id', participantId)
+            .eq('participant_id', participant.id)
             .eq('program_id', params.id)
             .maybeSingle()
 
-          console.log('Any enrollment query result:', { anyEnrollmentData, anyEnrollmentError })
-          
-          if (anyEnrollmentData) {
-            console.log('Found enrollment with status:', (anyEnrollmentData as any).status)
-            // For free programs, if enrollment exists but not approved, manually approve it
-            if ((anyEnrollmentData as any).status === 'pending' && (programData as any).price === 0) {
-              console.log('Free program with pending enrollment - manually approving...')
-              
-              // Manually update the enrollment to approved
-              const { error: updateError } = await (supabase as any)
-                .from('enrollments')
-                .update({ 
-                  status: 'approved', 
-                  payment_status: 'paid',
-                  amount_paid: 0
-                })
-                .eq('id', (anyEnrollmentData as any).id)
+          console.log('📋 Enrollment query result:', { 
+            enrollmentData, 
+            enrollmentError,
+            participantId: participant.id,
+            programId: params.id
+          })
 
-              if (updateError) {
-                console.error('Error updating enrollment:', updateError)
-              } else {
-                console.log('Enrollment manually approved')
-                // Set the enrollment as approved for immediate access
-                setEnrollment({ ...(anyEnrollmentData as any), status: 'approved', payment_status: 'paid' })
-                return
-              }
+        // Check if enrollment exists and is approved
+        if (enrollmentData && enrollmentData.status === 'approved') {
+          console.log('Approved enrollment found')
+          setEnrollment(enrollmentData)
+        } else if (enrollmentData && enrollmentData.status !== 'approved') {
+          // If enrollment exists but not approved, check if program is free
+          if ((programData as any).price === 0) {
+            console.log('Free program with pending enrollment - auto-approving...')
+            
+            const { error: updateError } = await supabase
+              .from('enrollments')
+              .update({ 
+                status: 'approved', 
+                payment_status: 'paid',
+                amount_paid: 0
+              })
+              .eq('id', enrollmentData.id)
+
+            if (!updateError) {
+              console.log('Enrollment auto-approved')
+              setEnrollment({ ...enrollmentData, status: 'approved', payment_status: 'paid' })
+            } else {
+              console.error('Error auto-approving enrollment:', updateError)
+              setEnrollment(null)
             }
+          } else {
+            console.log('Enrollment exists but not approved')
+            setEnrollment(null)
           }
+        } else {
+          console.log('No enrollment found for this user')
+          setEnrollment(null)
         }
-
-        setEnrollment(enrollmentData)
-        console.log('User enrollment check:', enrollmentData ? 'Found' : 'Not found')
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -238,12 +163,8 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
   }
 
   function handleResourceClick(resourceType: 'module' | 'recording' | 'certificate') {
-    // Check if trainer has been assigned to any class
-    const hasTrainer = classes.some(classItem => 
-      classItem.trainers && classItem.trainers.length > 0
-    )
-
-    if (!hasTrainer) {
+    // For now, always show the notification
+    if (classes.length === 0) {
       const resourceNames = {
         module: 'Modul Pelatihan',
         recording: 'Rekaman Kelas',

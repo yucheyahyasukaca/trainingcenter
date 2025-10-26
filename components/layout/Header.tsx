@@ -1,12 +1,12 @@
 'use client'
 
-import { Bell, Search, User, LogOut, ChevronDown, Menu, X } from 'lucide-react'
+import { Bell, Search, User, LogOut, ChevronDown, Menu, X, CheckCircle, Clock } from 'lucide-react'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { signOut } from '@/lib/auth'
 import { useNotification } from '@/components/ui/Notification'
-import { AdminNotificationProvider, useAdminNotifications } from '@/components/admin/AdminNotificationSystem'
+import { AdminNotificationProvider, useAdminNotifications, getNotificationIcon, getPriorityColor, getTypeColor } from '@/components/admin/AdminNotificationSystem'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -23,11 +23,18 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
   // Try to get admin notifications if user is admin
   let adminNotifications: any[] = []
   let adminUnreadCount = 0
+  let markAsRead: any = null
+  let markAllAsRead: any = null
+  let removeNotification: any = null
+  
   try {
     if (profile?.role === 'admin') {
       const adminNotif = useAdminNotifications()
       adminNotifications = adminNotif.notifications
       adminUnreadCount = adminNotif.getUnreadCount()
+      markAsRead = adminNotif.markAsRead
+      markAllAsRead = adminNotif.markAllAsRead
+      removeNotification = adminNotif.removeNotification
     }
   } catch (error) {
     // Not in admin context, ignore
@@ -36,6 +43,19 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
   // Combine regular and admin notifications
   const allNotifications = [...notifications, ...adminNotifications]
   const totalUnreadCount = notifications.length + adminUnreadCount
+
+  const formatTime = (timestamp: Date) => {
+    const now = new Date()
+    const diff = now.getTime() - timestamp.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return 'Baru saja'
+    if (minutes < 60) return `${minutes}m yang lalu`
+    if (hours < 24) return `${hours}j yang lalu`
+    return `${days}h yang lalu`
+  }
 
   async function handleLogout() {
     try {
@@ -123,83 +143,155 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="fixed sm:absolute top-16 sm:top-full left-4 right-4 sm:left-auto sm:right-0 sm:w-80 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
-                <div className="p-3 sm:p-4 border-b border-gray-200">
+              <div className="fixed sm:absolute top-16 sm:top-full left-4 right-4 sm:left-auto sm:right-0 sm:w-96 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 z-50 max-h-[80vh] overflow-hidden">
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Notifikasi</h3>
-                    <button
-                      onClick={() => setShowNotifications(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
-                    >
-                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5 text-gray-600" />
+                      <h3 className="text-lg font-semibold text-gray-900">Notifikasi</h3>
+                      {totalUnreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                          {totalUnreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {adminUnreadCount > 0 && markAllAsRead && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                        >
+                          Tandai Semua Dibaca
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-[60vh] overflow-y-auto">
                   {allNotifications.length === 0 ? (
-                    <div className="p-6 sm:p-8 text-center text-gray-500">
-                      <Bell className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
-                      <p className="text-sm sm:text-base">Tidak ada notifikasi</p>
+                    <div className="p-8 text-center text-gray-500">
+                      <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p className="text-base">Tidak ada notifikasi</p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-gray-200">
-                      {allNotifications.map((notification, index) => (
-                        <div
-                          key={notification.id || index}
-                          className="p-3 sm:p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0 mt-0.5">
-                              {/* Regular notifications */}
-                              {notification.type === 'success' && (
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              )}
-                              {notification.type === 'error' && (
-                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                              )}
-                              {notification.type === 'warning' && (
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                              )}
-                              {notification.type === 'info' && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              )}
-                              {/* Admin notifications */}
-                              {notification.priority === 'critical' && (
-                                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-                              )}
-                              {notification.priority === 'high' && (
-                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              )}
-                              {notification.priority === 'medium' && (
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                              )}
-                              {notification.priority === 'low' && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                              )}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                                {notification.title}
-                              </p>
-                              {notification.message && (
-                                <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
-                                  {notification.message}
-                                </p>
-                              )}
-                              {notification.actionRequired && (
-                                <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
-                                  Tindakan Diperlukan
-                                </span>
-                              )}
+                    <div className="divide-y divide-gray-100">
+                      {allNotifications.map((notification, index) => {
+                        const isAdminNotification = notification.priority !== undefined
+                        const Icon = isAdminNotification ? getNotificationIcon(notification.type) : null
+                        const priorityColor = isAdminNotification ? getPriorityColor(notification.priority) : ''
+                        const typeColor = isAdminNotification ? getTypeColor(notification.type) : ''
+                        
+                        return (
+                          <div
+                            key={notification.id || index}
+                            className={`p-4 hover:bg-gray-50 transition-colors ${
+                              isAdminNotification && !notification.read ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {isAdminNotification ? (
+                                  <div className={`p-2 rounded-lg ${typeColor}`}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                ) : (
+                                  <div className="w-3 h-3 rounded-full mt-1.5">
+                                    {notification.type === 'success' && (
+                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    )}
+                                    {notification.type === 'error' && (
+                                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                    )}
+                                    {notification.type === 'warning' && (
+                                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                                    )}
+                                    {notification.type === 'info' && (
+                                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
+                                      <h4 className={`font-medium text-sm ${
+                                        isAdminNotification && !notification.read ? 'text-gray-900' : 'text-gray-700'
+                                      } truncate`}>
+                                        {notification.title}
+                                      </h4>
+                                      {isAdminNotification && (
+                                        <div className="flex items-center gap-1">
+                                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${priorityColor} whitespace-nowrap`}>
+                                            {notification.priority}
+                                          </span>
+                                          {notification.actionRequired && (
+                                            <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">
+                                              Tindakan Diperlukan
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className={`text-sm ${
+                                      isAdminNotification && !notification.read ? 'text-gray-700' : 'text-gray-600'
+                                    } leading-relaxed`}>
+                                      {notification.message}
+                                    </p>
+                                    {isAdminNotification && (
+                                      <span className="text-xs text-gray-400 mt-1 block">
+                                        {formatTime(notification.timestamp)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {isAdminNotification && (
+                                    <div className="flex items-center gap-1 mt-2 sm:mt-0">
+                                      {!notification.read && markAsRead && (
+                                        <button
+                                          onClick={() => markAsRead(notification.id)}
+                                          className="p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                          title="Tandai sebagai dibaca"
+                                        >
+                                          <CheckCircle className="w-4 h-4 text-gray-400 hover:text-green-500" />
+                                        </button>
+                                      )}
+                                      {removeNotification && (
+                                        <button
+                                          onClick={() => removeNotification(notification.id)}
+                                          className="p-2 hover:bg-gray-100 active:bg-gray-200 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                          title="Hapus notifikasi"
+                                        >
+                                          <X className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
+
+                {allNotifications.length > 0 && (
+                  <div className="p-3 border-t border-gray-200 bg-gray-50">
+                    <p className="text-xs text-gray-500 text-center">
+                      Menampilkan {allNotifications.length} notifikasi
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

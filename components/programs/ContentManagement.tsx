@@ -210,7 +210,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           {contents.map((content, index) => (
             <div key={content.id} className="space-y-2">
               {/* Main Material */}
-              <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div className="mt-1 flex-shrink-0">
@@ -232,15 +232,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                             </span>
                           )}
                         </div>
-                      </div>
-                      {content.description && (
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">{content.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span className="capitalize">{content.content_type}</span>
-                        {content.estimated_duration && (
-                          <span>{content.estimated_duration} menit</span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -311,7 +302,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                   {content.sub_materials.map((subMaterial, subIndex) => (
                     <div
                       key={subMaterial.id}
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-2 sm:p-3 hover:bg-gray-100 transition-colors"
+                      className="bg-green-50 border-2 border-green-200 rounded-lg p-2 sm:p-3 hover:bg-green-100 transition-colors"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
@@ -334,15 +325,6 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                                   </span>
                                 )}
                               </div>
-                            </div>
-                            {subMaterial.description && (
-                              <p className="text-xs sm:text-sm text-gray-600 mb-1 line-clamp-2">{subMaterial.description}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span className="capitalize">{subMaterial.content_type}</span>
-                              {subMaterial.estimated_duration && (
-                                <span>{subMaterial.estimated_duration} menit</span>
-                              )}
                             </div>
                           </div>
                         </div>

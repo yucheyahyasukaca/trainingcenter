@@ -12,7 +12,6 @@ import { EnrollmentStatusChart } from './EnrollmentStatusChart'
 import { UsersChart } from './UsersChart'
 import { SystemOverview } from './SystemOverview'
 import { ManagerManagement } from './ManagerManagement'
-import { RealTimeNotificationPanel } from '@/components/admin/RealTimeNotificationPanel'
 import { MobileNotificationToast } from '@/components/ui/MobileNotificationToast'
 import { 
   BarChart3,
@@ -120,8 +119,6 @@ function AdminDashboardContent() {
             <RecentEnrollments />
           </div>
 
-          {/* Real-time Notifications */}
-          <RealTimeNotificationPanel />
         </>
       )}
 

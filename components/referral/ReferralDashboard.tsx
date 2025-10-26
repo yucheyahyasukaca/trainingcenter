@@ -148,7 +148,7 @@ export default function ReferralDashboard() {
         return
       }
 
-      // Get detailed referral tracking
+      // Get detailed referral tracking (simplified query to avoid foreign key issues)
       const { data: detailedStats, error: detailedError } = await supabase
         .from('referral_tracking')
         .select(`
@@ -157,15 +157,13 @@ export default function ReferralDashboard() {
           commission_earned,
           discount_applied,
           created_at,
+          participant_id,
+          program_id,
+          enrollment_id,
           program:programs(
             id,
             title,
             price
-          ),
-          participant:participants(
-            id,
-            name,
-            email
           )
         `)
         .eq('trainer_id', profile.id)
@@ -216,18 +214,30 @@ export default function ReferralDashboard() {
         total_discount: filteredStats.reduce((sum, s) => sum + ((s as any).discount_applied || 0), 0)
       }
 
-      // Get recent referrals
-      const recentReferrals = filteredStats.slice(0, 10).map(stat => ({
-        id: (stat as any).id,
-        participant_name: (stat as any).participant?.name,
-        participant_email: (stat as any).participant?.email,
-        program_title: (stat as any).program?.title,
-        program_price: (stat as any).program?.price,
-        status: (stat as any).status,
-        commission_earned: (stat as any).commission_earned,
-        discount_applied: (stat as any).discount_applied,
-        created_at: (stat as any).created_at
-      }))
+      // Get participant details for recent referrals
+      const participantIds = [...new Set(filteredStats.map((s: any) => s.participant_id))]
+      const { data: participantsData } = await supabase
+        .from('participants')
+        .select('id, name, email')
+        .in('id', participantIds)
+
+      const participantsMap = new Map(participantsData?.map(p => [p.id, p]) || [])
+
+      // Get recent referrals with participant info
+      const recentReferrals = filteredStats.slice(0, 10).map((stat: any) => {
+        const participant = participantsMap.get(stat.participant_id)
+        return {
+          id: stat.id,
+          participant_name: participant?.name || 'N/A',
+          participant_email: participant?.email || 'N/A',
+          program_title: stat.program?.title,
+          program_price: stat.program?.price,
+          status: stat.status,
+          commission_earned: stat.commission_earned,
+          discount_applied: stat.discount_applied,
+          created_at: stat.created_at
+        }
+      })
 
       setStats({
         overall_stats: stats || {

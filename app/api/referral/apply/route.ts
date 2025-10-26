@@ -6,18 +6,12 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first participant for testing
-    // In production, you would get the user from the session
-    const { data: participants, error: participantError } = await supabase
-      .from('participants')
-      .select('id, user_id')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (participantError || !participants || participants.length === 0) {
-      return NextResponse.json({ error: 'No participants found' }, { status: 404 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
-    
-    const user = { id: (participants[0] as any).user_id }
 
     const body = await request.json()
     const { referral_code, program_id } = body
@@ -112,18 +106,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, let's get the first participant for testing
-    // In production, you would get the user from the session
-    const { data: participants, error: participantError } = await supabase
-      .from('participants')
-      .select('id, user_id')
-      .limit(1)
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (participantError || !participants || participants.length === 0) {
-      return NextResponse.json({ error: 'No participants found' }, { status: 404 })
+    if (userError || !user) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
-    
-    const user = { id: (participants[0] as any).user_id }
 
     const { searchParams } = new URL(request.url)
     const referral_code = searchParams.get('code')
