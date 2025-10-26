@@ -18,7 +18,8 @@ import {
   BookOpen,
   Gift,
   Trophy,
-  User
+  User,
+  FileText
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -36,6 +37,9 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
+      { icon: FileText, label: 'Sertifikat', href: '/admin/certificates', roles: ['admin'] },
+      { icon: FileText, label: 'Template Sertifikat', href: '/admin/certificate-templates', roles: ['admin'] },
+      { icon: FileText, label: 'Syarat Sertifikat', href: '/admin/certificate-requirements', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Leaderboard Referral', href: '/admin/referral-leaderboard', roles: ['admin'] },
       { icon: User, label: 'Leaderboard User', href: '/admin/user-referral-leaderboard', roles: ['admin'] },
@@ -61,14 +65,14 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       ...baseItems,
       { icon: BarChart3, label: 'Program', href: '/programs', roles: ['user'] },
       { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
+      { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['user'] },
       { icon: Gift, label: 'Referral Saya', href: '/my-referral', roles: ['user'] },
     ]
 
     // Add trainer-specific items if user is a trainer
     if (trainerLevel && trainerLevel !== 'user') {
       userItems.push(
-        { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['user'] },
-        { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['user'] }
+        { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile', roles: ['user'] }
       )
     }
 
@@ -81,7 +85,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
       { icon: Gift, label: 'Referral', href: '/trainer/referral', roles: ['trainer'] },
       { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },
-      { icon: Award, label: 'Sertifikat', href: '/certificates', roles: ['trainer'] },
+      { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['trainer'] },
     ]
   }
 

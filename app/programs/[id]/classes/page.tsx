@@ -83,19 +83,86 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         }
       } else {
         // Regular user - check enrollment by participant_id
+        // First try to find participant record
         const { data: participant, error: participantError } = await supabase
           .from('participants')
           .select('id')
           .eq('user_id', profile?.id || '')
           .single()
 
-        if (participantError) {
-          console.log('No participant found for user:', profile?.id)
-          setEnrollment(null)
-          return
+        let participantId = null
+        
+        if (!participantError && participant) {
+          participantId = participant.id
+          console.log('Participant found:', participant)
+        } else {
+          console.log('No participant found for user:', profile?.id, participantError)
+          
+          // If no participant record, try to check enrollment directly by user_id
+          // First, let's see if there's an enrollment with participant_id that we can find
+          const { data: directEnrollment, error: directError } = await supabase
+            .from('enrollments')
+            .select(`
+              *,
+              class:classes(*),
+              participant:participants(*)
+            `)
+            .eq('program_id', params.id)
+            .maybeSingle()
+          
+          if (directEnrollment && (directEnrollment as any).participant?.user_id === profile?.id) {
+            participantId = (directEnrollment as any).participant_id
+          }
         }
 
-        console.log('Checking enrollment for participant:', (participant as any).id, 'program:', params.id)
+        if (!participantId) {
+          console.log('No participant ID found, checking enrollments directly...')
+          
+          // Last resort: check all enrollments for this program
+          const { data: allEnrollments } = await supabase
+            .from('enrollments')
+            .select(`
+              *,
+              class:classes(*),
+              participant:participants(*)
+            `)
+            .eq('program_id', params.id)
+          
+          // Find enrollment where participant.user_id matches current user
+          const userEnrollment = allEnrollments?.find((e: any) => 
+            e.participant?.user_id === profile?.id
+          )
+          
+          if (userEnrollment) {
+            participantId = userEnrollment.participant_id
+            console.log('Found enrollment via direct search:', userEnrollment)
+            
+            // If enrollment found but not approved, try to auto-approve for free programs
+            if (userEnrollment.status !== 'approved' && programData?.price === 0) {
+              console.log('Auto-approving free program enrollment...')
+              const { error: updateError } = await supabase
+                .from('enrollments')
+                .update({ 
+                  status: 'approved', 
+                  payment_status: 'paid',
+                  amount_paid: 0
+                })
+                .eq('id', userEnrollment.id)
+
+              if (!updateError) {
+                console.log('Enrollment auto-approved')
+                setEnrollment({ ...userEnrollment, status: 'approved', payment_status: 'paid' })
+                return
+              }
+            }
+          } else {
+            console.log('No enrollment found for this user')
+            setEnrollment(null)
+            return
+          }
+        }
+
+        console.log('Checking enrollment for participant:', participantId, 'program:', params.id)
         
         const { data: enrollmentData, error: enrollmentError } = await supabase
           .from('enrollments')
@@ -103,7 +170,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             *,
             class:classes(*)
           `)
-          .eq('participant_id', (participant as any).id)
+          .eq('participant_id', participantId)
           .eq('program_id', params.id)
           .eq('status', 'approved')
           .maybeSingle()
@@ -125,7 +192,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               *,
               class:classes(*)
             `)
-            .eq('participant_id', (participant as any).id)
+            .eq('participant_id', participantId)
             .eq('program_id', params.id)
             .maybeSingle()
 

@@ -593,6 +593,221 @@ export interface Database {
           attempt_number?: number
         }
       }
+      certificate_templates: {
+        Row: {
+          id: string
+          program_id: string
+          template_name: string
+          template_description: string | null
+          template_pdf_url: string
+          template_fields: Json
+          signatory_name: string
+          signatory_position: string
+          signatory_signature_url: string | null
+          participant_name_field: string
+          participant_company_field: string
+          participant_position_field: string
+          program_title_field: string
+          program_date_field: string
+          completion_date_field: string
+          trainer_name_field: string
+          trainer_level_field: string
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          program_id: string
+          template_name: string
+          template_description?: string | null
+          template_pdf_url: string
+          template_fields?: Json
+          signatory_name: string
+          signatory_position: string
+          signatory_signature_url?: string | null
+          participant_name_field?: string
+          participant_company_field?: string
+          participant_position_field?: string
+          program_title_field?: string
+          program_date_field?: string
+          completion_date_field?: string
+          trainer_name_field?: string
+          trainer_level_field?: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          program_id?: string
+          template_name?: string
+          template_description?: string | null
+          template_pdf_url?: string
+          template_fields?: Json
+          signatory_name?: string
+          signatory_position?: string
+          signatory_signature_url?: string | null
+          participant_name_field?: string
+          participant_company_field?: string
+          participant_position_field?: string
+          program_title_field?: string
+          program_date_field?: string
+          completion_date_field?: string
+          trainer_name_field?: string
+          trainer_level_field?: string
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      certificates: {
+        Row: {
+          id: string
+          certificate_number: string
+          template_id: string
+          program_id: string
+          class_id: string | null
+          recipient_type: 'participant' | 'trainer'
+          recipient_id: string
+          recipient_name: string
+          recipient_company: string | null
+          recipient_position: string | null
+          program_title: string
+          program_start_date: string | null
+          program_end_date: string | null
+          completion_date: string
+          trainer_name: string | null
+          trainer_level: string | null
+          certificate_pdf_url: string
+          certificate_qr_code_url: string
+          qr_code_data: string
+          status: 'issued' | 'revoked' | 'expired'
+          issued_by: string | null
+          issued_at: string
+          expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          certificate_number: string
+          template_id: string
+          program_id: string
+          class_id?: string | null
+          recipient_type: 'participant' | 'trainer'
+          recipient_id: string
+          recipient_name: string
+          recipient_company?: string | null
+          recipient_position?: string | null
+          program_title: string
+          program_start_date?: string | null
+          program_end_date?: string | null
+          completion_date: string
+          trainer_name?: string | null
+          trainer_level?: string | null
+          certificate_pdf_url: string
+          certificate_qr_code_url: string
+          qr_code_data: string
+          status?: 'issued' | 'revoked' | 'expired'
+          issued_by?: string | null
+          issued_at?: string
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          certificate_number?: string
+          template_id?: string
+          program_id?: string
+          class_id?: string | null
+          recipient_type?: 'participant' | 'trainer'
+          recipient_id?: string
+          recipient_name?: string
+          recipient_company?: string | null
+          recipient_position?: string | null
+          program_title?: string
+          program_start_date?: string | null
+          program_end_date?: string | null
+          completion_date?: string
+          trainer_name?: string | null
+          trainer_level?: string | null
+          certificate_pdf_url?: string
+          certificate_qr_code_url?: string
+          qr_code_data?: string
+          status?: 'issued' | 'revoked' | 'expired'
+          issued_by?: string | null
+          issued_at?: string
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      certificate_requirements: {
+        Row: {
+          id: string
+          program_id: string
+          requirement_type: 'completion_percentage' | 'min_participants' | 'min_pass_rate' | 'all_activities'
+          requirement_value: number
+          requirement_description: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          program_id: string
+          requirement_type: 'completion_percentage' | 'min_participants' | 'min_pass_rate' | 'all_activities'
+          requirement_value: number
+          requirement_description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          program_id?: string
+          requirement_type?: 'completion_percentage' | 'min_participants' | 'min_pass_rate' | 'all_activities'
+          requirement_value?: number
+          requirement_description?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      certificate_verifications: {
+        Row: {
+          id: string
+          certificate_id: string
+          verified_at: string
+          verified_by_ip: string | null
+          verified_by_user_agent: string | null
+          verification_result: 'valid' | 'invalid' | 'expired' | 'revoked'
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          certificate_id: string
+          verified_at?: string
+          verified_by_ip?: string | null
+          verified_by_user_agent?: string | null
+          verification_result?: 'valid' | 'invalid' | 'expired' | 'revoked'
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          certificate_id?: string
+          verified_at?: string
+          verified_by_ip?: string | null
+          verified_by_user_agent?: string | null
+          verification_result?: 'valid' | 'invalid' | 'expired' | 'revoked'
+          notes?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never
