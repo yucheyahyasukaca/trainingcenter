@@ -215,13 +215,14 @@ export default function ReferralDashboard() {
       }
 
       // Get participant details for recent referrals
-      const participantIds = [...new Set(filteredStats.map((s: any) => s.participant_id))]
+      const participantIds = Array.from(new Set(filteredStats.map((s: any) => s.participant_id)))
       const { data: participantsData } = await supabase
         .from('participants')
         .select('id, name, email')
         .in('id', participantIds)
 
-      const participantsMap = new Map(participantsData?.map(p => [p.id, p]) || [])
+      const typedParticipants = (participantsData as any) || []
+      const participantsMap = new Map(typedParticipants.map((p: any) => [p.id, p]))
 
       // Get recent referrals with participant info
       const recentReferrals = filteredStats.slice(0, 10).map((stat: any) => {

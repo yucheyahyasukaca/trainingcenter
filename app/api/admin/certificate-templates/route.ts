@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
 // Initialize Supabase client for admin operations
@@ -32,13 +31,7 @@ export async function GET(request: NextRequest) {
         )
       `)
 
-    // If ID is provided, fetch single template
-    if (id) {
-      query = query.eq('id', id).single()
-    } else {
-      query = query.order('created_at', { ascending: false })
-    }
-
+    // Apply filters
     if (programId) {
       query = query.eq('program_id', programId)
     }
@@ -47,6 +40,21 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_active', isActive === 'true')
     }
 
+    // If ID is provided, fetch single template
+    if (id) {
+      query = query.eq('id', id)
+      const { data, error } = await query.single()
+      
+      if (error) {
+        console.error('Error fetching certificate templates:', error)
+        return NextResponse.json({ error: 'Failed to fetch certificate templates' }, { status: 500 })
+      }
+      
+      return NextResponse.json({ data })
+    }
+    
+    // Fetch multiple templates
+    query = query.order('created_at', { ascending: false })
     const { data, error } = await query
 
     if (error) {

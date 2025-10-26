@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { generateCompleteCertificate } from '@/lib/certificate-generator'
 

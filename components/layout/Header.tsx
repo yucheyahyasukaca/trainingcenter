@@ -197,7 +197,7 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
                           >
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0 mt-1">
-                                {isAdminNotification ? (
+                                {isAdminNotification && Icon ? (
                                   <div className={`p-2 rounded-lg ${typeColor}`}>
                                     <Icon className="w-4 h-4" />
                                   </div>

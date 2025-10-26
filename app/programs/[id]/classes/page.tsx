@@ -87,20 +87,22 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             .eq('user_id', profile?.id || '')
             .maybeSingle()
 
+          const typedParticipant = participant as any
+
           console.log('👤 Participant lookup result:', { 
-            found: !!participant, 
-            participantId: participant?.id, 
-            email: participant?.email,
+            found: !!typedParticipant, 
+            participantId: typedParticipant?.id, 
+            email: typedParticipant?.email,
             error: participantError 
           })
 
-          if (participantError || !participant) {
+          if (participantError || !typedParticipant) {
             console.log('❌ No participant record found for user:', profile?.id, participantError)
             setEnrollment(null)
             return
           }
 
-          console.log('✅ Participant found:', participant.id)
+          console.log('✅ Participant found:', typedParticipant.id)
 
           // Now check enrollment for this participant
           const { data: enrollmentData, error: enrollmentError } = await supabase
@@ -109,38 +111,40 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               *,
               class:classes(*)
             `)
-            .eq('participant_id', participant.id)
+            .eq('participant_id', typedParticipant.id)
             .eq('program_id', params.id)
             .maybeSingle()
 
           console.log('📋 Enrollment query result:', { 
             enrollmentData, 
             enrollmentError,
-            participantId: participant.id,
+            participantId: typedParticipant.id,
             programId: params.id
           })
 
+        const typedEnrollment = enrollmentData as any
+        
         // Check if enrollment exists and is approved
-        if (enrollmentData && enrollmentData.status === 'approved') {
+        if (typedEnrollment && typedEnrollment.status === 'approved') {
           console.log('Approved enrollment found')
-          setEnrollment(enrollmentData)
-        } else if (enrollmentData && enrollmentData.status !== 'approved') {
+          setEnrollment(typedEnrollment)
+        } else if (typedEnrollment && typedEnrollment.status !== 'approved') {
           // If enrollment exists but not approved, check if program is free
           if ((programData as any).price === 0) {
             console.log('Free program with pending enrollment - auto-approving...')
             
-            const { error: updateError } = await supabase
+            const { error: updateError } = await (supabase as any)
               .from('enrollments')
               .update({ 
                 status: 'approved', 
                 payment_status: 'paid',
                 amount_paid: 0
               })
-              .eq('id', enrollmentData.id)
+              .eq('id', typedEnrollment.id)
 
             if (!updateError) {
               console.log('Enrollment auto-approved')
-              setEnrollment({ ...enrollmentData, status: 'approved', payment_status: 'paid' })
+              setEnrollment({ ...typedEnrollment, status: 'approved', payment_status: 'paid' })
             } else {
               console.error('Error auto-approving enrollment:', updateError)
               setEnrollment(null)

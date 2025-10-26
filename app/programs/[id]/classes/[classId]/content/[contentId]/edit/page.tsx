@@ -170,11 +170,13 @@ export default function EditContentPage({
 
       if (contentError) throw contentError
 
+      const typedContent = contentInfo as LearningContent
+
       setClassData(classInfo)
       setProgramData(programInfo)
-      setContentData(contentInfo)
-      setEditedContent(contentInfo)
-      setSelectedParentId(contentInfo.parent_id)
+      setContentData(typedContent)
+      setEditedContent(typedContent)
+      setSelectedParentId(typedContent.parent_id || null)
 
       // Check access
       let access = false
@@ -264,21 +266,23 @@ export default function EditContentPage({
 
     setSaving(true)
     try {
-      const { error } = await supabase
+      const updateData: any = {
+        title: editedContent.title,
+        description: editedContent.description,
+        content_type: editedContent.content_type,
+        content_data: editedContent.content_data,
+        is_free: editedContent.is_free,
+        status: editedContent.status,
+        is_required: editedContent.is_required,
+        estimated_duration: editedContent.estimated_duration,
+        parent_id: selectedParentId,
+        material_type: selectedParentId === null ? 'main' : 'sub',
+        updated_at: new Date().toISOString()
+      }
+      
+      const { error } = await (supabase as any)
         .from('learning_contents')
-        .update({
-          title: editedContent.title,
-          description: editedContent.description,
-          content_type: editedContent.content_type,
-          content_data: editedContent.content_data,
-          is_free: editedContent.is_free,
-          status: editedContent.status,
-          is_required: editedContent.is_required,
-          estimated_duration: editedContent.estimated_duration,
-          parent_id: selectedParentId,
-          material_type: selectedParentId === null ? 'main' : 'sub',
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', params.contentId)
 
       if (error) throw error
