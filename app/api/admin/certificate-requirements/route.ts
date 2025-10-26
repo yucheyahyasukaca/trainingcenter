@@ -12,6 +12,7 @@ const supabaseAdmin = createClient(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
     const programId = searchParams.get('program_id')
     const isActive = searchParams.get('is_active')
 
@@ -25,7 +26,13 @@ export async function GET(request: NextRequest) {
           category
         )
       `)
-      .order('created_at', { ascending: false })
+
+    // If ID is provided, fetch single requirement
+    if (id) {
+      query = query.eq('id', id).single()
+    } else {
+      query = query.order('created_at', { ascending: false })
+    }
 
     if (programId) {
       query = query.eq('program_id', programId)

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft, Upload, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -38,6 +38,9 @@ export default function CreateTemplatePage() {
   })
   const [templateFile, setTemplateFile] = useState<File | null>(null)
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
+  const [signatories, setSignatories] = useState<Array<{ name: string; position: string; signature: File | null }>>([
+    { name: '', position: '', signature: null }
+  ])
 
   useEffect(() => {
     if (profile?.role === 'admin') {
@@ -60,6 +63,22 @@ export default function CreateTemplatePage() {
     }
   }
 
+  const addSignatory = () => {
+    setSignatories([...signatories, { name: '', position: '', signature: null }])
+  }
+
+  const removeSignatory = (index: number) => {
+    if (signatories.length > 1) {
+      setSignatories(signatories.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateSignatory = (index: number, field: 'name' | 'position' | 'signature', value: any) => {
+    const updated = [...signatories]
+    updated[index] = { ...updated[index], [field]: value }
+    setSignatories(updated)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!templateFile) {
@@ -73,8 +92,9 @@ export default function CreateTemplatePage() {
       formDataToSend.append('program_id', formData.program_id)
       formDataToSend.append('template_name', formData.template_name)
       formDataToSend.append('template_description', formData.template_description)
-      formDataToSend.append('signatory_name', formData.signatory_name)
-      formDataToSend.append('signatory_position', formData.signatory_position)
+      // Use first signatory for backward compatibility
+      formDataToSend.append('signatory_name', signatories[0]?.name || '')
+      formDataToSend.append('signatory_position', signatories[0]?.position || '')
       formDataToSend.append('participant_name_field', formData.participant_name_field)
       formDataToSend.append('participant_company_field', formData.participant_company_field)
       formDataToSend.append('participant_position_field', formData.participant_position_field)
@@ -86,8 +106,9 @@ export default function CreateTemplatePage() {
       formDataToSend.append('template_pdf_file', templateFile)
       formDataToSend.append('user_id', profile?.id || '')
       
-      if (signatureFile) {
-        formDataToSend.append('signatory_signature_file', signatureFile)
+      // Add signature file from first signatory if exists
+      if (signatories[0]?.signature) {
+        formDataToSend.append('signatory_signature_file', signatories[0].signature)
       }
 
       const response = await fetch('/api/admin/certificate-templates', {
@@ -98,6 +119,28 @@ export default function CreateTemplatePage() {
       const result = await response.json()
 
       if (response.ok) {
+        // Save signatories if template was created successfully
+        if (result.data?.id && signatories.length > 0) {
+          for (let i = 0; i < signatories.length; i++) {
+            const sig = signatories[i]
+            if (sig.name && sig.position) {
+              const signatoryFormData = new FormData()
+              signatoryFormData.append('template_id', result.data.id)
+              signatoryFormData.append('signatory_name', sig.name)
+              signatoryFormData.append('signatory_position', sig.position)
+              
+              if (sig.signature) {
+                signatoryFormData.append('signature_file', sig.signature)
+              }
+
+              await fetch('/api/admin/certificate-signatories', {
+                method: 'POST',
+                body: signatoryFormData
+              })
+            }
+          }
+        }
+        
         toast.success('Template sertifikat berhasil dibuat')
         router.push('/admin/certificate-management')
       } else {
@@ -198,31 +241,84 @@ export default function CreateTemplatePage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Penandatangan *
+            {/* Multiple Signatories Section */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Penandatangan Sertifikat (Multiple)
                 </label>
-                <input
-                  type="text"
-                  value={formData.signatory_name}
-                  onChange={(e) => setFormData({ ...formData, signatory_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+                <button
+                  type="button"
+                  onClick={addSignatory}
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Tambah Penandatangan
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jabatan Penandatangan *
-                </label>
-                <input
-                  type="text"
-                  value={formData.signatory_position}
-                  onChange={(e) => setFormData({ ...formData, signatory_position: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+              <div className="space-y-4">
+                {signatories.map((signatory, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded-md bg-gray-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Penandatangan {index + 1}
+                      </h4>
+                      {signatories.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSignatory(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nama Penandatangan *
+                        </label>
+                        <input
+                          type="text"
+                          value={signatory.name}
+                          onChange={(e) => updateSignatory(index, 'name', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Jabatan Penandatangan *
+                        </label>
+                        <input
+                          type="text"
+                          value={signatory.position}
+                          onChange={(e) => updateSignatory(index, 'position', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tanda Tangan (Opsional)
+                      </label>
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg"
+                        onChange={(e) => updateSignatory(index, 'signature', e.target.files?.[0] || null)}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      {signatory.signature && (
+                        <p className="mt-1 text-sm text-green-600">File: {signatory.signature.name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -253,35 +349,6 @@ export default function CreateTemplatePage() {
               </div>
               {templateFile && (
                 <p className="mt-2 text-sm text-green-600">File dipilih: {templateFile.name}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gambar Tanda Tangan (Opsional)
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label htmlFor="signature-file" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                      <span>Upload gambar tanda tangan</span>
-                      <input
-                        id="signature-file"
-                        name="signature-file"
-                        type="file"
-                        accept=".png,.jpg,.jpeg"
-                        onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
-                        className="sr-only"
-                      />
-                    </label>
-                    <p className="pl-1">atau drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG hingga 5MB</p>
-                </div>
-              </div>
-              {signatureFile && (
-                <p className="mt-2 text-sm text-green-600">File dipilih: {signatureFile.name}</p>
               )}
             </div>
 

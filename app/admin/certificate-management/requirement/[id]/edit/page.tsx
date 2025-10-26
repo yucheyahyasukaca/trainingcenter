@@ -53,8 +53,17 @@ export default function EditRequirementPage({ params }: { params: { id: string }
 
   const fetchRequirement = async () => {
     try {
+      if (!params.id) {
+        toast.error('ID requirement tidak ditemukan')
+        router.push('/admin/certificate-management')
+        return
+      }
+
+      console.log('Fetching requirement with ID:', params.id)
       const response = await fetch(`/api/admin/certificate-requirements?id=${params.id}`)
       const result = await response.json()
+      
+      console.log('Requirement response:', result)
       
       if (response.ok && result.data) {
         setRequirement(result.data)
@@ -91,7 +100,10 @@ export default function EditRequirementPage({ params }: { params: { id: string }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!requirement) return
+    if (!requirement || !requirement.id) {
+      toast.error('ID requirement tidak ditemukan')
+      return
+    }
 
     setSubmitting(true)
     try {
@@ -164,7 +176,7 @@ export default function EditRequirementPage({ params }: { params: { id: string }
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Edit Syarat Sertifikat</h1>
-          <p className="mt-2 text-gray-600">Edit syarat sertifikat untuk: {requirement.programs.title}</p>
+          <p className="mt-2 text-gray-600">Edit syarat sertifikat untuk: {requirement.programs?.title || 'Program'}</p>
         </div>
 
         {/* Form */}

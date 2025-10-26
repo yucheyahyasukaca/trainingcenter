@@ -396,7 +396,7 @@ export default function CertificateManagementPage() {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {getRequirementTypeLabel(requirement.requirement_type)}
                         </h3>
-                        <p className="text-sm text-gray-600">{requirement.programs.title}</p>
+                        <p className="text-sm text-gray-600">{requirement.programs?.title || 'Program'}</p>
                       </div>
                     </div>
                     <div className="flex items-center">

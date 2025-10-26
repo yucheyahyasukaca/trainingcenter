@@ -12,6 +12,7 @@ const supabaseAdmin = createClient(
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
     const programId = searchParams.get('program_id')
     const isActive = searchParams.get('is_active')
 
@@ -30,7 +31,13 @@ export async function GET(request: NextRequest) {
           email
         )
       `)
-      .order('created_at', { ascending: false })
+
+    // If ID is provided, fetch single template
+    if (id) {
+      query = query.eq('id', id).single()
+    } else {
+      query = query.order('created_at', { ascending: false })
+    }
 
     if (programId) {
       query = query.eq('program_id', programId)
@@ -57,44 +64,64 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/certificate-templates - Create new certificate template
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const {
-      program_id,
-      template_name,
-      template_description,
-      template_pdf_file,
-      template_fields,
-      signatory_name,
-      signatory_position,
-      signatory_signature_file,
-      participant_name_field,
-      participant_company_field,
-      participant_position_field,
-      program_title_field,
-      program_date_field,
-      completion_date_field,
-      trainer_name_field,
-      trainer_level_field
-    } = body
+    // Parse FormData since we're uploading files
+    const formData = await request.formData()
+    
+    const program_id = formData.get('program_id') as string
+    const template_name = formData.get('template_name') as string
+    const template_description = formData.get('template_description') as string
+    const template_pdf_file = formData.get('template_pdf_file') as File
+    const signatory_name = formData.get('signatory_name') as string
+    const signatory_position = formData.get('signatory_position') as string
+    const signatory_signature_file = formData.get('signatory_signature_file') as File | null
+    const participant_name_field = formData.get('participant_name_field') as string
+    const participant_company_field = formData.get('participant_company_field') as string
+    const participant_position_field = formData.get('participant_position_field') as string
+    const program_title_field = formData.get('program_title_field') as string
+    const program_date_field = formData.get('program_date_field') as string
+    const completion_date_field = formData.get('completion_date_field') as string
+    const trainer_name_field = formData.get('trainer_name_field') as string
+    const trainer_level_field = formData.get('trainer_level_field') as string
+    const template_fields = formData.get('template_fields') as string
+    const user_id = formData.get('user_id') as string
 
     // Validate required fields
     if (!program_id || !template_name || !template_pdf_file) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // Parse template_fields if provided
+    let parsedTemplateFields = {}
+    if (template_fields) {
+      try {
+        parsedTemplateFields = JSON.parse(template_fields)
+      } catch (e) {
+        console.warn('Failed to parse template_fields:', e)
+      }
+    }
+
     // Upload PDF template to storage
     const pdfFileName = `template-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`
+    const pdfBuffer = await template_pdf_file.arrayBuffer()
+    
+    console.log('Uploading PDF to certificate-templates bucket...')
+    console.log('File name:', pdfFileName)
+    console.log('File size:', pdfBuffer.byteLength)
+    
     const { data: pdfData, error: pdfError } = await supabaseAdmin.storage
       .from('certificate-templates')
-      .upload(pdfFileName, template_pdf_file, {
+      .upload(pdfFileName, pdfBuffer, {
         contentType: 'application/pdf',
         upsert: false
       })
 
     if (pdfError) {
       console.error('Error uploading PDF template:', pdfError)
-      return NextResponse.json({ error: 'Failed to upload PDF template' }, { status: 500 })
+      console.error('Error details:', JSON.stringify(pdfError, null, 2))
+      return NextResponse.json({ error: `Failed to upload PDF template: ${pdfError.message}` }, { status: 500 })
     }
+    
+    console.log('PDF uploaded successfully:', pdfData)
 
     // Get PDF URL
     const { data: pdfUrlData } = supabaseAdmin.storage
@@ -102,12 +129,13 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(pdfFileName)
 
     let signatureUrl = null
-    if (signatory_signature_file) {
+    if (signatory_signature_file && signatory_signature_file.size > 0) {
       // Upload signature image to storage
       const signatureFileName = `signature-${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+      const signatureBuffer = await signatory_signature_file.arrayBuffer()
       const { data: signatureData, error: signatureError } = await supabaseAdmin.storage
         .from('signatures')
-        .upload(signatureFileName, signatory_signature_file, {
+        .upload(signatureFileName, signatureBuffer, {
           contentType: 'image/png',
           upsert: false
         })
@@ -133,7 +161,7 @@ export async function POST(request: NextRequest) {
         template_name,
         template_description,
         template_pdf_url: pdfUrlData.publicUrl,
-        template_fields: template_fields || {},
+        template_fields: parsedTemplateFields,
         signatory_name,
         signatory_position,
         signatory_signature_url: signatureUrl,
@@ -146,7 +174,7 @@ export async function POST(request: NextRequest) {
         trainer_name_field: trainer_name_field || 'trainer_name',
         trainer_level_field: trainer_level_field || 'trainer_level',
         is_active: true,
-        created_by: body.user_id // This should be passed from the authenticated user
+        created_by: user_id
       })
       .select()
       .single()
@@ -175,22 +203,29 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const updateData: any = {
-      template_name: body.template_name,
-      template_description: body.template_description,
-      template_fields: body.template_fields,
-      signatory_name: body.signatory_name,
-      signatory_position: body.signatory_position,
-      participant_name_field: body.participant_name_field,
-      participant_company_field: body.participant_company_field,
-      participant_position_field: body.participant_position_field,
-      program_title_field: body.program_title_field,
-      program_date_field: body.program_date_field,
-      completion_date_field: body.completion_date_field,
-      trainer_name_field: body.trainer_name_field,
-      trainer_level_field: body.trainer_level_field,
-      is_active: body.is_active,
       updated_at: new Date().toISOString()
     }
+
+    // Only update fields that are provided
+    if (body.template_name !== undefined) updateData.template_name = body.template_name
+    if (body.template_description !== undefined) updateData.template_description = body.template_description
+    if (body.template_fields !== undefined) updateData.template_fields = body.template_fields
+    if (body.signatory_name !== undefined) updateData.signatory_name = body.signatory_name
+    if (body.signatory_position !== undefined) updateData.signatory_position = body.signatory_position
+    if (body.participant_name_field !== undefined) updateData.participant_name_field = body.participant_name_field
+    if (body.participant_company_field !== undefined) updateData.participant_company_field = body.participant_company_field
+    if (body.participant_position_field !== undefined) updateData.participant_position_field = body.participant_position_field
+    if (body.program_title_field !== undefined) updateData.program_title_field = body.program_title_field
+    if (body.program_date_field !== undefined) updateData.program_date_field = body.program_date_field
+    if (body.completion_date_field !== undefined) updateData.completion_date_field = body.completion_date_field
+    if (body.trainer_name_field !== undefined) updateData.trainer_name_field = body.trainer_name_field
+    if (body.trainer_level_field !== undefined) updateData.trainer_level_field = body.trainer_level_field
+    if (body.is_active !== undefined) updateData.is_active = body.is_active
+    
+    // QR Code settings
+    if (body.qr_code_size !== undefined) updateData.qr_code_size = body.qr_code_size
+    if (body.qr_code_position_x !== undefined) updateData.qr_code_position_x = body.qr_code_position_x
+    if (body.qr_code_position_y !== undefined) updateData.qr_code_position_y = body.qr_code_position_y
 
     // Handle PDF template update
     if (body.template_pdf_file) {

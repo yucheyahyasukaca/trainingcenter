@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
-import { ArrowLeft, Upload } from 'lucide-react'
+import { ArrowLeft, Upload, Plus, Trash2, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -60,6 +60,8 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
   })
   const [templateFile, setTemplateFile] = useState<File | null>(null)
   const [signatureFile, setSignatureFile] = useState<File | null>(null)
+  const [signatories, setSignatories] = useState<any[]>([])
+  const [newSignatory, setNewSignatory] = useState({ name: '', position: '', signature: null as File | null })
 
   useEffect(() => {
     if (profile?.role === 'admin') {
@@ -89,6 +91,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
           trainer_name_field: 'trainer_name',
           trainer_level_field: 'trainer_level'
         })
+        fetchSignatories()
       } else {
         toast.error('Template tidak ditemukan')
         router.push('/admin/certificate-management')
@@ -98,6 +101,19 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       toast.error('Error mengambil template')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSignatories = async () => {
+    try {
+      const response = await fetch(`/api/admin/certificate-signatories?template_id=${params.id}`)
+      const result = await response.json()
+      
+      if (response.ok && result.data) {
+        setSignatories(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching signatories:', error)
     }
   }
 
@@ -111,6 +127,64 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       }
     } catch (error) {
       console.error('Error fetching programs:', error)
+    }
+  }
+
+  const handleAddSignatory = async () => {
+    if (!newSignatory.name || !newSignatory.position) {
+      toast.error('Nama dan jabatan wajib diisi')
+      return
+    }
+
+    try {
+      const formDataToSend = new FormData()
+      formDataToSend.append('template_id', params.id)
+      formDataToSend.append('signatory_name', newSignatory.name)
+      formDataToSend.append('signatory_position', newSignatory.position)
+      
+      if (newSignatory.signature) {
+        formDataToSend.append('signature_file', newSignatory.signature)
+      }
+
+      const response = await fetch('/api/admin/certificate-signatories', {
+        method: 'POST',
+        body: formDataToSend
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success('Penandatangan berhasil ditambahkan')
+        setNewSignatory({ name: '', position: '', signature: null })
+        fetchSignatories()
+      } else {
+        toast.error(result.error || 'Gagal menambahkan penandatangan')
+      }
+    } catch (error) {
+      console.error('Error adding signatory:', error)
+      toast.error('Error menambahkan penandatangan')
+    }
+  }
+
+  const handleDeleteSignatory = async (id: string) => {
+    if (!confirm('Yakin ingin menghapus penandatangan ini?')) return
+
+    try {
+      const response = await fetch(`/api/admin/certificate-signatories?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success('Penandatangan berhasil dihapus')
+        fetchSignatories()
+      } else {
+        toast.error(result.error || 'Gagal menghapus penandatangan')
+      }
+    } catch (error) {
+      console.error('Error deleting signatory:', error)
+      toast.error('Error menghapus penandatangan')
     }
   }
 
@@ -198,13 +272,20 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center justify-between mb-4">
             <Link
               href="/admin/certificate-management"
-              className="inline-flex items-center text-gray-600 hover:text-gray-900 mr-4"
+              className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali
+            </Link>
+            <Link
+              href={`/admin/certificate-management/template/${params.id}/configure`}
+              className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Konfigurasi Template
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Edit Template Sertifikat</h1>
@@ -220,7 +301,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
                   Program
                 </label>
                 <select
-                  value={template.programs.id}
+                  value={template.programs?.id || ''}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                   disabled
                 >
@@ -316,7 +397,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
               {templateFile && (
                 <p className="mt-2 text-sm text-green-600">File baru dipilih: {templateFile.name}</p>
               )}
-              {!templateFile && (
+              {!templateFile && template.template_pdf_url && (
                 <p className="mt-2 text-sm text-gray-500">File saat ini: {template.template_pdf_url.split('/').pop()}</p>
               )}
             </div>
@@ -348,9 +429,87 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
               {signatureFile && (
                 <p className="mt-2 text-sm text-green-600">File baru dipilih: {signatureFile.name}</p>
               )}
-              {!signatureFile && template.signatory_signature_url && (
-                <p className="mt-2 text-sm text-gray-500">File saat ini: {template.signatory_signature_url.split('/').pop()}</p>
+                             {!signatureFile && template.signatory_signature_url && (
+                 <p className="mt-2 text-sm text-gray-500">File saat ini: {template.signatory_signature_url?.split('/').pop()}</p>
+               )}
+            </div>
+
+            {/* Section: Multiple Signatories */}
+            <div className="border-t pt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-4">
+                Penandatangan Sertifikat (Multiple)
+              </label>
+              
+              {/* List existing signatories */}
+              {signatories.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {signatories.map((sig) => (
+                    <div key={sig.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                      <div>
+                        <p className="font-medium">{sig.signatory_name}</p>
+                        <p className="text-sm text-gray-600">{sig.signatory_position}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSignatory(sig.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
+
+              {/* Form to add new signatory */}
+              <div className="border border-gray-200 rounded-md p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Tambah Penandatangan Baru</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nama
+                    </label>
+                    <input
+                      type="text"
+                      value={newSignatory.name}
+                      onChange={(e) => setNewSignatory({ ...newSignatory, name: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Nama penandatangan"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jabatan
+                    </label>
+                    <input
+                      type="text"
+                      value={newSignatory.position}
+                      onChange={(e) => setNewSignatory({ ...newSignatory, position: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Jabatan"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanda Tangan (Opsional)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg"
+                    onChange={(e) => setNewSignatory({ ...newSignatory, signature: e.target.files?.[0] || null })}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddSignatory}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Tambah Penandatangan
+                </button>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-4 pt-6">
