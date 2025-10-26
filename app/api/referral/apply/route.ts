@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 
 // POST /api/referral/apply - Apply referral code during enrollment
 export async function POST(request: NextRequest) {

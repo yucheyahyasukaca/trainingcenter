@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 
 // GET /api/referral/program-codes - Get referral codes for a specific program
 export async function GET(request: NextRequest) {

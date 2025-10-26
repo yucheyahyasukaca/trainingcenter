@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 
 // GET /api/referral/test-function - Test the create_trainer_referral_code function
 export async function GET(request: NextRequest) {
