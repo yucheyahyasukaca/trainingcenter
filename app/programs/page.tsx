@@ -3,48 +3,29 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
-import { ClassManagement } from '@/components/programs/ClassManagement'
-import { Plus, Search, Edit, Trash2, GraduationCap, Calendar, Users, BookOpen, X, UserPlus, UserCheck, Clock } from 'lucide-react'
+import { Search, GraduationCap, Users, BookOpen, Clock, ArrowRight, Star, Award, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
-import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { useToast } from '@/hooks/useToast'
+import Image from 'next/image'
 
 export default function ProgramsPage() {
   const { profile } = useAuth()
-  const addToast = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [programs, setPrograms] = useState<ProgramWithClasses[]>([])
   const [loading, setLoading] = useState(true)
-  const [redirecting, setRedirecting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedProgram, setSelectedProgram] = useState<ProgramWithClasses | null>(null)
   const [userEnrollments, setUserEnrollments] = useState<any[]>([])
-  const [participantId, setParticipantId] = useState<string | null>(null)
   const [enrollmentsLoading, setEnrollmentsLoading] = useState<boolean>(true)
   const [enrollmentMap, setEnrollmentMap] = useState<Record<string, string>>({})
-  const [deleteModal, setDeleteModal] = useState<{
-    isOpen: boolean
-    programId: string | null
-    programTitle: string
-    isLoading: boolean
-  }>({
-    isOpen: false,
-    programId: null,
-    programTitle: '',
-    isLoading: false
-  })
-  
-  const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
+  const [filterCategory, setFilterCategory] = useState<string>('all')
 
   useEffect(() => {
     // Check for referral parameter and redirect if needed
     const referralCode = searchParams.get('referral')
     if (referralCode) {
-      setRedirecting(true)
       if (profile) {
         // User is logged in, redirect to referral registration page
         router.push(`/register-referral/${referralCode}`)
@@ -58,107 +39,10 @@ export default function ProgramsPage() {
 
     fetchPrograms()
     if (profile?.role === 'user') {
-      // hydrate from cache first to avoid flicker to "Daftar"
-      try {
-        const cachedMap = sessionStorage.getItem('tc_enrollment_map')
-        if (cachedMap) {
-          setEnrollmentMap(JSON.parse(cachedMap))
-        }
-        const cached = localStorage.getItem('tc_user_enrollments')
-        if (cached) {
-          setUserEnrollments(JSON.parse(cached))
-          setEnrollmentsLoading(true) // still revalidate
-        }
-      } catch {}
       fetchUserEnrollments()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, searchParams])
-
-  // Fallback: fetch enrollments using auth user directly (in case profile not ready yet)
-  useEffect(() => {
-    (async () => {
-      if (profile?.role) return // primary effect will handle
-      try {
-        const { data: authData } = await supabase.auth.getUser()
-        const userId = authData?.user?.id
-        if (!userId) return
-        setEnrollmentsLoading(true)
-        const { data: participant } = await supabase
-          .from('participants')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle()
-        if (!(participant as any)?.id) {
-          setEnrollmentsLoading(false)
-          return
-        }
-        const { data } = await supabase
-          .from('enrollments')
-          .select('program_id, status')
-          .eq('participant_id', (participant as any).id)
-        const list = data || []
-        const map: Record<string, string> = {}
-        list.forEach((e: any) => { if (e?.program_id) map[e.program_id] = e.status })
-        setEnrollmentMap(map)
-        setUserEnrollments(list)
-        setEnrollmentsLoading(false)
-      } catch {
-        setEnrollmentsLoading(false)
-      }
-    })()
-  }, [])
-
-  // Refresh enrollment status when the user returns to this tab/page
-  useEffect(() => {
-    const onFocus = () => {
-      if (profile?.role === 'user') {
-        fetchUserEnrollments()
-      }
-      try { router.refresh() } catch {}
-    }
-    const onVisibility = () => {
-      if (!document.hidden && profile?.role === 'user') {
-        fetchUserEnrollments()
-      }
-      try { router.refresh() } catch {}
-    }
-    // Handle browser back/forward cache and history navigation
-    const onPageShow = () => {
-      if (profile?.role === 'user') {
-        fetchUserEnrollments()
-        // re-check shortly after in case transaction just committed
-        setTimeout(fetchUserEnrollments, 600)
-        setTimeout(fetchUserEnrollments, 1500)
-      }
-      try { router.refresh() } catch {}
-    }
-    window.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('pageshow', onPageShow)
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pageshow', onPageShow)
-    }
-  }, [profile?.id])
-
-  // Realtime: listen for enrollment changes for this user
-  useEffect(() => {
-    if (!participantId) return
-    const channel = (supabase as any)
-      .channel('enrollments-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'enrollments', filter: `participant_id=eq.${participantId}` },
-        () => {
-          fetchUserEnrollments()
-        }
-      )
-      .subscribe()
-    return () => {
-      try { (supabase as any).removeChannel(channel) } catch {}
-    }
-  }, [participantId])
 
   async function fetchPrograms() {
     try {
@@ -169,6 +53,7 @@ export default function ProgramsPage() {
           *,
           classes:classes(*)
         `)
+        .eq('status', 'published')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -177,10 +62,6 @@ export default function ProgramsPage() {
       }
       
       console.log('✅ Programs fetched:', data?.length || 0)
-      console.log('📊 Programs with classes:', (data as any)?.map((p: any) => ({
-        title: p.title,
-        classCount: p.classes?.length || 0
-      })))
       setPrograms(data || [])
     } catch (error) {
       console.error('❌ Error fetching programs:', error)
@@ -191,166 +72,39 @@ export default function ProgramsPage() {
   }
 
   async function fetchUserEnrollments() {
-    try {
-      if (!profile?.id) return
-      setEnrollmentsLoading(true)
+    if (!profile?.id) return
 
-      // First, get the participant record for this user
-      const { data: participant, error: participantError } = await supabase
+    try {
+      setEnrollmentsLoading(true)
+      const { data: participant } = await supabase
         .from('participants')
         .select('id')
         .eq('user_id', profile.id)
         .maybeSingle()
 
-      console.log('Participant lookup:', { userId: profile.id, participant, participantError })
-
-      if (participantError || !participant) {
-        console.log('No participant record found for user, returning empty enrollments')
+      if (!participant) {
         setUserEnrollments([])
         setEnrollmentMap({})
         setEnrollmentsLoading(false)
         return
       }
 
-      if ((participant as any)?.id && (participant as any)?.id !== participantId) {
-        setParticipantId((participant as any).id)
-      }
-
-      // Then fetch enrollments for this participant
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('enrollments')
         .select('program_id, status, created_at, notes')
         .eq('participant_id', (participant as any).id)
 
-      console.log('Enrollments query result:', { data, error })
-
-      if (error) {
-        console.error('Error fetching user enrollments:', error)
-        setUserEnrollments([])
-        setEnrollmentMap({})
-        setEnrollmentsLoading(false)
-        return
-      }
-
-      const list = data || []
-      console.log('Raw enrollments from database:', list)
+      setUserEnrollments(data || [])
       
-      // Filter out sample/test enrollments that might have been created by setup scripts
-      const validEnrollments = list.filter((enrollment: any) => {
-        // Skip enrollments that are clearly sample data
-        if (enrollment.notes && (
-          enrollment.notes.includes('Sample enrollment') ||
-          enrollment.notes.includes('sample') ||
-          enrollment.notes.includes('test') ||
-          enrollment.notes.includes('Sample') ||
-          enrollment.notes.includes('Test')
-        )) {
-          console.log('Filtering out sample enrollment by notes:', enrollment)
-          return false
-        }
-        
-        // Skip enrollments that were created very recently (within last 5 minutes) 
-        // and have approved status - likely sample data
-        const enrollmentTime = new Date(enrollment.created_at)
-        const now = new Date()
-        const timeDiff = now.getTime() - enrollmentTime.getTime()
-        const minutesDiff = timeDiff / (1000 * 60)
-        
-        if (enrollment.status === 'approved' && minutesDiff < 5) {
-          console.log('Filtering out recent approved enrollment (likely sample):', enrollment)
-          return false
-        }
-        
-        return true
-      })
-      
-      console.log('Valid enrollments after filtering:', validEnrollments)
-      
-      // Additional check: if this is a new user and they have enrollments, 
-      // but all enrollments are very recent (within 1 hour), they might be sample data
-      const now = new Date()
-      const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000))
-      
-      const hasRecentEnrollments = validEnrollments.some((enrollment: any) => {
-        const enrollmentTime = new Date(enrollment.created_at)
-        return enrollmentTime > oneHourAgo
-      })
-      
-      const hasOldEnrollments = validEnrollments.some((enrollment: any) => {
-        const enrollmentTime = new Date(enrollment.created_at)
-        return enrollmentTime <= oneHourAgo
-      })
-      
-      // Determine final enrollments to use
-      let finalEnrollments = validEnrollments
-      
-      // For new users, be very aggressive about filtering
-      if (participant && (participant as any).created_at) {
-        const participantTime = new Date((participant as any).created_at)
-        if (participantTime > oneHourAgo) {
-          console.log('New participant detected - filtering out all enrollments as likely sample data')
-          finalEnrollments = []
-        } else if (hasRecentEnrollments && !hasOldEnrollments) {
-          console.log('Filtering out all recent enrollments for participant with no old enrollments (likely all sample data)')
-          finalEnrollments = []
-        }
-      }
-      
-      setUserEnrollments(finalEnrollments)
-      try { localStorage.setItem('tc_user_enrollments', JSON.stringify(finalEnrollments)) } catch {}
-      
-      // Build in-memory map so UI renders from a single source of truth
       const map: Record<string, string> = {}
-      finalEnrollments.forEach((e: any) => {
-        const key = String(e?.program_id || '').trim().toLowerCase()
-        if (key) map[key] = e.status
+      ;(data || []).forEach((e: any) => {
+        map[String(e?.program_id || '')] = e.status
       })
       setEnrollmentMap(map)
-      try { sessionStorage.setItem('tc_enrollment_map', JSON.stringify(map)) } catch {}
-      setEnrollmentsLoading(false)
     } catch (error) {
       console.error('Error fetching user enrollments:', error)
+    } finally {
       setEnrollmentsLoading(false)
-    }
-  }
-
-  function openDeleteModal(id: string, title: string) {
-    setDeleteModal({
-      isOpen: true,
-      programId: id,
-      programTitle: title,
-      isLoading: false
-    })
-  }
-
-  function closeDeleteModal() {
-    setDeleteModal({
-      isOpen: false,
-      programId: null,
-      programTitle: '',
-      isLoading: false
-    })
-  }
-
-  async function confirmDeleteProgram() {
-    if (!deleteModal.programId) return
-
-    setDeleteModal(prev => ({ ...prev, isLoading: true }))
-
-    try {
-      const { error } = await supabase
-        .from('programs')
-        .delete()
-        .eq('id', deleteModal.programId)
-
-      if (error) throw error
-      
-      fetchPrograms()
-      closeDeleteModal()
-    } catch (error) {
-      console.error('Error deleting program:', error)
-      addToast.error('Error', 'Gagal menghapus program')
-      setDeleteModal(prev => ({ ...prev, isLoading: false }))
     }
   }
 
@@ -359,339 +113,386 @@ export default function ProgramsPage() {
     return enrollment ? enrollment.status : null
   }
 
-  const filteredPrograms = programs.filter((program) =>
-    program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    program.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    program.description.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const categories = Array.from(new Set(programs.map(p => p.category)))
 
-  const getStatusBadge = (status: string) => {
-    const badges: Record<string, string> = {
-      draft: 'px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full',
-      published: 'px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full',
-      archived: 'px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full',
+  const filteredPrograms = programs.filter((program) => {
+    const matchesSearch = program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      program.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      program.description.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesCategory = filterCategory === 'all' || program.category === filterCategory
+    
+    return matchesSearch && matchesCategory
+  })
+
+  const getEnrollmentButton = (program: any) => {
+    if (!profile) {
+      return (
+        <Link
+          href="/register"
+          className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-lg hover:from-primary-700 hover:to-red-700 transition-all font-medium"
+        >
+          Daftar Sekarang
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </Link>
+      )
     }
-    return badges[status] || 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'
-  }
 
-  if (selectedProgram) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setSelectedProgram(null)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Manajemen Kelas</h1>
-                  <p className="text-gray-600 mt-1">Program: {selectedProgram.title}</p>
-                </div>
-              </div>
-            </div>
-            <ClassManagement programId={selectedProgram.id} programTitle={selectedProgram.title} />
-          </div>
+    const enrollmentStatus = enrollmentMap[String(program.id)] || getUserEnrollmentStatus(program.id)
+    
+    if (enrollmentStatus === 'approved') {
+      return (
+        <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
+          <Award className="w-4 h-4 mr-2" />
+          Terdaftar
         </div>
-      </div>
+      )
+    }
+    
+    if (enrollmentStatus === 'pending') {
+      return (
+        <div className="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
+          <Clock className="w-4 h-4 mr-2" />
+          Menunggu Konfirmasi
+        </div>
+      )
+    }
+
+    return (
+      <Link
+        href={`/programs/${program.id}/enroll`}
+        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-lg hover:from-primary-700 hover:to-red-700 transition-all font-medium"
+      >
+        Daftar Sekarang
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Link>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {isAdminOrManager ? 'Manajemen Program' : 'Program Training'}
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {isAdminOrManager ? 'Kelola program dan kegiatan training' : 'Temukan program training yang sesuai untuk Anda'}
-              </p>
-            </div>
-            
-            {isAdminOrManager && (
-              <Link 
-                href="/programs/new" 
-                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+    <div className="min-h-screen bg-white">
+      {/* Public Navigation - Copy from landing page */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center space-x-3">
+              <div className="w-12 h-12 flex items-center justify-center transition-transform hover:scale-105">
+                <Image
+                  src="/logo-06.png"
+                  alt="Garuda Academy Logo"
+                  width={64}
+                  height={64}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+              <div className="hidden sm:block">
+                <h3 className="text-lg font-bold text-gray-900">Garuda Academy</h3>
+                <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
+              </div>
+            </Link>
+
+            <div className="flex items-center space-x-4 lg:space-x-6">
+              <Link
+                href="/programs"
+                className="hidden lg:inline-block text-sm font-medium text-primary-600 border-b-2 border-primary-600"
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Tambah Program
+                Program
               </Link>
-            )}
-          </div>
-          
-          {/* Search Bar */}
-          <div className="mt-6 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Cari program training..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
-              />
+              <Link
+                href="/trainers"
+                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                Trainer
+              </Link>
+              <Link
+                href="/about"
+                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                Tentang
+              </Link>
+              <Link
+                href="/contact"
+                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+              >
+                Kontak
+              </Link>
+
+              <div className="flex items-center space-x-3 lg:space-x-4">
+                {profile ? (
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                    >
+                      Profil Saya
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
+                    >
+                      Masuk
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                    >
+                      Daftar Sekarang
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Content Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {loading || redirecting ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-300 rounded w-3/4 mb-4"></div>
-                  <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-300 rounded w-2/3 mb-4"></div>
-                  <div className="flex items-center justify-between">
-                    <div className="h-6 bg-gray-300 rounded w-20"></div>
-                    <div className="h-8 bg-gray-300 rounded w-16"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredPrograms.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <GraduationCap className="w-10 h-10 text-gray-400" />
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary-50 via-white to-red-50 pt-32 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center space-x-2 px-4 py-2 bg-primary-100 rounded-full mb-4">
+              <TrendingUp className="w-4 h-4 text-primary-600" />
+              <span className="text-sm font-semibold text-primary-700">Program Pelatihan</span>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Belum ada program tersedia</h3>
-            <p className="text-gray-600 mb-6">
-              {isAdminOrManager ? 'Mulai buat program training pertama Anda' : 'Program training akan segera hadir'}
+            <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 mb-4">
+              Tingkatkan Keterampilan Anda
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Temukan program pelatihan eksklusif yang dirancang untuk mengembangkan karir dan expertise Anda di bidang AI & Teknologi
             </p>
-            {isAdminOrManager && (
-              <Link 
-                href="/programs/new" 
-                className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Tambah Program Pertama
-              </Link>
-            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPrograms.map((program) => (
-              <div key={program.id} className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      program.status === 'published' ? 'bg-green-100 text-green-800' :
-                      program.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {program.status === 'published' ? 'Aktif' : 
-                       program.status === 'draft' ? 'Draft' : 'Arsip'}
-                    </span>
-                    
-                    <div className="flex items-center space-x-1">
-                      {isAdminOrManager ? (
-                        <>
-                          <button
-                            onClick={() => setSelectedProgram(program)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Kelola Kelas"
-                          >
-                            <BookOpen className="w-4 h-4" />
-                          </button>
-                          <Link
-                            href={`/programs/${program.id}`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Program"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                          <button
-                            onClick={() => openDeleteModal(program.id, program.title)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Hapus Program"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      ) : (
-                        (() => {
-                          const enrollmentStatus = enrollmentMap[String(program.id).trim().toLowerCase()] || getUserEnrollmentStatus(program.id)
-                          
-                          // Check if program has available classes
-                          const hasAvailableClasses = program.classes && program.classes.length > 0
-                          
-                          if (!hasAvailableClasses) {
-                            return (
-                              <div className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
-                                Belum ada kelas yang dibuka
-                              </div>
-                            )
-                          }
-                          
-                          if (userEnrollments.length === 0) {
-                            return (
-                              <Link
-                                href={(() => {
-                                  const referralCode = searchParams.get('referral')
-                                  if (referralCode) {
-                                    return `/register-referral/${referralCode}`
-                                  }
-                                  return `/programs/${program.id}/enroll`
-                                })()}
-                                className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-                              >
-                                Daftar
-                              </Link>
-                            )
-                          }
-                          
-                          if (enrollmentStatus === 'pending') {
-                            return (
-                              <div className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg text-center">
-                                Menunggu
-                              </div>
-                            )
-                          } else if (enrollmentStatus === 'approved') {
-                            return (
-                              <div className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-lg text-center">
-                                Terdaftar
-                              </div>
-                            )
-                          } else if (enrollmentStatus === 'rejected') {
-                            return (
-                              <div className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-lg text-center">
-                                Daftar Ulang
-                              </div>
-                            )
-                          } else if (enrollmentsLoading) {
-                            return (
-                              <div className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg text-center">
-                                Memuat...
-                              </div>
-                            )
-                          } else {
-                            return (
-                              <Link
-                                href={(() => {
-                                  const referralCode = searchParams.get('referral')
-                                  if (referralCode) {
-                                    return `/register-referral/${referralCode}`
-                                  }
-                                  return `/programs/${program.id}/enroll`
-                                })()}
-                                className="px-3 py-1 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-                              >
-                                Daftar
-                              </Link>
-                            )
-                          }
-                        })()
+
+          {/* Search and Filter */}
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cari program training..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button
+                onClick={() => setFilterCategory('all')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  filterCategory === 'all'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                }`}
+              >
+                Semua Kategori
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setFilterCategory(category)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    filterCategory === category
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Programs Grid */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                  <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredPrograms.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <GraduationCap className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Tidak ada program yang ditemukan</h3>
+              <p className="text-gray-600">
+                {searchQuery ? 'Coba ubah kata kunci pencarian Anda' : 'Program training akan segera hadir'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredPrograms.map((program) => (
+                <div 
+                  key={program.id} 
+                  className="group bg-white rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                >
+                  {/* Image/Icon Placeholder */}
+                  <div className="h-48 bg-gradient-to-br from-primary-100 to-red-100 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-gradient-to-br from-primary-600 to-red-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <GraduationCap className="w-10 h-10 text-white" />
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    {/* Category Badge */}
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
+                        {program.category}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
+                      {program.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {program.description}
+                    </p>
+
+                    {/* Details */}
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="w-4 h-4 mr-2 text-primary-600" />
+                        <span>Max {program.max_participants || '∞'} peserta</span>
+                      </div>
+                      {program.classes && program.classes.length > 0 && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <BookOpen className="w-4 h-4 mr-2 text-primary-600" />
+                          <span>{program.classes.length} kelas tersedia</span>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Title & Description */}
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{program.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
-
-                  {/* Program Details */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <GraduationCap className="w-4 h-4 mr-2 text-red-500" />
-                      <span>{program.category}</span>
-                    </div>
-                    {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <BookOpen className="w-4 h-4 mr-2 text-blue-500" />
-                        <span>
-                          Min Trainer: {
-                            (program as any).min_trainer_level === 'senior' ? 'Senior' :
-                            (program as any).min_trainer_level === 'expert' ? 'Expert' :
-                            (program as any).min_trainer_level === 'master' ? 'Master' :
-                            'Junior'
-                          }
-                        </span>
+                    {/* Price */}
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                      <div>
+                        <p className="text-sm text-gray-600">Harga</p>
+                        <p className="text-2xl font-bold text-primary-600">
+                          {formatCurrency(program.price)}
+                        </p>
                       </div>
-                    )}
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                      <span>
-                        {(program as any).registration_type === 'lifetime' ||    
-                         ((program as any).start_date === (program as any).end_date)      
-                          ? 'Lifetime'
-                          : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2 text-red-500" />
-                      <span>
-                        {program.max_participants === null || program.max_participants === undefined 
-                          ? 'Unlimited peserta' 
-                          : `Max ${program.max_participants} peserta`
-                        }
-                      </span>
-                    </div>
-                    {program.classes && program.classes.length > 0 && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <BookOpen className="w-4 h-4 mr-2 text-red-500" />
-                        <span>{program.classes.length} kelas tersedia</span>
+                      <div className="flex items-center text-yellow-500">
+                        <Star className="w-5 h-5 fill-current" />
+                        <span className="ml-1 font-semibold text-gray-900">4.8</span>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Price & Action */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm text-gray-600">Harga</span>
-                      <span className="text-xl font-bold text-red-600">
-                        {formatCurrency(program.price)}
-                      </span>
                     </div>
-                    
-                    {!isAdminOrManager && (
-                      <Link
-                        href={(() => {
-                          const referralCode = searchParams.get('referral')
-                          if (referralCode) {
-                            return `/register-referral/${referralCode}`
-                          }
-                          return `/programs/${program.id}/enroll`
-                        })()}
-                        className="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                      >
-                        <GraduationCap className="w-4 h-4 mr-2" />
-                        Daftar Sekarang
-                      </Link>
-                    )}
+
+                    {/* Action Button */}
+                    <div className="flex justify-center">
+                      {getEnrollmentButton(program)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
 
-      {/* Delete Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDeleteProgram}
-        title="Hapus Program"
-        message={`Apakah Anda yakin ingin menghapus program "${deleteModal.programTitle}"? Tindakan ini tidak dapat dibatalkan.`}
-        confirmText="Ya, Hapus"
-        cancelText="Batal"
-        variant="danger"
-        isLoading={deleteModal.isLoading}
-      />
+          {/* Stats Section */}
+          {!loading && filteredPrograms.length > 0 && (
+            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <GraduationCap className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">{filteredPrograms.length}</div>
+                <div className="text-sm text-gray-600">Program Tersedia</div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">
+                  {filteredPrograms.reduce((acc, p) => acc + (p.classes?.length || 0), 0)}
+                </div>
+                <div className="text-sm text-gray-600">Kelas Aktif</div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center">
+                <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-1">100%</div>
+                <div className="text-sm text-gray-600">Kepuasan Peserta</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      {!loading && (
+        <section className="bg-gradient-to-r from-primary-600 to-red-600 py-12 mt-12">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              Tidak Menemukan Program yang Tepat?
+            </h2>
+            <p className="text-xl text-primary-100 mb-8">
+              Hubungi kami untuk mendapatkan penawaran program pelatihan khusus sesuai kebutuhan Anda
+            </p>
+            <Link
+              href="/contact"
+              className="inline-flex items-center px-8 py-4 bg-white text-primary-600 rounded-xl font-semibold hover:bg-gray-100 transition-all shadow-xl"
+            >
+              Hubungi Kami
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-8">
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-red-600 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-bold text-white">Garuda Academy</h3>
+                <p className="text-xs text-gray-400">GARUDA-21 Training Center</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-6">
+              <Link href="/programs" className="text-sm hover:text-white transition-colors">Program</Link>
+              <Link href="/trainers" className="text-sm hover:text-white transition-colors">Trainer</Link>
+              <Link href="/about" className="text-sm hover:text-white transition-colors">Tentang</Link>
+              <Link href="/contact" className="text-sm hover:text-white transition-colors">Kontak</Link>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 pt-8 text-center">
+            <p className="text-sm text-gray-500">
+              © 2025 Garuda Academy GARUDA-21 Training Center. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
