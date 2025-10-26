@@ -37,13 +37,9 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
-      { icon: FileText, label: 'Sertifikat', href: '/admin/certificates', roles: ['admin'] },
-      { icon: FileText, label: 'Template Sertifikat', href: '/admin/certificate-templates', roles: ['admin'] },
-      { icon: FileText, label: 'Syarat Sertifikat', href: '/admin/certificate-requirements', roles: ['admin'] },
+      { icon: Settings, label: 'Atur Sertifikat', href: '/admin/certificate-management', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
-      { icon: Trophy, label: 'Leaderboard Referral', href: '/admin/referral-leaderboard', roles: ['admin'] },
-      { icon: User, label: 'Leaderboard User', href: '/admin/user-referral-leaderboard', roles: ['admin'] },
-      { icon: Settings, label: 'Policy Referral', href: '/admin/referral-policies', roles: ['admin'] },
+      { icon: Trophy, label: 'Program Referral', href: '/admin/referral-management', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
   }
@@ -103,9 +99,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   const menuItems = getMenuItems(profile?.role || 'user', (profile as any)?.trainer_level)
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full relative z-[9999] lg:z-auto">
+    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen lg:h-full relative z-[9999] lg:z-auto">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <div className="w-20 h-20 flex items-center justify-center">
@@ -131,7 +127,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* User Role Badge */}
       {profile && (
-        <div className="px-6 py-3 border-b border-gray-200">
+        <div className="px-6 py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
               (profile as any).role === 'admin' ? 'bg-red-500' :
@@ -155,8 +151,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      {/* Navigation - Scrollable */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -185,7 +181,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200 space-y-3">
+      <div className="p-4 border-t border-gray-200 space-y-3 flex-shrink-0">
         {/* Support Card */}
         <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-4">
           <div className="flex items-start space-x-3">
