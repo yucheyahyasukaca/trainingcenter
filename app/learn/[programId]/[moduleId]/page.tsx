@@ -171,7 +171,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       // Check if progress exists
       const existing = progress[contentId]
       
-      if (existing) {
+      if (existing && (existing as any).id) {
         // Update existing
         const { data, error } = await (supabase as any)
           .from('learning_progress')
@@ -185,15 +185,17 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           setProgress(prev => ({ ...prev, [contentId]: data }))
         }
       } else {
-        // Create new
+        // Create new or upsert
         const { data, error } = await supabase
           .from('learning_progress')
-          .insert([{
+          .upsert([{
             user_id: profile.id,
             content_id: contentId,
             enrollment_id: enrollment?.id,
             ...updates
-          }] as any)
+          }] as any, {
+            onConflict: 'user_id,content_id'
+          })
           .select()
           .single()
         
@@ -240,7 +242,9 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           status: 'completed',
           progress_percentage: 100,
           completed_at: new Date().toISOString()
-        }] as any)
+        }] as any, {
+          onConflict: 'user_id,content_id'
+        })
         .select()
         .single()
       
@@ -279,7 +283,9 @@ export default function LearnPage({ params }: { params: { programId: string; mod
               status: 'completed',
               progress_percentage: 100,
               completed_at: new Date().toISOString()
-            })) as any)
+            })) as any, {
+              onConflict: 'user_id,content_id'
+            })
           
           if (!subError) {
             // Update local state for sub-materials
@@ -398,12 +404,33 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       setCurrentIndex(currentIndex - 1)
     } else if (direction === 'next' && currentIndex < contents.length - 1) {
       const nextContent = contents[currentIndex + 1]
-      setCurrentContent(nextContent)
-      setCurrentIndex(currentIndex + 1)
+      
+      // Check if current content is completed before allowing to move to next
+      const currentContentProgress = progress[contents[currentIndex].id]
+      const isCurrentCompleted = currentContentProgress?.status === 'completed'
+      
+      if (!isCurrentCompleted) {
+        showNotification('error', 'Harap selesaikan materi ini terlebih dahulu sebelum melanjutkan ke materi berikutnya.')
+        return
+      }
+      
+      // Check if next content is accessible
+      if (canAccessContent(nextContent.id)) {
+        setCurrentContent(nextContent)
+        setCurrentIndex(currentIndex + 1)
+      } else {
+        showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+      }
     }
   }
 
   function selectContent(content: LearningContent, index: number) {
+    // Check if content is accessible
+    if (!canAccessContent(content.id)) {
+      showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+      return
+    }
+    
     setCurrentContent(content)
     setCurrentIndex(index)
     setDrawerOpen(false)
@@ -593,6 +620,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         theme={currentTheme}
         readingSettings={readingSettings}
         contents={contents}
+        progress={progress}
+        canAccessContent={canAccessContent}
       />
 
       {/* Notification */}
@@ -841,7 +870,128 @@ function DocumentContent({ content }: any) {
 
 // Assignment Content Component  
 function AssignmentContent({ content }: any) {
+  const { profile } = useAuth()
   const assignmentData = content.content_data || {}
+  const [answer, setAnswer] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
+  
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Check file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        setSubmitMessage({type: 'error', text: 'File terlalu besar. Maksimal 5MB'})
+        return
+      }
+      
+      setSelectedFile(file)
+      setUploadedFileUrl(null)
+      
+      // Auto upload after file selection
+      const normalizedFileName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_')
+        .replace(/\s+/g, '_')
+        .toLowerCase()
+      
+      const fileExt = normalizedFileName.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const filePath = `${profile?.id}/${fileName}`.replace(/\s+/g, '_')
+      
+      setIsUploading(true)
+      setSubmitMessage(null)
+      
+      try {
+        // Upload directly via Supabase Storage (same as payment proof)
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const filePath = `${profile?.id}/${fileName}`
+        
+        const { error: uploadError } = await supabase.storage
+          .from('forum-attachments')
+          .upload(filePath, file)
+        
+        if (uploadError) throw uploadError
+        
+        // Use public URL directly
+        setUploadedFileUrl(`https://supabase.garuda-21.com/storage/v1/object/public/forum-attachments/${filePath}`)
+        setSubmitMessage({type: 'success', text: 'File berhasil diupload'})
+      } catch (error: any) {
+        console.error('Upload error:', error)
+        setSubmitMessage({type: 'error', text: error.message || 'Gagal mengupload file'})
+      } finally {
+        setIsUploading(false)
+      }
+    }
+  }
+  
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setSubmitMessage({type: 'error', text: 'Pilih file terlebih dahulu'})
+      return
+    }
+    
+    setIsUploading(true)
+    setSubmitMessage(null)
+    
+    try {
+      // Normalize filename - remove special characters and spaces
+      const normalizedFileName = selectedFile.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+        .replace(/\s+/g, '_') // Replace spaces with underscore
+        .toLowerCase()
+      
+      // Use direct Supabase client like payment-proofs upload
+      const fileExt = normalizedFileName.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const filePath = `${profile?.id}/${fileName}`.replace(/\s+/g, '_')
+      
+      console.log('Uploading to:', `assignments/${filePath}`)
+      
+      const { error: uploadError } = await supabase.storage
+        .from('assignments')
+        .upload(filePath, selectedFile)
+      
+      if (uploadError) throw uploadError
+      
+      // Use public URL directly (like payment-proofs)
+      const publicUrl = `https://supabase.garuda-21.com/storage/v1/object/public/assignments/${filePath}`
+      
+      setUploadedFileUrl(publicUrl)
+      setSubmitMessage({type: 'success', text: 'File berhasil diupload'})
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      setSubmitMessage({type: 'error', text: error.message || 'Gagal mengupload file'})
+    } finally {
+      setIsUploading(false)
+    }
+  }
+  
+  const handleSubmit = async () => {
+    if (!answer && !uploadedFileUrl) {
+      setSubmitMessage({type: 'error', text: 'Tulis jawaban atau upload file terlebih dahulu'})
+      return
+    }
+    
+    setIsSubmitting(true)
+    setSubmitMessage(null)
+    
+    try {
+      // TODO: Save submission to database
+      // For now, just show success message
+      setTimeout(() => {
+        setSubmitMessage({type: 'success', text: 'Tugas berhasil dikirim'})
+        setIsSubmitting(false)
+      }, 1000)
+    } catch (error: any) {
+      console.error('Submit error:', error)
+      setSubmitMessage({type: 'error', text: 'Gagal mengirim tugas'})
+      setIsSubmitting(false)
+    }
+  }
   
   return (
     <div className="space-y-6">
@@ -875,14 +1025,71 @@ function AssignmentContent({ content }: any) {
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
           rows={6}
           placeholder="Tulis jawaban Anda di sini..."
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
         />
+        
+        {/* File Upload Section */}
+        {selectedFile && !uploadedFileUrl && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <File className="w-5 h-5 text-blue-600" />
+              <span className="text-sm text-blue-900">{selectedFile.name}</span>
+            </div>
+            <button
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? 'Uploading...' : 'Upload File'}
+            </button>
+          </div>
+        )}
+        
+        {uploadedFileUrl && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-green-900">File berhasil diupload</span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedFile(null)
+                setUploadedFileUrl(null)
+              }}
+              className="text-sm text-green-700 hover:text-green-900"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+        
+        {/* Message Display */}
+        {submitMessage && (
+          <div className={`mt-4 p-3 rounded-lg ${
+            submitMessage.type === 'success' 
+              ? 'bg-green-50 border border-green-200 text-green-900' 
+              : 'bg-red-50 border border-red-200 text-red-900'
+          }`}>
+            {submitMessage.text}
+          </div>
+        )}
+        
         <div className="mt-4 flex items-center gap-3">
-          <button className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-            Submit
+          <button 
+            onClick={handleSubmit}
+            disabled={isSubmitting || (!answer && !uploadedFileUrl)}
+            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Mengirim...' : 'Submit'}
           </button>
           <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <input type="file" className="hidden" />
-            Upload File
+            <input 
+              type="file" 
+              className="hidden" 
+              onChange={handleFileSelect}
+            />
+            Pilih File
           </label>
         </div>
       </div>
@@ -1248,7 +1455,7 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                             !canAccess
                               ? 'text-gray-500'
                               : isCompleted 
-                              ? 'text-green-900 line-through' 
+                              ? 'text-green-900' 
                               : isCurrent 
                               ? 'text-blue-900' 
                               : 'text-gray-900 group-hover:text-blue-900'
@@ -1314,10 +1521,10 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                               !canAccessSub
                                 ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
                                 : isSubCompleted
-                                ? 'border-green-200 bg-green-25 hover:bg-green-50'
+                                ? 'border-green-300 bg-green-50 hover:bg-green-100'
                                 : isSubCurrent 
-                                ? 'border-indigo-300 bg-indigo-50' 
-                                : 'border-gray-100 hover:border-indigo-200 hover:bg-indigo-25'
+                                ? 'border-blue-300 bg-blue-50' 
+                                : 'border-gray-100 hover:border-blue-200 hover:bg-blue-25'
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -1325,8 +1532,8 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                                 !canAccessSub
                                   ? 'bg-gray-300'
                                   : isSubCompleted 
-                                  ? 'bg-green-400' 
-                                  : 'bg-indigo-400'
+                                  ? 'bg-green-600' 
+                                  : 'bg-blue-600'
                               }`}></div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
@@ -1334,10 +1541,10 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                                     !canAccessSub
                                       ? 'text-gray-400'
                                       : isSubCompleted 
-                                      ? 'text-green-800 line-through' 
+                                      ? 'text-green-900' 
                                       : isSubCurrent 
-                                      ? 'text-indigo-900' 
-                                      : 'text-gray-700 group-hover:text-indigo-900'
+                                      ? 'text-blue-900' 
+                                      : 'text-gray-700 group-hover:text-blue-900'
                                   }`}>
                                     {subContent.title}
                                   </h5>
@@ -1382,7 +1589,17 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
 }
 
 // Bottom Navigation Component
-function BottomNavigation({ currentIndex, totalContents, currentContent, onNavigate, theme, readingSettings, contents }: any) {
+function BottomNavigation({ currentIndex, totalContents, currentContent, onNavigate, theme, readingSettings, contents, progress, canAccessContent }: any) {
+  // Check if current content is completed
+  const currentContentProgress = progress[currentContent?.id]
+  const isCurrentCompleted = currentContentProgress?.status === 'completed'
+  
+  // Check if next content exists and is accessible
+  const hasNext = currentIndex < totalContents - 1
+  const nextContent = hasNext ? contents[currentIndex + 1] : null
+  const canAccessNext = nextContent ? canAccessContent(nextContent.id) : false
+  const isNextDisabled = !hasNext || !isCurrentCompleted || !canAccessNext
+  
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur border-t" style={{
       backgroundColor: `${theme.headerBg}f2`,
@@ -1410,8 +1627,9 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
           </div>
           <button 
             onClick={() => onNavigate('next')}
-            disabled={currentIndex === totalContents - 1}
-            className={`text-right rounded-lg p-3 transition-colors ${currentIndex === totalContents - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`}
+            disabled={isNextDisabled}
+            className={`text-right rounded-lg p-3 transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`}
+            title={isNextDisabled && !isCurrentCompleted ? 'Selesaikan materi ini terlebih dahulu' : ''}
           >
             <div className="text-xs mb-1 font-medium" style={{ color: theme.text, opacity: 0.7 }}>Materi Selanjutnya</div>
             <div className="text-sm truncate" style={{ color: theme.text }}>
@@ -1438,8 +1656,9 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
           </div>
           <button 
             onClick={() => onNavigate('next')}
-            disabled={currentIndex === totalContents - 1}
-            className={`p-2 rounded-lg transition-colors ${currentIndex === totalContents - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            disabled={isNextDisabled}
+            className={`p-2 rounded-lg transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title={isNextDisabled && !isCurrentCompleted ? 'Selesaikan materi ini terlebih dahulu' : ''}
           >
             <ArrowRight className="w-5 h-5" style={{ color: theme.text }} />
           </button>
