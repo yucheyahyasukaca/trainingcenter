@@ -795,13 +795,62 @@ function VideoContent({ content, progress, onUpdateProgress }: any) {
 function TextContent({ content, theme, readingSettings }: any) {
   const textData = content.content_data || {}
   const body = textData.body || ''
+  const htmlContent = markdownToHtml(body)
 
   return (
-    <div 
-      className="prose prose-lg max-w-none"
-      style={{ color: theme.text }}
-      dangerouslySetInnerHTML={{ __html: markdownToHtml(body) }}
-    />
+    <div className="prose prose-lg max-w-none" style={{ color: theme.text }}>
+      <style jsx>{`
+        div :global(h1) {
+          font-size: 2em;
+          font-weight: bold;
+          margin-top: 0.67em;
+          margin-bottom: 0.67em;
+          color: ${theme.text};
+        }
+        div :global(h2) {
+          font-size: 1.5em;
+          font-weight: bold;
+          margin-top: 0.83em;
+          margin-bottom: 0.83em;
+          color: ${theme.text};
+        }
+        div :global(h3) {
+          font-size: 1.17em;
+          font-weight: bold;
+          margin-top: 1em;
+          margin-bottom: 1em;
+          color: ${theme.text};
+        }
+        div :global(p) {
+          margin-bottom: 1em;
+          line-height: 1.7;
+        }
+        div :global(p:last-child) {
+          margin-bottom: 0;
+        }
+        div :global(ul) {
+          list-style-type: disc;
+          padding-left: 1.5em;
+          margin: 0.5em 0;
+        }
+        div :global(ol) {
+          list-style-type: decimal;
+          padding-left: 1.5em;
+          margin: 0.5em 0;
+        }
+        div :global(img) {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5rem;
+          margin: 0.5rem 0;
+        }
+        div :global(a) {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+      `}</style>
+      <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+    </div>
   )
 }
 

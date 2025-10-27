@@ -483,6 +483,47 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
                   + Tambah Opsi
                 </button>
               </div>
+              
+              {/* Quick Paste Helper */}
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  💡 Quick Paste (Opsional)
+                </label>
+                <textarea
+                  onPaste={(e) => {
+                    e.preventDefault()
+                    const pastedText = e.clipboardData.getData('text')
+                    const lines = pastedText.split('\n').filter(line => line.trim())
+                    
+                    if (lines.length > 1) {
+                      const newOptions = lines.map((line, idx) => ({
+                        option_text: line.trim(),
+                        is_correct: false,
+                        order_index: idx
+                      }))
+                      setOptions(newOptions)
+                      e.currentTarget.value = ''
+                      alert(`${lines.length} opsi berhasil ditambahkan!`)
+                    } else {
+                      // Single line paste, add to first empty option
+                      const newOptions = [...options]
+                      const firstEmptyIndex = newOptions.findIndex(opt => !opt.option_text?.trim())
+                      if (firstEmptyIndex >= 0) {
+                        newOptions[firstEmptyIndex] = { ...newOptions[firstEmptyIndex], option_text: pastedText.trim() }
+                        setOptions(newOptions)
+                        e.currentTarget.value = ''
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg bg-white resize-none"
+                  rows={4}
+                  placeholder="Paste semua opsi di sini (satu per baris)&#10;Contoh:&#10;Pilihan A&#10;Pilihan B&#10;Pilihan C&#10;Pilihan D"
+                />
+                <p className="text-xs text-gray-600 mt-1">
+                  💡 Paste teks dengan format satu opsi per baris. Opsi akan otomatis dibuat.
+                </p>
+              </div>
+
               <div className="space-y-3">
                 {options.map((option, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -493,8 +534,33 @@ function QuestionFormModal({ contentId, question, onClose, onSave }: QuestionFor
                       type="text"
                       value={option.option_text}
                       onChange={(e) => updateOption(index, 'option_text', e.target.value)}
+                      onPaste={(e) => {
+                        // Handle paste with multiple lines in individual input
+                        e.preventDefault()
+                        const pastedText = e.clipboardData.getData('text')
+                        const lines = pastedText.split('\n').filter(line => line.trim())
+                        
+                        if (lines.length > 1) {
+                          // Multi-line paste: create multiple options
+                          const newOptions = [...options]
+                          // Update current option with first line
+                          newOptions[index] = { ...newOptions[index], option_text: lines[0].trim() }
+                          // Add remaining lines as new options
+                          for (let i = 1; i < lines.length; i++) {
+                            newOptions.push({
+                              option_text: lines[i].trim(),
+                              is_correct: false,
+                              order_index: newOptions.length
+                            })
+                          }
+                          setOptions(newOptions)
+                        } else {
+                          // Single line paste: normal behavior
+                          updateOption(index, 'option_text', lines[0] || pastedText)
+                        }
+                      }}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Tulis opsi jawaban..."
+                      placeholder="Tulis opsi jawaban... (atau paste multiple lines)"
                     />
                     <label className="flex items-center gap-2 whitespace-nowrap">
                       <input

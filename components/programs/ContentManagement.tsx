@@ -41,6 +41,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
   const { profile } = useAuth()
   const [contents, setContents] = useState<LearningContent[]>([])
   const [loading, setLoading] = useState(true)
+  const [reordering, setReordering] = useState<string | null>(null)
 
   useEffect(() => {
     fetchContents()
@@ -116,6 +117,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       (direction === 'down' && index === contents.length - 1)
     ) return
 
+    setReordering(id)
     const newIndex = direction === 'up' ? index - 1 : index + 1
     const newContents = [...contents]
     const temp = newContents[index]
@@ -136,8 +138,60 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       ])
 
       setContents(newContents.map((c, i) => ({ ...c, order_index: i })))
+      fetchContents() // Refresh to get latest data
     } catch (error) {
       console.error('Error reordering:', error)
+      alert('Gagal memindahkan materi')
+    } finally {
+      setReordering(null)
+    }
+  }
+
+  async function handleReorderSubMaterial(parentId: string, subMaterialId: string, direction: 'up' | 'down') {
+    // Find the parent content
+    const parentIndex = contents.findIndex(c => c.id === parentId)
+    if (parentIndex === -1 || !contents[parentIndex].sub_materials) return
+
+    const subMaterials = contents[parentIndex].sub_materials!
+    const subIndex = subMaterials.findIndex(s => s.id === subMaterialId)
+    
+    if (
+      (direction === 'up' && subIndex === 0) ||
+      (direction === 'down' && subIndex === subMaterials.length - 1)
+    ) return
+
+    setReordering(subMaterialId)
+    const newSubIndex = direction === 'up' ? subIndex - 1 : subIndex + 1
+    
+    // Create new sub materials array with swapped items
+    const newSubMaterials = [...subMaterials]
+    const temp = newSubMaterials[subIndex]
+    newSubMaterials[subIndex] = newSubMaterials[newSubIndex]
+    newSubMaterials[newSubIndex] = temp
+
+    // Update order_index in database
+    try {
+      await Promise.all([
+        (supabase as any)
+          .from('learning_contents')
+          .update({ order_index: newSubIndex })
+          .eq('id', subMaterialId),
+        (supabase as any)
+          .from('learning_contents')
+          .update({ order_index: subIndex })
+          .eq('id', newSubMaterials[subIndex].id)
+      ])
+
+      // Update local state
+      const newContents = [...contents]
+      newContents[parentIndex].sub_materials = newSubMaterials.map((s, i) => ({ ...s, order_index: i }))
+      setContents(newContents)
+      fetchContents() // Refresh to get latest data
+    } catch (error) {
+      console.error('Error reordering sub material:', error)
+      alert('Gagal memindahkan sub materi')
+    } finally {
+      setReordering(null)
     }
   }
 
@@ -332,7 +386,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                         {/* Sub Material Actions */}
                         <div className="flex items-center justify-end gap-1 flex-wrap">
                           <button
-                            onClick={() => handleReorder(subMaterial.id, 'up')}
+                            onClick={() => handleReorderSubMaterial(content.id, subMaterial.id, 'up')}
                             disabled={subIndex === 0}
                             className={`p-1 rounded hover:bg-gray-200 ${subIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
                             title="Pindah ke atas"
@@ -340,7 +394,7 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                             <ChevronUp className="w-3 h-3" />
                           </button>
                           <button
-                            onClick={() => handleReorder(subMaterial.id, 'down')}
+                            onClick={() => handleReorderSubMaterial(content.id, subMaterial.id, 'down')}
                             disabled={subIndex === content.sub_materials!.length - 1}
                             className={`p-1 rounded hover:bg-gray-200 ${subIndex === content.sub_materials!.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
                             title="Pindah ke bawah"

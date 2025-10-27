@@ -116,17 +116,25 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
         attempt_number: 1 // TODO: Track attempt numbers
       }))
 
-      const { error: submitError } = await (supabase as any)
+      console.log('Submitting quiz:', { submissions, profile: profile.id, contentId })
+
+      const { data, error: submitError } = await (supabase as any)
         .from('quiz_submissions')
         .insert(submissions)
+        .select()
 
-      if (submitError) throw submitError
+      if (submitError) {
+        console.error('Quiz submission error details:', submitError)
+        throw new Error(`Gagal submit quiz: ${submitError.message || 'Unknown error'}`)
+      }
+
+      console.log('Quiz submitted successfully:', data)
 
       // Calculate results
       await calculateResults()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting quiz:', error)
-      alert('Gagal submit quiz')
+      alert(`Gagal submit quiz: ${error?.message || 'Terjadi kesalahan yang tidak diketahui. Pastikan RLS policies sudah dikonfigurasi dengan benar.'}`)
     } finally {
       setSubmitting(false)
     }

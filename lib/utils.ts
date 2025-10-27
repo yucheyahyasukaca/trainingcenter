@@ -37,37 +37,60 @@ export function formatTime(timeString: string): string {
 export function markdownToHtml(text: string): string {
   if (!text) return ''
   
-  let htmlContent = text
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Headers
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    // Images
-    .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-2" />')
-    // Links
-    .replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:underline">$1</a>')
-
-  // Handle bullet lists (- item)
-  htmlContent = htmlContent.replace(/(?:^|\n)(?:- (.+)(?:\n|$))+/gim, (match) => {
-    const items = match.match(/- (.+)/g) || []
-    const listItems = items.map(item => item.replace(/- (.+)/, '<li>$1</li>')).join('\n')
-    return `<ul style="list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0;">\n${listItems}\n</ul>`
-  })
-
-  // Handle numbered lists (1. item, 2. item, etc.)
-  htmlContent = htmlContent.replace(/(?:^|\n)(?:^\d+\. (.+)(?:\n|$))+/gim, (match) => {
-    const items = match.match(/\d+\. (.+)/g) || []
-    const listItems = items.map(item => item.replace(/\d+\. (.+)/, '<li>$1</li>')).join('\n')
-    return `<ol style="list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0;">\n${listItems}\n</ol>`
-  })
-
-  // Convert remaining newlines to <br />
-  htmlContent = htmlContent.replace(/\n/g, '<br />')
-
+  // Split by lines to process line-by-line for better control
+  const lines = text.split('\n')
+  let htmlContent = ''
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    
+    // Process headings first (must be at start of line)
+    if (line.match(/^### /)) {
+      // H3
+      line = line.replace(/^### (.+)$/, '<h3>$1</h3>')
+    } else if (line.match(/^## /)) {
+      // H2
+      line = line.replace(/^## (.+)$/, '<h2>$1</h2>')
+    } else if (line.match(/^# /)) {
+      // H1
+      line = line.replace(/^# (.+)$/, '<h1>$1</h1>')
+    } else if (line.match(/^- /)) {
+      // Bullet list item
+      line = line.replace(/^- (.+)$/, '<li>$1</li>')
+      // Check if previous line was also a list item
+      if (i === 0 || !lines[i-1].match(/^- /)) {
+        line = '<ul style="list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0;">' + line
+      }
+      // Check if next line is not a list item
+      if (i === lines.length - 1 || !lines[i+1].match(/^- /)) {
+        line = line + '</ul>'
+      }
+    } else if (line.match(/^\d+\. /)) {
+      // Numbered list item
+      line = line.replace(/^\d+\. (.+)$/, '<li>$1</li>')
+      // Check if previous line was also a list item
+      if (i === 0 || !lines[i-1].match(/^\d+\. /)) {
+        line = '<ol style="list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0;">' + line
+      }
+      // Check if next line is not a list item
+      if (i === lines.length - 1 || !lines[i+1].match(/^\d+\. /)) {
+        line = line + '</ol>'
+      }
+    } else if (line.trim() === '') {
+      // Empty line - skip it, we'll add <br /> only if needed and not for headings/lists
+      continue
+    } else {
+      // Regular paragraph - wrap in <p> tag and process inline formatting
+      line = '<p>' + line
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-2" />')
+        .replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:underline">$1</a>') + '</p>'
+    }
+    
+    htmlContent += line
+  }
+  
   return htmlContent
 }
 

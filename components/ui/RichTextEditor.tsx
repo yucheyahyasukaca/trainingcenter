@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, Image, FileText, Eye, Edit, X, Check, Bold, Italic, List, Link } from 'lucide-react'
+import { Upload, Image, FileText, Eye, Edit, X, Check, Bold, Italic, List, ListOrdered, Link, Type, Minus } from 'lucide-react'
 import { markdownToHtml } from '@/lib/utils'
 
 interface RichTextEditorProps {
@@ -14,6 +14,7 @@ interface RichTextEditorProps {
 export function RichTextEditor({ value, onChange, placeholder, height = 300 }: RichTextEditorProps) {
   const [previewMode, setPreviewMode] = useState<'edit' | 'preview' | 'split'>('edit')
   const [uploading, setUploading] = useState(false)
+  const [lineHeight, setLineHeight] = useState<number>(1.5)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -91,6 +92,7 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
     const selectedText = value.substring(start, end)
 
     let newText = ''
+    let cursorOffset = 0
     switch (format) {
       case 'bold':
         newText = `**${selectedText}**`
@@ -101,8 +103,26 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
       case 'list':
         newText = selectedText.split('\n').map(line => `- ${line}`).join('\n')
         break
+      case 'numbered-list':
+        newText = selectedText.split('\n').map((line, index) => `${index + 1}. ${line}`).join('\n')
+        break
+      case 'spacing':
+        newText = selectedText ? `\n\n${selectedText}\n\n` : '\n\n'
+        break
       case 'link':
         newText = `[${selectedText}](url)`
+        break
+      case 'h1':
+        newText = `# ${selectedText || 'Heading 1'}\n`
+        cursorOffset = 2
+        break
+      case 'h2':
+        newText = `## ${selectedText || 'Heading 2'}\n`
+        cursorOffset = 3
+        break
+      case 'h3':
+        newText = `### ${selectedText || 'Heading 3'}\n`
+        cursorOffset = 4
         break
       default:
         newText = selectedText
@@ -117,6 +137,11 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
         textarea.setSelectionRange(start + 2, start + 2 + selectedText.length)
       } else if (format === 'link') {
         textarea.setSelectionRange(start + newText.length - 4, start + newText.length - 1)
+      } else if (['h1', 'h2', 'h3'].includes(format)) {
+        // For headings, select the text part
+        const cursorPosition = start + cursorOffset
+        const headingLength = selectedText ? selectedText.length : 9 // 'Heading X' length
+        textarea.setSelectionRange(cursorPosition, cursorPosition + headingLength)
       }
     }, 0)
   }
@@ -146,15 +171,69 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
     return (
       <div 
         className="prose prose-sm max-w-none p-4 bg-white rounded-lg border min-h-[200px]"
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+        style={{ lineHeight: `${lineHeight}` }}
+      >
+        <style jsx>{`
+          div :global(h1) {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 0.67em;
+            margin-bottom: 0.67em;
+            color: #1f2937;
+          }
+          div :global(h2) {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 0.83em;
+            margin-bottom: 0.83em;
+            color: #1f2937;
+          }
+          div :global(h3) {
+            font-size: 1.17em;
+            font-weight: bold;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            color: #1f2937;
+          }
+          div :global(p) {
+            margin-bottom: 1em;
+            line-height: 1.5;
+          }
+          div :global(p:last-child) {
+            margin-bottom: 0;
+          }
+        `}</style>
+        <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      </div>
     )
   }
 
   const renderEditor = () => (
     <div className="border border-gray-300 rounded-lg overflow-hidden">
       {/* Toolbar */}
-      <div className="bg-gray-50 border-b border-gray-300 p-2 flex flex-wrap gap-1">
+      <div className="bg-gray-50 border-b border-gray-300 p-2 flex flex-wrap gap-1 items-center">
+        <button
+          onClick={() => insertFormatting('h1')}
+          className="p-2 hover:bg-gray-200 rounded transition-colors"
+          title="Heading 1"
+        >
+          <span className="text-sm font-bold">H1</span>
+        </button>
+        <button
+          onClick={() => insertFormatting('h2')}
+          className="p-2 hover:bg-gray-200 rounded transition-colors"
+          title="Heading 2"
+        >
+          <span className="text-sm font-semibold">H2</span>
+        </button>
+        <button
+          onClick={() => insertFormatting('h3')}
+          className="p-2 hover:bg-gray-200 rounded transition-colors"
+          title="Heading 3"
+        >
+          <span className="text-sm font-medium">H3</span>
+        </button>
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
         <button
           onClick={() => insertFormatting('bold')}
           className="p-2 hover:bg-gray-200 rounded transition-colors"
@@ -172,9 +251,24 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
         <button
           onClick={() => insertFormatting('list')}
           className="p-2 hover:bg-gray-200 rounded transition-colors"
-          title="List"
+          title="Bullet List"
         >
           <List className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => insertFormatting('numbered-list')}
+          className="p-2 hover:bg-gray-200 rounded transition-colors"
+          title="Numbered List"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+        <button
+          onClick={() => insertFormatting('spacing')}
+          className="p-2 hover:bg-gray-200 rounded transition-colors"
+          title="Add Spacing"
+        >
+          <Minus className="w-4 h-4" />
         </button>
         <button
           onClick={() => insertFormatting('link')}
@@ -190,6 +284,21 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
         >
           <Image className="w-4 h-4" />
         </button>
+        <div className="w-px h-6 bg-gray-300 mx-1"></div>
+        <div className="flex items-center gap-2 px-2">
+          <span className="text-xs text-gray-600">Line Height:</span>
+          <select
+            value={lineHeight}
+            onChange={(e) => setLineHeight(parseFloat(e.target.value))}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            <option value={1}>1 (Rapat)</option>
+            <option value={1.25}>1.25</option>
+            <option value={1.5}>1.5 (Normal)</option>
+            <option value={1.75}>1.75</option>
+            <option value={2}>2 (Renggang)</option>
+          </select>
+        </div>
       </div>
       
       {/* Textarea */}
@@ -199,7 +308,7 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full p-4 border-0 resize-none focus:ring-0 focus:outline-none font-mono text-sm"
-        style={{ height: `${height - 60}px` }}
+        style={{ height: `${height - 60}px`, lineHeight: `${lineHeight}` }}
       />
       
       <input
@@ -307,19 +416,22 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
       )}
 
       {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <h4 className="text-sm font-medium text-blue-800 mb-2">Fitur Editor:</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-blue-700">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="text-xs font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          Fitur Editor
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-blue-800">
           <div>
-            <p>• <strong>Toolbar:</strong> Bold, italic, list, link</p>
-            <p>• <strong>Headers:</strong> # H1, ## H2, ### H3</p>
-            <p>• <strong>Bullet Lists:</strong> - item (bullets)</p>
-            <p>• <strong>Numbered Lists:</strong> 1. item (numbers)</p>
+            <p><strong>Toolbar:</strong> Bold, italic, list, link</p>
+            <p><strong>Headers:</strong> <code className="bg-blue-100 px-1 rounded"># H1</code>, <code className="bg-blue-100 px-1 rounded">## H2</code>, <code className="bg-blue-100 px-1 rounded">### H3</code></p>
+            <p><strong>Bullet Lists:</strong> <code className="bg-blue-100 px-1 rounded">- item</code> (bullets)</p>
+            <p><strong>Numbered Lists:</strong> <code className="bg-blue-100 px-1 rounded">1. item</code> (numbers)</p>
           </div>
           <div>
-            <p>• <strong>Images:</strong> Klik tombol gambar untuk upload</p>
-            <p>• <strong>Links:</strong> [text](url)</p>
-            <p>• <strong>Preview:</strong> Lihat hasil render real-time</p>
+            <p><strong>Images:</strong> Klik tombol gambar untuk upload</p>
+            <p><strong>Links:</strong> <code className="bg-blue-100 px-1 rounded">[text](url)</code></p>
+            <p><strong>Preview:</strong> Lihat hasil render real-time</p>
           </div>
         </div>
       </div>
