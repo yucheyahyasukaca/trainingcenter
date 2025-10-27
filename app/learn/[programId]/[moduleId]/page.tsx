@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
+import { markdownToHtml } from '@/lib/utils'
 import { 
   ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, 
   Menu, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, X,
@@ -770,7 +771,7 @@ function TextContent({ content, theme, readingSettings }: any) {
     <div 
       className="prose prose-lg max-w-none"
       style={{ color: theme.text }}
-      dangerouslySetInnerHTML={{ __html: body.replace(/\n/g, '<br />') }}
+      dangerouslySetInnerHTML={{ __html: markdownToHtml(body) }}
     />
   )
 }

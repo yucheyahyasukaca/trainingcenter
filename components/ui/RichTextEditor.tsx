@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Upload, Image, FileText, Eye, Edit, X, Check, Bold, Italic, List, Link } from 'lucide-react'
+import { markdownToHtml } from '@/lib/utils'
 
 interface RichTextEditorProps {
   value: string
@@ -139,18 +140,8 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
       )
     }
 
-    // Simple markdown to HTML conversion
-    const htmlContent = value
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^- (.*$)/gim, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>')
-      .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-2" />')
-      .replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:underline">$1</a>')
-      .replace(/\n/g, '<br />')
+    // Use the markdown to HTML conversion utility
+    const htmlContent = markdownToHtml(value)
 
     return (
       <div 
@@ -322,7 +313,8 @@ export function RichTextEditor({ value, onChange, placeholder, height = 300 }: R
           <div>
             <p>• <strong>Toolbar:</strong> Bold, italic, list, link</p>
             <p>• <strong>Headers:</strong> # H1, ## H2, ### H3</p>
-            <p>• <strong>Lists:</strong> - untuk bullet list</p>
+            <p>• <strong>Bullet Lists:</strong> - item (bullets)</p>
+            <p>• <strong>Numbered Lists:</strong> 1. item (numbers)</p>
           </div>
           <div>
             <p>• <strong>Images:</strong> Klik tombol gambar untuk upload</p>
