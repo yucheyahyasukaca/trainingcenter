@@ -48,9 +48,10 @@ USING (
         is_free = true
         OR EXISTS (
             SELECT 1 FROM public.enrollments e
+            JOIN public.participants p ON e.participant_id = p.id
             JOIN public.classes c ON e.class_id = c.id
             WHERE c.id = learning_contents.class_id
-            AND e.participant_id = auth.uid()
+            AND p.user_id = auth.uid()
             AND e.status = 'approved'
         )
     )

@@ -101,16 +101,30 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       
       if (classData) setModuleTitle((classData as any).name)
 
-      // Check enrollment
-      const { data: enrollmentData } = await supabase
-        .from('enrollments')
-        .select('*')
-        .eq('participant_id', profile?.id || '')
-        .eq('class_id', params.moduleId)
-        .eq('status', 'approved')
-        .maybeSingle()
-      
-      setEnrollment(enrollmentData)
+      // Check enrollment - first get participant, then check enrollment
+      let participantId = null
+      if (profile?.id) {
+        const { data: participant } = await supabase
+          .from('participants')
+          .select('id')
+          .eq('user_id', profile.id)
+          .maybeSingle()
+        
+        participantId = (participant as any)?.id
+      }
+
+      // Check enrollment using participant ID
+      if (participantId) {
+        const { data: enrollmentData } = await supabase
+          .from('enrollments')
+          .select('*')
+          .eq('participant_id', participantId)
+          .eq('class_id', params.moduleId)
+          .eq('status', 'approved')
+          .maybeSingle()
+        
+        setEnrollment(enrollmentData)
+      }
 
       // Fetch learning contents
       const { data: contentsData, error: contentsError } = await supabase
@@ -123,6 +137,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       if (contentsError) throw contentsError
 
       if (contentsData && contentsData.length > 0) {
+        console.log('📚 Fetched learning contents:', contentsData.length, 'materials')
+        console.log('📋 Contents:', contentsData.map((c: any) => ({ id: c.id, title: c.title, material_type: c.material_type, parent_id: c.parent_id, order_index: c.order_index })))
         setContents(contentsData)
         setCurrentContent(contentsData[0])
         setCurrentIndex(0)
@@ -358,24 +374,15 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     // First content is always unlocked
     if (contents.length > 0) {
       unlocked.add(contents[0].id)
-    }
-    
-    // Check each content to see if it should be unlocked
-    for (let i = 1; i < contents.length; i++) {
-      const currentContent = contents[i]
-      const previousContent = contents[i - 1]
       
-      // Check if previous content is completed
-      const previousProgress = progress[previousContent.id]
-      const isPreviousCompleted = previousProgress?.status === 'completed'
-      
-      if (isPreviousCompleted) {
-        unlocked.add(currentContent.id)
-      } else {
-        // If previous is not completed, stop unlocking further content
-        break
+      // Temporarily unlock all materials to debug
+      // TODO: Re-enable progressive unlocking after fixing the issue
+      for (let i = 1; i < contents.length; i++) {
+        unlocked.add(contents[i].id)
       }
     }
+    
+    console.log('🔓 Unlocked contents:', Array.from(unlocked))
     
     setUnlockedContents(unlocked)
   }
@@ -1415,9 +1422,32 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
 function ContentDrawer({ open, onClose, contents, progress, overallProgress, currentContentId, onSelectContent, getContentIcon, isContentUnlocked, canAccessContent }: any) {
   if (!open) return null
 
-  // Organize contents into main materials and sub-materials
-  const mainMaterials = contents.filter((c: any) => c.material_type === 'main' || !c.material_type)
-  const subMaterials = contents.filter((c: any) => c.material_type === 'sub')
+  // Debug: Show all contents to see structure
+  console.log('📦 All contents detailed:', contents.map((c: any) => ({ 
+    title: c.title, 
+    parent_id: c.parent_id, 
+    material_type: c.material_type,
+    order_index: c.order_index,
+    has_parent: !!c.parent_id  // Boolean check if has parent
+  })))
+  
+  // Show each content individually
+  contents.forEach((c: any, index: number) => {
+    console.log(`Material ${index + 1}:`, {
+      title: c.title,
+      parent_id: c.parent_id,
+      is_null: c.parent_id === null,
+      is_undefined: c.parent_id === undefined,
+      is_empty_string: c.parent_id === ''
+    })
+  })
+  
+  // Separate main materials (no parent_id) and sub-materials (has parent_id)
+  const mainMaterials = contents.filter((c: any) => !c.parent_id)
+  const subMaterials = contents.filter((c: any) => c.parent_id)
+  
+  console.log('📦 Main materials:', mainMaterials.length, mainMaterials.map((m: any) => ({ id: m.id, title: m.title })))
+  console.log('🔗 Sub materials:', subMaterials.length, subMaterials.map((s: any) => ({ title: s.title, parent_id: s.parent_id })))
 
   return (
     <div className="fixed inset-x-0 top-[60px] bottom-[60px] z-40">
@@ -1465,6 +1495,9 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
               const isUnlocked = isContentUnlocked(content.id)
               const canAccess = canAccessContent(content.id)
               const relatedSubMaterials = subMaterials.filter((sub: any) => sub.parent_id === content.id)
+              
+              console.log(`🔍 Main material: ${content.title} (ID: ${content.id})`)
+              console.log(`   - Has ${relatedSubMaterials.length} sub materials:`, relatedSubMaterials.map((s: any) => s.title))
 
               return (
                 <div key={content.id} className="space-y-2">
@@ -1553,7 +1586,7 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                   </button>
 
                   {/* Sub Materials */}
-                  {relatedSubMaterials.length > 0 && canAccess && (
+                  {relatedSubMaterials.length > 0 && (
                     <div className="ml-4 space-y-1">
                       {relatedSubMaterials.map((subContent: any, subIndex: number) => {
                         const subProgress = progress[subContent.id]
