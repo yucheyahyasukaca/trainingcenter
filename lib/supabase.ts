@@ -16,8 +16,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log('Using fallback values for local development')
 }
 
-// Client for client-side usage
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Client for client-side usage with proper storage
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined
+  }
+})
 
 // Server-side client with anon key for API routes (to work with RLS)
 export const createServerClient = () => {

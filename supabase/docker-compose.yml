@@ -54,6 +54,11 @@ services:
       GOTRUE_SMTP_USER: your-email@gmail.com
       GOTRUE_SMTP_PASS: your-app-password
       GOTRUE_SMTP_SENDER_NAME: Garuda Academy
+      # Google OAuth Configuration
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: "true"
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: "${GOOGLE_CLIENT_SECRET:-}"
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "http://localhost:8000/auth/v1/callback"
     depends_on:
       - db
 

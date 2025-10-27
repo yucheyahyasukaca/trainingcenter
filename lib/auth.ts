@@ -75,11 +75,38 @@ export async function signIn(email: string, password: string) {
 
 // Sign out
 export async function signOut() {
-  const { error } = await supabase.auth.signOut()
+  console.log('🚪 Starting sign out...')
   
-  if (error) {
-    throw new Error(error.message)
+  // Clear all localStorage items first
+  if (typeof window !== 'undefined') {
+    try {
+      // Clear all localStorage
+      const keys = Object.keys(localStorage)
+      keys.forEach(key => localStorage.removeItem(key))
+      
+      // Clear session storage
+      sessionStorage.clear()
+      
+      console.log('✅ Local storage cleared')
+    } catch (err) {
+      console.warn('⚠️ Error clearing storage:', err)
+    }
   }
+  
+  // Try to sign out from server (but don't fail if it errors)
+  try {
+    const { error } = await supabase.auth.signOut()
+    
+    if (error) {
+      console.warn('⚠️ Server sign out error (storage already cleared):', error.message)
+    } else {
+      console.log('✅ Server sign out successful')
+    }
+  } catch (err: any) {
+    console.warn('⚠️ Exception in server sign out (storage already cleared):', err)
+  }
+  
+  return true
 }
 
 // Sign up new user using API route (bypass email confirmation)
@@ -170,5 +197,30 @@ export function onAuthStateChange(callback: (user: any) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null)
   })
+}
+
+// Sign in with Google
+export async function signInWithGoogle() {
+  console.log('🚀 Starting Google sign in...')
+  
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      }
+    })
+
+    if (error) {
+      console.error('❌ Google sign in error:', error)
+      throw new Error(error.message)
+    }
+
+    console.log('✅ Google sign in initiated')
+    return data
+  } catch (err: any) {
+    console.error('❌ Exception in Google sign in:', err)
+    throw new Error(err.message || 'Failed to sign in with Google')
+  }
 }
 

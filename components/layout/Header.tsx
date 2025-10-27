@@ -54,12 +54,19 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
 
   async function handleLogout() {
     try {
+      console.log('🚪 Logging out...')
+      
+      // Sign out (will clear storage even if server has issues)
       await signOut()
-      router.push('/login')
-      router.refresh()
-    } catch (error) {
-      console.error('Error signing out:', error)
-      alert('Gagal logout. Silakan coba lagi.')
+      
+      console.log('✅ Sign out successful, redirecting...')
+      
+      // Always redirect to login, regardless of server response
+      window.location.href = '/login'
+    } catch (error: any) {
+      console.error('❌ Error in logout handler:', error)
+      // Even on error, still redirect to force logout
+      window.location.href = '/login'
     }
   }
 
