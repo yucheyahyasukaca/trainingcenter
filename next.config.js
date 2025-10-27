@@ -1,12 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+<<<<<<< HEAD
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
+=======
+  output: 'standalone',
+>>>>>>> 7e58b714b740dc7ecbaa8344804c32ee93b9e847
   images: {
     remotePatterns: [
       {

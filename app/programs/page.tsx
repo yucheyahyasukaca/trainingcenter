@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
-import Image from 'next/image'
+import { PublicNav } from '@/components/layout/PublicNav'
 
 export default function ProgramsPage() {
   const { profile } = useAuth()
@@ -171,89 +171,8 @@ export default function ProgramsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Public Navigation - Copy from landing page */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 flex items-center justify-center transition-transform hover:scale-105">
-                <Image
-                  src="/logo-06.png"
-                  alt="Garuda Academy Logo"
-                  width={64}
-                  height={64}
-                  className="object-contain w-full h-full"
-                />
-              </div>
-              <div className="hidden sm:block">
-                <h3 className="text-lg font-bold text-gray-900">Garuda Academy</h3>
-                <p className="text-xs text-gray-500">GARUDA-21 Training Center</p>
-              </div>
-            </Link>
-
-            <div className="flex items-center space-x-4 lg:space-x-6">
-              <Link
-                href="/programs"
-                className="hidden lg:inline-block text-sm font-medium text-primary-600 border-b-2 border-primary-600"
-              >
-                Program
-              </Link>
-              <Link
-                href="/trainers"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Trainer
-              </Link>
-              <Link
-                href="/about"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Tentang
-              </Link>
-              <Link
-                href="/contact"
-                className="hidden lg:inline-block text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-              >
-                Kontak
-              </Link>
-
-              <div className="flex items-center space-x-3 lg:space-x-4">
-                {profile ? (
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                    >
-                      Profil Saya
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="hidden sm:inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
-                    >
-                      Masuk
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
-                    >
-                      Daftar Sekarang
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Public Navigation */}
+      <PublicNav activeLink="programs" />
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-primary-50 via-white to-red-50 pt-32 pb-16">
@@ -407,37 +326,6 @@ export default function ProgramsPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Stats Section */}
-          {!loading && filteredPrograms.length > 0 && (
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <GraduationCap className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{filteredPrograms.length}</div>
-                <div className="text-sm text-gray-600">Program Tersedia</div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">
-                  {filteredPrograms.reduce((acc, p) => acc + (p.classes?.length || 0), 0)}
-                </div>
-                <div className="text-sm text-gray-600">Kelas Aktif</div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Award className="w-6 h-6 text-white" />
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">100%</div>
-                <div className="text-sm text-gray-600">Kepuasan Peserta</div>
-              </div>
             </div>
           )}
         </div>

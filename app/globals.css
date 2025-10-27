@@ -103,5 +103,23 @@
       overscroll-behavior: contain;
     }
   }
+
+  /* Grid pattern background */
+  .bg-grid-gray-100 {
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(243, 244, 246, 0.5) 40px,
+      rgba(243, 244, 246, 0.5) 41px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(243, 244, 246, 0.5) 40px,
+      rgba(243, 244, 246, 0.5) 41px
+    );
+  }
 }
 
