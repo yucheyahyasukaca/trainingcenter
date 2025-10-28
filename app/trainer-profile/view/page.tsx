@@ -43,20 +43,20 @@ export default function ViewTrainerProfilePage() {
           </Link>
           
           {/* Page Title and Edit Button */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-primary-600" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <User className="w-6 h-6 sm:w-8 sm:h-8 text-primary-600" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Profil Trainer</h1>
-                <p className="text-gray-600">Informasi profil dan data pribadi Anda</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Profil Trainer</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-0.5">Informasi profil dan data pribadi Anda</p>
               </div>
             </div>
             
             <Link
               href="/trainer-profile/edit"
-              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors"
+              className="flex-shrink-0 inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
             >
               <Edit className="w-4 h-4 mr-2" />
               Edit Profil

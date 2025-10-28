@@ -61,6 +61,70 @@ export default function ClassForumPage({
     fetchData()
   }, [params.classId])
 
+  // Image compression function
+  async function compressImage(
+    file: File, 
+    options: { 
+      maxWidth?: number
+      maxHeight?: number
+      quality?: number
+      mimeType?: string 
+    } = {}
+  ): Promise<Blob> {
+    const {
+      maxWidth = 1600,
+      maxHeight = 1200,
+      quality = 0.8,
+      mimeType = 'image/jpeg'
+    } = options
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          // Calculate new dimensions
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height)
+            width = width * ratio
+            height = height * ratio
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(blob)
+              } else {
+                reject(new Error('Failed to compress image'))
+              }
+            },
+            mimeType,
+            quality
+          )
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
+
   async function fetchData() {
     try {
       setLoading(true)
@@ -160,45 +224,66 @@ export default function ClassForumPage({
       // Upload attachment if exists
       if (attachment) {
         try {
-          // Try to upload to Supabase storage
-          const fileExt = attachment.name.split('.').pop()
-          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-          const filePath = `forum-attachments/${fileName}`
-
-          const { error: uploadError } = await supabase.storage
-            .from('forum-attachments')
-            .upload(filePath, attachment)
-
-          if (uploadError) {
-            console.warn('Storage upload failed, using base64:', uploadError)
-            // Fallback: use base64 for small images
-            if (attachment.type.startsWith('image/') && attachment.size < 500000) { // 500KB limit
-              attachmentUrl = await new Promise((resolve) => {
-                const reader = new FileReader()
-                reader.onload = (e) => resolve(e.target?.result as string)
-                reader.readAsDataURL(attachment)
+          // Compress image first if it's an image
+          let fileToUpload: Blob = attachment
+          let fileName = attachment.name
+          let contentType = attachment.type
+          
+          if (attachment.type.startsWith('image/')) {
+            info('Mengompress gambar...', 'Memproses gambar Anda', 2000)
+            
+            try {
+              fileToUpload = await compressImage(attachment, {
+                maxWidth: 1600,
+                maxHeight: 1200,
+                quality: 0.8,
+                mimeType: 'image/jpeg'
               })
-            } else {
-              throw new Error('File terlalu besar untuk upload. Maksimal 500KB untuk gambar.')
+              fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`
+              contentType = 'image/jpeg'
+              
+              // Show compression result
+              const originalSize = (attachment.size / 1024).toFixed(2)
+              const compressedSize = (fileToUpload.size / 1024).toFixed(2)
+              const savings = ((1 - fileToUpload.size / attachment.size) * 100).toFixed(0)
+              
+              console.log(`📦 Kompresi: ${originalSize}KB → ${compressedSize}KB (hemat ${savings}%)`)
+              success('Gambar Dikompres', `Ukuran: ${originalSize}KB → ${compressedSize}KB`, 3000)
+            } catch (compressError) {
+              console.warn('Compression failed, using original:', compressError)
+              warning('Kompresi Gagal', 'Menggunakan file original', 2000)
+              fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${attachment.name.split('.').pop()}`
             }
           } else {
-            const { data: { publicUrl } } = supabase.storage
-              .from('forum-attachments')
-              .getPublicUrl(filePath)
-            attachmentUrl = publicUrl
+            fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${attachment.name.split('.').pop()}`
           }
-        } catch (storageError) {
-          console.warn('Storage error, using base64 fallback:', storageError)
-          // Fallback: use base64 for small images
-          if (attachment.type.startsWith('image/') && attachment.size < 500000) {
-            attachmentUrl = await new Promise((resolve) => {
-              const reader = new FileReader()
-              reader.onload = (e) => resolve(e.target?.result as string)
-              reader.readAsDataURL(attachment)
+
+          // Upload to Supabase storage
+          const filePath = `forum-attachments/${fileName}`
+          
+          const { error: uploadError } = await supabase.storage
+            .from('forum-attachments')
+            .upload(filePath, fileToUpload, {
+              contentType: contentType,
+              upsert: false
             })
-          } else {
-            throw new Error('File terlalu besar untuk upload. Maksimal 500KB untuk gambar.')
+
+          if (uploadError) {
+            console.error('Storage upload failed:', uploadError)
+            throw new Error(`Upload gagal: ${uploadError.message}`)
           }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('forum-attachments')
+            .getPublicUrl(filePath)
+          
+          attachmentUrl = publicUrl
+          
+        } catch (storageError: any) {
+          console.error('Upload error:', storageError)
+          error('Upload Gagal', storageError.message || 'Gagal mengupload file')
+          setSubmitting(false)
+          return
         }
       }
 

@@ -18,20 +18,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Client for client-side usage with proper storage
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  global: {
-    fetch: (url, options) => {
-      // Fix upload to use storage URL properly
-      if (url.toString().includes('/storage/v1/')) {
-        // Convert custom domain to actual Supabase storage endpoint for uploads
-        const actualUrl = url.toString().replace(
-          'https://supabase.garuda-21.com/storage/v1/',
-          `${supabaseUrl}/storage/v1/`
-        )
-        return fetch(actualUrl, options)
-      }
-      return fetch(url, options)
-    }
-  },
   auth: {
     autoRefreshToken: true,
     persistSession: true,

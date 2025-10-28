@@ -258,10 +258,10 @@ export default function ReferralPolicyManager() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Policy Referral</h1>
-          <p className="text-gray-600">Kelola policy diskon dan komisi untuk setiap program</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Policy Referral</h1>
+          <p className="text-sm sm:text-base text-gray-600">Kelola policy diskon dan komisi untuk setiap program</p>
         </div>
         <button
           onClick={() => {
@@ -269,7 +269,7 @@ export default function ReferralPolicyManager() {
             setEditingPolicy(null)
             setShowForm(true)
           }}
-          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-primary-700 transition-colors flex-shrink-0 whitespace-nowrap shadow-sm"
         >
           <Plus className="h-4 w-4 mr-2" />
           Buat Policy Baru

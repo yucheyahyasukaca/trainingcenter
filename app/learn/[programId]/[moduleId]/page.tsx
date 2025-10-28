@@ -556,32 +556,39 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         </div>
 
         {/* Mobile Header */}
-        <div className="md:hidden w-full px-4 py-3 flex items-center justify-between">
-          <Link href={`/programs/${params.programId}`} className="p-2 rounded-lg transition-colors" style={{
-            backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-          }}>
-            <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
-          </Link>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setSettingsOpen(true)}
-              className="p-2 rounded-lg transition-colors" 
-              style={{
-                backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-              }}
-            >
-              <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
-            </button>
-            <button 
-              onClick={() => setDrawerOpen(true)} 
-              className="p-2 rounded-lg transition-colors" 
-              aria-label="Menu"
-              style={{
-                backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-              }}
-            >
-              <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
-            </button>
+        <div className="md:hidden w-full px-3 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <Link href={`/programs/${params.programId}`} className="flex-shrink-0 p-2 rounded-lg transition-colors" style={{
+              backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+            }}>
+              <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
+            </Link>
+            <div className="flex-1 min-w-0 px-2">
+              <h1 className="text-sm font-semibold truncate text-center" style={{ color: currentTheme.text }}>
+                {moduleTitle || 'Belajar Modul'}
+              </h1>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button 
+                onClick={() => setSettingsOpen(true)}
+                className="p-2 rounded-lg transition-colors" 
+                style={{
+                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                }}
+              >
+                <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
+              </button>
+              <button 
+                onClick={() => setDrawerOpen(true)} 
+                className="p-2 rounded-lg transition-colors" 
+                aria-label="Menu"
+                style={{
+                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                }}
+              >
+                <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -939,40 +946,128 @@ function AssignmentContent({ content }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   
+  // Image compression function
+  const compressImage = async (
+    file: File,
+    options: {
+      maxWidth?: number
+      maxHeight?: number
+      quality?: number
+      mimeType?: string
+    } = {}
+  ): Promise<Blob> => {
+    const {
+      maxWidth = 1600,
+      maxHeight = 1200,
+      quality = 0.8,
+      mimeType = 'image/jpeg'
+    } = options
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+
+          // Calculate new dimensions
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height)
+            width = width * ratio
+            height = height * ratio
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'))
+            return
+          }
+
+          ctx.drawImage(img, 0, 0, width, height)
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve(blob)
+              } else {
+                reject(new Error('Failed to compress image'))
+              }
+            },
+            mimeType,
+            quality
+          )
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      // Check file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        setSubmitMessage({type: 'error', text: 'File terlalu besar. Maksimal 5MB'})
+      // Check file size (10MB max - we'll compress anyway)
+      if (file.size > 10 * 1024 * 1024) {
+        setSubmitMessage({type: 'error', text: 'File terlalu besar. Maksimal 10MB'})
         return
       }
       
       setSelectedFile(file)
       setUploadedFileUrl(null)
       
-      // Auto upload after file selection
-      const normalizedFileName = file.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_')
-        .replace(/\s+/g, '_')
-        .toLowerCase()
-      
-      const fileExt = normalizedFileName.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
-      const filePath = `${profile?.id}/${fileName}`.replace(/\s+/g, '_')
-      
       setIsUploading(true)
       setSubmitMessage(null)
       
       try {
-        // Upload directly via Supabase Storage (same as payment proof)
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Date.now()}.${fileExt}`
+        // Compress image first if it's an image
+        let fileToUpload: Blob = file
+        let fileName = file.name
+        let contentType = file.type
+        
+        if (file.type.startsWith('image/')) {
+          setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+          
+          try {
+            fileToUpload = await compressImage(file, {
+              maxWidth: 1600,
+              maxHeight: 1200,
+              quality: 0.8,
+              mimeType: 'image/jpeg'
+            })
+            fileName = `${Date.now()}.jpg`
+            contentType = 'image/jpeg'
+            
+            // Show compression result
+            const originalSize = (file.size / 1024).toFixed(2)
+            const compressedSize = (fileToUpload.size / 1024).toFixed(2)
+            const savings = ((1 - fileToUpload.size / file.size) * 100).toFixed(0)
+            
+            console.log(`📦 Kompresi: ${originalSize}KB → ${compressedSize}KB (hemat ${savings}%)`)
+            setSubmitMessage({type: 'success', text: `Dikompres: ${originalSize}KB → ${compressedSize}KB`})
+          } catch (compressError) {
+            console.warn('Compression failed, using original:', compressError)
+            fileName = `${Date.now()}.${file.name.split('.').pop()}`
+          }
+        } else {
+          fileName = `${Date.now()}.${file.name.split('.').pop()}`
+        }
+        
+        // Upload to Supabase Storage
         const filePath = `${profile?.id}/${fileName}`
         
         const { error: uploadError } = await supabase.storage
           .from('forum-attachments')
-          .upload(filePath, file)
+          .upload(filePath, fileToUpload, {
+            contentType: contentType,
+            upsert: false
+          })
         
         if (uploadError) throw uploadError
         
@@ -998,22 +1093,58 @@ function AssignmentContent({ content }: any) {
     setSubmitMessage(null)
     
     try {
-      // Normalize filename - remove special characters and spaces
-      const normalizedFileName = selectedFile.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-        .replace(/\s+/g, '_') // Replace spaces with underscore
-        .toLowerCase()
+      // Compress image first if it's an image
+      let fileToUpload: Blob = selectedFile
+      let fileName = selectedFile.name
+      let contentType = selectedFile.type
       
-      // Use direct Supabase client like payment-proofs upload
-      const fileExt = normalizedFileName.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
+      if (selectedFile.type.startsWith('image/')) {
+        setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+        
+        try {
+          fileToUpload = await compressImage(selectedFile, {
+            maxWidth: 1600,
+            maxHeight: 1200,
+            quality: 0.8,
+            mimeType: 'image/jpeg'
+          })
+          fileName = `${Date.now()}.jpg`
+          contentType = 'image/jpeg'
+          
+          // Show compression result
+          const originalSize = (selectedFile.size / 1024).toFixed(2)
+          const compressedSize = (fileToUpload.size / 1024).toFixed(2)
+          const savings = ((1 - fileToUpload.size / selectedFile.size) * 100).toFixed(0)
+          
+          console.log(`📦 Kompresi: ${originalSize}KB → ${compressedSize}KB (hemat ${savings}%)`)
+          setSubmitMessage({type: 'success', text: `Dikompres: ${originalSize}KB → ${compressedSize}KB`})
+        } catch (compressError) {
+          console.warn('Compression failed, using original:', compressError)
+          const normalizedFileName = selectedFile.name
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
+            .replace(/\s+/g, '_')
+            .toLowerCase()
+          fileName = `${Date.now()}.${normalizedFileName.split('.').pop()}`
+        }
+      } else {
+        const normalizedFileName = selectedFile.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .replace(/\s+/g, '_')
+          .toLowerCase()
+        fileName = `${Date.now()}.${normalizedFileName.split('.').pop()}`
+      }
+      
+      // Upload to assignments bucket
       const filePath = `${profile?.id}/${fileName}`.replace(/\s+/g, '_')
       
       console.log('Uploading to:', `assignments/${filePath}`)
       
       const { error: uploadError } = await supabase.storage
         .from('assignments')
-        .upload(filePath, selectedFile)
+        .upload(filePath, fileToUpload, {
+          contentType: contentType,
+          upsert: false
+        })
       
       if (uploadError) throw uploadError
       
@@ -1702,24 +1833,24 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
       </div>
 
       {/* Mobile Footer */}
-      <div className="md:hidden w-full px-4 py-3">
-        <div className="flex items-center justify-between">
+      <div className="md:hidden w-full px-3 py-3">
+        <div className="flex items-center justify-between gap-2">
           <button 
             onClick={() => onNavigate('prev')}
             disabled={currentIndex === 0}
-            className={`p-2 rounded-lg transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`flex-shrink-0 p-2 rounded-lg transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: theme.text }} />
           </button>
-          <div className="text-center flex-1 px-4">
-            <div className="text-sm font-medium truncate" style={{ color: theme.text }}>
+          <div className="text-center flex-1 min-w-0 px-2">
+            <div className="text-xs sm:text-sm font-medium truncate" style={{ color: theme.text }}>
               {currentContent?.title || ''}
             </div>
           </div>
           <button 
             onClick={() => onNavigate('next')}
             disabled={isNextDisabled}
-            className={`p-2 rounded-lg transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             title={isNextDisabled && !isCurrentCompleted ? 'Selesaikan materi ini terlebih dahulu' : ''}
           >
             <ArrowRight className="w-5 h-5" style={{ color: theme.text }} />

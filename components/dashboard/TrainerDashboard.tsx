@@ -17,7 +17,8 @@ import {
   FileText,
   TrendingUp,
   Award,
-  UserCheck
+  UserCheck,
+  ArrowRight
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
@@ -356,28 +357,32 @@ export function TrainerDashboard() {
       value: trainerStats.totalClasses.toString(),
       icon: BookOpen,
       color: 'blue',
-      description: 'Kelas yang ditugaskan'
+      description: 'Kelas yang ditugaskan',
+      href: '/trainer/classes'
     },
     {
       title: 'Kelas Aktif',
       value: trainerStats.activeClasses.toString(),
       icon: Clock,
       color: 'green',
-      description: 'Sedang berlangsung'
+      description: 'Sedang berlangsung',
+      href: '/trainer/classes'
     },
     {
       title: 'Kelas Selesai',
       value: trainerStats.completedClasses.toString(),
       icon: CheckCircle,
       color: 'purple',
-      description: 'Sudah selesai'
+      description: 'Sudah selesai',
+      href: '/trainer/classes'
     },
     {
       title: 'Total Peserta',
       value: trainerStats.totalParticipants.toString(),
       icon: Users,
       color: 'orange',
-      description: 'Peserta yang dilatih'
+      description: 'Peserta yang dilatih',
+      href: '/trainer/classes'
     }
   ]
 
@@ -465,41 +470,41 @@ export function TrainerDashboard() {
           statsData.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div key={index} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
-              <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
-              <div className="relative z-10 p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${
-                    stat.color === 'blue' ? 'bg-blue-500' :
-                    stat.color === 'green' ? 'bg-green-500' :
-                    stat.color === 'orange' ? 'bg-orange-500' :
-                    stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
-                  }`}>
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-600">{stat.title}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1">
-                    <div className={`w-2 h-2 rounded-full ${
+            <Link key={index} href={stat.href} className="block">
+              <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 cursor-pointer">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
+                <div className="relative z-10 p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${
                       stat.color === 'blue' ? 'bg-blue-500' :
                       stat.color === 'green' ? 'bg-green-500' :
                       stat.color === 'orange' ? 'bg-orange-500' :
                       stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
-                    }`}></div>
-                    <span className="text-xs text-gray-500">Aktif</span>
+                    }`}>
+                      <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
+                      <p className="text-xs text-gray-600">{stat.title}</p>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-400 text-right">
-                    {stat.description}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-1">
+                      <div className={`w-2 h-2 rounded-full ${
+                        stat.color === 'blue' ? 'bg-blue-500' :
+                        stat.color === 'green' ? 'bg-green-500' :
+                        stat.color === 'orange' ? 'bg-orange-500' :
+                        stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
+                      }`}></div>
+                      <span className="text-xs text-gray-500">Aktif</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />
                   </div>
                 </div>
+                {/* Hover effect overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
+            </Link>
           )
         })
         )}

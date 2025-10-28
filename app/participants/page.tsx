@@ -93,14 +93,14 @@ export default function ParticipantsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Peserta</h1>
-          <p className="text-gray-600 mt-1">Kelola data peserta training</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Peserta</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola data peserta training</p>
         </div>
-        <Link href="/participants/new" className="btn-primary flex items-center space-x-2">
-          <Plus className="w-5 h-5" />
-          <span>Tambah Peserta</span>
+        <Link href="/participants/new" className="btn-primary flex items-center justify-center gap-2 flex-shrink-0 whitespace-nowrap">
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="text-sm sm:text-base">Tambah Peserta</span>
         </Link>
       </div>
 

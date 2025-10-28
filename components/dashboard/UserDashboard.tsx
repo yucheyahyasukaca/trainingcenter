@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { MyEnrollments } from './MyEnrollments'
@@ -14,7 +15,8 @@ import {
   BookOpen,
   Star,
   Clock,
-  CheckCircle
+  CheckCircle,
+  ArrowRight
 } from 'lucide-react'
 
 export function UserDashboard() {
@@ -139,25 +141,29 @@ export function UserDashboard() {
       title: 'Program Diikuti',
       value: userStats.enrolledPrograms.toString(),
       icon: GraduationCap,
-      color: 'blue'
+      color: 'blue',
+      href: '/my-enrollments'
     },
     {
       title: 'Sertifikat',
       value: userStats.certificates.toString(),
       icon: Award,
-      color: 'green'
+      color: 'green',
+      href: '/my-certificates'
     },
     {
       title: 'Program Dijadwalkan',
       value: userStats.scheduledPrograms.toString(),
       icon: Clock,
-      color: 'orange'
+      color: 'orange',
+      href: '/my-enrollments'
     },
     {
       title: 'Program Selesai',
       value: userStats.completedPrograms.toString(),
       icon: CheckCircle,
-      color: 'purple'
+      color: 'purple',
+      href: '/my-enrollments'
     }
   ]
 
@@ -255,43 +261,41 @@ export function UserDashboard() {
           statsData.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <div key={index} className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
-              <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
-              <div className="relative z-10 p-5 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
-                    stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                    stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                    stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                    stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
-                  }`}>
-                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+            <Link key={index} href={stat.href} className="block">
+              <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 cursor-pointer">
+                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
+                <div className="relative z-10 p-5 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
+                      stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                      stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                      stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                      stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
+                    }`}>
+                      <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
+                    </div>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
-                    <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      stat.color === 'blue' ? 'bg-blue-500' :
-                      stat.color === 'green' ? 'bg-green-500' :
-                      stat.color === 'orange' ? 'bg-orange-500' :
-                      stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
-                    }`}></div>
-                    <span className="text-xs text-gray-500 font-medium">Aktif</span>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {stat.title === 'Program Diikuti' ? 'Total' : 
-                     stat.title === 'Sertifikat' ? 'Earned' :
-                     stat.title === 'Program Dijadwalkan' ? 'Upcoming' : 'Completed'}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        stat.color === 'blue' ? 'bg-blue-500' :
+                        stat.color === 'green' ? 'bg-green-500' :
+                        stat.color === 'orange' ? 'bg-orange-500' :
+                        stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
+                      }`}></div>
+                      <span className="text-xs text-gray-500 font-medium">Aktif</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />
                   </div>
                 </div>
+                {/* Hover effect overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-              {/* Hover effect overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
+            </Link>
           )
         })
         )}
