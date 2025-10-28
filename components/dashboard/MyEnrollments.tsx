@@ -159,19 +159,19 @@ export function MyEnrollments() {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       <div className="bg-gradient-to-r from-green-50 to-teal-50 px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-gray-900">Kelas Terdaftar</h3>
               <p className="text-sm text-gray-600">Program yang sedang Anda ikuti</p>
             </div>
           </div>
           <Link 
             href="/my-enrollments" 
-            className="group flex items-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-green-600 hover:text-green-700 font-medium text-sm"
+            className="group flex items-center justify-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-green-600 hover:text-green-700 font-medium text-sm flex-shrink-0"
           >
             <span>Lihat Semua</span>
             <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -220,20 +220,18 @@ export function MyEnrollments() {
             const StatusIcon = statusInfo.icon
 
             return (
-              <div key={enrollment.id} className="group bg-gradient-to-r from-white to-gray-50 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-200">
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-6 h-6 text-white" />
+              <div key={enrollment.id} className="group bg-gradient-to-r from-white to-gray-50 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-200">
+                <div className="flex items-start space-x-3 sm:space-x-4 mb-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h4 className="font-bold text-gray-900 text-lg group-hover:text-green-600 transition-colors">{enrollment.program?.title}</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}>
-                        <StatusIcon className="w-3 h-3 inline mr-1" />
-                        {statusInfo.label}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 line-clamp-2 leading-relaxed">{enrollment.program?.description}</p>
+                    <h4 className="font-bold text-gray-900 text-base sm:text-lg group-hover:text-green-600 transition-colors mb-2">{enrollment.program?.title}</h4>
+                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed mb-2">{enrollment.program?.description}</p>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}>
+                      <StatusIcon className="w-3 h-3 mr-1" />
+                      {statusInfo.label}
+                    </span>
                   </div>
                 </div>
 

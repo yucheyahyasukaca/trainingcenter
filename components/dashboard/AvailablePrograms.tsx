@@ -293,19 +293,19 @@ export function AvailablePrograms() {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       <div className="bg-gradient-to-r from-red-50 to-red-100 px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h3 className="text-lg font-bold text-gray-900">Program Tersedia</h3>
               <p className="text-sm text-gray-600">Temukan program yang sesuai untuk Anda</p>
             </div>
           </div>
           <Link 
             href="/programs" 
-            className="group flex items-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-red-600 hover:text-red-700 font-medium text-sm"
+            className="group flex items-center justify-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-red-600 hover:text-red-700 font-medium text-sm flex-shrink-0"
           >
             <span>Lihat Semua</span>
             <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

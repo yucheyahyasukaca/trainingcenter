@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
+import { SupportDialog } from '@/components/support/SupportDialog'
+import { useState } from 'react'
 
 const getMenuItems = (role: string, trainerLevel?: string) => {
   const baseItems = [
@@ -95,6 +97,7 @@ interface SidebarProps {
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const { profile } = useAuth()
+  const [showSupportDialog, setShowSupportDialog] = useState(false)
   
   const menuItems = getMenuItems(profile?.role || 'user', (profile as any)?.trainer_level)
 
@@ -180,10 +183,12 @@ export function Sidebar({ onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer - Support Section */}
       <div className="p-4 border-t border-gray-200 space-y-3 flex-shrink-0">
-        {/* Support Card */}
-        <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-4">
+        <div 
+          onClick={() => setShowSupportDialog(true)}
+          className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-4 cursor-pointer hover:shadow-md transition-all"
+        >
           <div className="flex items-start space-x-3">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <HelpCircle className="w-4 h-4 text-white" />
@@ -191,16 +196,18 @@ export function Sidebar({ onClose }: SidebarProps) {
             <div className="flex-1">
               <p className="text-sm font-semibold text-primary-900">Butuh Bantuan?</p>
               <p className="text-xs text-primary-700 mt-1">
-                Hubungi dukungan kami untuk bantuan
+                Hubungi dukungan kami
               </p>
-              <button className="mt-3 w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors">
-                Hubungi Dukungan
-              </button>
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* Support Dialog */}
+      <SupportDialog 
+        isOpen={showSupportDialog} 
+        onClose={() => setShowSupportDialog(false)} 
+      />
     </aside>
   )
 }

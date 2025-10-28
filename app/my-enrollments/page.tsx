@@ -263,15 +263,15 @@ export default function MyEnrollmentsPage() {
         } catch {}
         return null
       })()}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Kelas Terdaftar</h1>
-          <p className="text-gray-600 mt-1">Kelola program yang sudah Anda daftar</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Kelas Terdaftar</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola program yang sudah Anda daftar</p>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center space-x-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -279,13 +279,13 @@ export default function MyEnrollmentsPage() {
               placeholder="Cari program..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            className="px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none flex-shrink-0"
           >
             <option value="all">Semua Status</option>
             <option value="pending">Menunggu</option>
@@ -312,15 +312,13 @@ export default function MyEnrollmentsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredEnrollments.map((enrollment) => (
-              <div key={enrollment.id} className="bg-white/90 border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{enrollment.program?.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{enrollment.program?.description}</p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-1">
+              <div key={enrollment.id} className="bg-white/90 border border-gray-200 rounded-2xl p-4 sm:p-6 hover:shadow-xl transition-all">
+                <div className="mb-3">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">{enrollment.program?.title}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">{enrollment.program?.description}</p>
+                  <div className="flex flex-wrap gap-2">
                     <span className={getStatusBadge(enrollment.status)}>
                       {getStatusText(enrollment.status)}
                     </span>
