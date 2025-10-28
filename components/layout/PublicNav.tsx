@@ -129,17 +129,18 @@ export function PublicNav({ activeLink }: PublicNavProps) {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-[9999] bg-white">
+        <div className="lg:hidden fixed inset-0 z-[9999] bg-white overflow-y-auto">
           {/* Header with Search and Close */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between p-2.5 sm:p-3 border-b border-gray-200 gap-2">
             {/* Search Bar */}
-            <div className="flex-1 mr-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Apa yang ingin Anda pelajari?"
-                  className="w-full pl-10 pr-4 py-2.5 text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-8 sm:pl-10 pr-2 sm:pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ fontSize: '16px' }}
                 />
               </div>
             </div>
@@ -147,28 +148,28 @@ export function PublicNav({ activeLink }: PublicNavProps) {
             {/* Close Button */}
             <button
               onClick={() => setIsMobileMenuOpen(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               aria-label="Close menu"
             >
-              <X className="w-6 h-6 text-gray-600" strokeWidth={2} />
+              <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" strokeWidth={2} />
             </button>
           </div>
 
           {/* Action Buttons - Login & Register */}
-          <div className="flex gap-3 px-4 py-4 border-b border-gray-200">
+          <div className="flex gap-2 sm:gap-3 px-2.5 sm:px-4 py-3 sm:py-4 border-b border-gray-200">
             {profile ? (
               <>
                 <Link
                   href="/dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex-1 px-4 py-3 text-center font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-center text-sm sm:text-base font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Dashboard
                 </Link>
                 <Link
                   href="/dashboard"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex-1 px-4 py-3 text-center font-medium text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-center text-sm sm:text-base font-medium text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
                 >
                   Profil Saya
                 </Link>
@@ -178,14 +179,14 @@ export function PublicNav({ activeLink }: PublicNavProps) {
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex-1 px-4 py-3 text-center font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-center text-sm sm:text-base font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Masuk
                 </Link>
                 <Link
                   href="/register"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex-1 px-4 py-3 text-center font-medium text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-center text-sm sm:text-base font-medium text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
                 >
                   Daftar
                 </Link>
@@ -194,42 +195,42 @@ export function PublicNav({ activeLink }: PublicNavProps) {
           </div>
 
           {/* Navigation Links */}
-          <div className="px-4 py-2">
+          <div className="px-2.5 sm:px-4 py-2">
             <nav className="space-y-1">
               <Link
                 href="/programs"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 sm:py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <span className="font-medium">Program</span>
-                <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                <span className="font-medium text-sm sm:text-base">Program</span>
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
               </Link>
               
               <Link
                 href="/trainers"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 sm:py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <span className="font-medium">Trainer</span>
-                <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                <span className="font-medium text-sm sm:text-base">Trainer</span>
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
               </Link>
               
               <Link
                 href="/about"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 sm:py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <span className="font-medium">Tentang</span>
-                <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                <span className="font-medium text-sm sm:text-base">Tentang</span>
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
               </Link>
               
               <Link
                 href="/contact"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-between w-full px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 sm:py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <span className="font-medium">Kontak</span>
-                <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                <span className="font-medium text-sm sm:text-base">Kontak</span>
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
               </Link>
             </nav>
           </div>
