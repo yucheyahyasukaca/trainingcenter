@@ -107,7 +107,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
       if (updateError) throw updateError
 
       addToast.success('Program berhasil diupdate!', 'Berhasil')
-      router.push('/programs')
+      router.push('/admin/programs')
     } catch (err: any) {
       console.error('Error updating program:', err)
       addToast.error('Gagal mengupdate program: ' + err.message, 'Error')
@@ -122,7 +122,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="space-y-4">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="space-y-2">
@@ -140,9 +140,9 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/admin/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
-          <span className="hidden sm:inline">Kembali ke Daftar Program</span>
+          <span className="hidden sm:inline">Kembali ke Manajemen Program</span>
           <span className="sm:hidden">Kembali</span>
         </Link>
         
@@ -150,7 +150,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
         <p className="text-gray-600">Update informasi program</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="space-y-6">
           {/* Judul Program */}
           <div>
@@ -369,7 +369,7 @@ export default function EditProgramPage({ params }: { params: { id: string } }) 
 
         <div className="flex justify-end space-x-3 mt-8">
           <Link
-            href="/programs"
+            href="/admin/programs"
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
             Batal

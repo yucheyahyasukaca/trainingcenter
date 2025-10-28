@@ -218,45 +218,6 @@ export default function TrainersPage() {
             </div>
           )}
 
-          {/* Why Choose Our Trainers */}
-          {!loading && filteredTrainers.length > 0 && (
-            <div className="mt-16">
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                  Mengapa Pilih Trainer Kami?
-                </h2>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                  Trainer kami telah terbukti berpengalaman dan berkualitas tinggi
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 text-center">
-                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Award className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Berpengalaman</h3>
-                  <p className="text-gray-600">Trainer kami memiliki pengalaman minimal 2 tahun di industri</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-8 text-center">
-                  <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BookOpen className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Terkualifikasi</h3>
-                  <p className="text-gray-600">Semua trainer telah melalui proses seleksi yang ketat</p>
-                </div>
-                
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-8 text-center">
-                  <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Aktual</h3>
-                  <p className="text-gray-600">Mengikuti perkembangan teknologi dan praktik terbaru</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 

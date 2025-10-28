@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
 import { Search, GraduationCap, Users, BookOpen, Clock, ArrowRight, Star, Award, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -129,7 +130,7 @@ export default function ProgramsPage() {
     if (!profile) {
       return (
         <Link
-          href="/register"
+          href={`/programs/${program.id}`}
           className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-lg hover:from-primary-700 hover:to-red-700 transition-all font-medium"
         >
           Daftar Sekarang
@@ -160,7 +161,7 @@ export default function ProgramsPage() {
 
     return (
       <Link
-        href={`/programs/${program.id}/enroll`}
+        href={`/programs/${program.id}`}
         className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-lg hover:from-primary-700 hover:to-red-700 transition-all font-medium"
       >
         Daftar Sekarang
@@ -260,39 +261,47 @@ export default function ProgramsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPrograms.map((program) => (
                 <div 
                   key={program.id} 
-                  className="group bg-white rounded-xl border-2 border-gray-200 hover:border-primary-300 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                  className="group bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
                 >
-                  {/* Image/Icon Placeholder */}
-                  <div className="h-48 bg-gradient-to-br from-primary-100 to-red-100 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-primary-600 to-red-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <GraduationCap className="w-10 h-10 text-white" />
-                    </div>
+                  {/* Program Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <Image
+                      src="/herogemini.png"
+                      alt={program.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                      priority={false}
+                      style={{ objectPosition: 'center top' }}
+                    />
+                    {/* Gradient Overlay on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"></div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-4">
                     {/* Category Badge */}
-                    <div className="mb-3">
-                      <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
+                    <div className="mb-2">
+                      <span className="inline-block px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
                         {program.category}
                       </span>
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-primary-600 transition-colors">
                       {program.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">
                       {program.description}
                     </p>
 
                     {/* Details */}
-                    <div className="space-y-2 mb-4">
+                    <div className="space-y-1 mb-3">
                       <div className="flex items-center text-sm text-gray-600">
                         <Users className="w-4 h-4 mr-2 text-primary-600" />
                         <span>Max {program.max_participants || '∞'} peserta</span>
@@ -306,16 +315,16 @@ export default function ProgramsPage() {
                     </div>
 
                     {/* Price */}
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
                       <div>
-                        <p className="text-sm text-gray-600">Harga</p>
-                        <p className="text-2xl font-bold text-primary-600">
+                        <p className="text-xs text-gray-600">Harga</p>
+                        <p className="text-xl font-bold text-primary-600">
                           {formatCurrency(program.price)}
                         </p>
                       </div>
                       <div className="flex items-center text-yellow-500">
-                        <Star className="w-5 h-5 fill-current" />
-                        <span className="ml-1 font-semibold text-gray-900">4.8</span>
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="ml-1 text-sm font-semibold text-gray-900">4.8</span>
                       </div>
                     </div>
 

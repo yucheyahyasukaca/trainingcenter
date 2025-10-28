@@ -34,9 +34,9 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'admin') {
     return [
       ...baseItems,
-      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['admin'] },
+      { icon: BarChart3, label: 'Program', href: '/admin/programs', roles: ['admin'] },
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
-      { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['admin'] },
+      { icon: UserCog, label: 'Trainer', href: '/admin/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
       { icon: Settings, label: 'Atur Sertifikat', href: '/admin/certificate-management', roles: ['admin'] },
@@ -49,9 +49,9 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'manager') {
     return [
       ...baseItems,
-      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['manager'] },
+      { icon: BarChart3, label: 'Program', href: '/admin/programs', roles: ['manager'] },
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['manager'] },
-      { icon: UserCog, label: 'Trainer', href: '/trainers', roles: ['manager'] },
+      { icon: UserCog, label: 'Trainer', href: '/admin/trainers', roles: ['manager'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['manager'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['manager'] },
       { icon: BarChart3, label: 'Laporan', href: '/reports', roles: ['manager'] },

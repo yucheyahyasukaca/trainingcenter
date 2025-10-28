@@ -71,7 +71,7 @@ export default function NewProgramPage() {
       if (insertError) throw insertError
 
       addToast.success('Program berhasil ditambahkan!', 'Berhasil')
-      router.push('/programs')
+      router.push('/admin/programs')
     } catch (err: any) {
       console.error('Error creating program:', err)
       addToast.error('Gagal menambahkan program: ' + err.message, 'Error')
@@ -91,9 +91,9 @@ export default function NewProgramPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4">
+        <Link href="/admin/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4">
           <ArrowLeft className="w-4 h-4" />
-          <span>Kembali ke Daftar Program</span>
+          <span>Kembali ke Manajemen Program</span>
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">Tambah Program Baru</h1>
         <p className="text-gray-600 mt-1">Isi formulir di bawah untuk menambahkan program baru</p>
@@ -314,7 +314,7 @@ export default function NewProgramPage() {
             >
               {loading ? 'Menyimpan...' : 'Simpan Program'}
             </button>
-            <Link href="/programs" className="btn-secondary">
+            <Link href="/admin/programs" className="btn-secondary">
               Batal
             </Link>
           </div>

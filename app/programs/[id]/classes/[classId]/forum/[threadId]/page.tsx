@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { useToastNotification, ToastNotificationContainer } from '@/components/ui/ToastNotification'
-import { ConfirmDialogWithHook, useConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ConfirmDialog, useConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 interface ThreadData {
   id: string
@@ -41,7 +41,7 @@ export default function ThreadDetailPage({
   const router = useRouter()
   const { profile } = useAuth()
   const { toasts, success, error, warning, info, forum, removeToast } = useToastNotification()
-  const { isOpen: confirmDialog, openDialog, closeDialog, confirm: confirmAction } = useConfirmDialog()
+  const { isOpen, config, openDialog, closeDialog, confirm } = useConfirmDialog()
   
   const [classData, setClassData] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
@@ -339,24 +339,52 @@ export default function ThreadDetailPage({
   }
 
   async function handleDeleteThread() {
+    console.log('Delete thread button clicked')
     openDialog({
       title: 'Hapus Thread',
       message: 'Hapus thread ini beserta semua balasan? Tindakan ini tidak dapat dibatalkan.',
       type: 'danger',
       confirmText: 'Hapus',
       cancelText: 'Batal',
-      onConfirm: deleteThread
+      onConfirm: () => {
+        console.log('Delete confirmed, calling deleteThread')
+        deleteThread()
+      }
     })
+    console.log('openDialog called')
   }
 
   async function deleteThread() {
     try {
-      const { error } = await (supabase as any)
+      // Delete replies first to avoid foreign key constraint issues
+      const { error: repliesError } = await supabase
+        .from('forum_replies')
+        .delete()
+        .eq('thread_id', params.threadId)
+
+      if (repliesError) {
+        console.error('Error deleting replies:', repliesError)
+        // Continue anyway, might be no replies
+      }
+
+      // Delete reactions
+      const { error: reactionsError } = await supabase
+        .from('forum_reactions')
+        .delete()
+        .eq('thread_id', params.threadId)
+
+      if (reactionsError) {
+        console.error('Error deleting reactions:', reactionsError)
+        // Continue anyway, might be no reactions
+      }
+
+      // Delete the thread
+      const { error: threadError } = await supabase
         .from('forum_threads')
         .delete()
         .eq('id', params.threadId)
 
-      if (error) throw error
+      if (threadError) throw threadError
 
       success('Thread Berhasil Dihapus', 'Thread telah dihapus dari forum', 2000)
       setTimeout(() => {
@@ -449,7 +477,18 @@ export default function ThreadDetailPage({
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-red-50">
       <ToastNotificationContainer toasts={toasts} onRemove={removeToast} />
-      <ConfirmDialogWithHook />
+      {config && (
+        <ConfirmDialog
+          isOpen={isOpen}
+          onClose={closeDialog}
+          onConfirm={confirm}
+          title={config.title}
+          message={config.message}
+          confirmText={config.confirmText}
+          cancelText={config.cancelText}
+          type={config.type}
+        />
+      )}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">

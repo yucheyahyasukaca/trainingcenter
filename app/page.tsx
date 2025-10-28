@@ -18,14 +18,15 @@ import {
   Zap,
   Award,
   Target,
+  Sparkles,
   Rocket,
   BookOpen,
+  Bell,
   Medal,
-  Sparkles,
   Search,
+  ArrowUpRight,
   Menu,
   X,
-  ArrowUpRight,
   ChevronDown
 } from 'lucide-react'
 
@@ -412,28 +413,73 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <div className="relative bg-white rounded-2xl shadow-2xl p-8 border border-gray-200 transform hover:scale-105 transition-transform duration-500">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="relative bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-200 transform hover:scale-105 transition-transform duration-500">
+                {/* Program Baru Card - Di atas stats */}
+                <Link href="/programs" className="block mb-6 p-5 bg-gradient-to-br from-primary-600 via-red-600 to-pink-600 rounded-xl text-white relative overflow-hidden group hover:shadow-xl transition-all duration-300">
+                  {/* Decorative background elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl translate-y-6 -translate-x-6"></div>
+                  
+                  {/* New badge */}
+                  <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <div className="flex items-center space-x-1">
+                      <Bell className="w-3 h-3" />
+                      <span className="text-xs font-bold">NEW</span>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform">
+                          <Sparkles className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium opacity-90 mb-1">Program Terbaru</p>
+                          <h3 className="text-lg font-bold leading-tight">Gemini untuk Pendidik</h3>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="w-5 h-5 opacity-80 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </div>
+                    
+                    <p className="text-sm opacity-90 mb-4 line-clamp-2">
+                      Pelatihan AI untuk meningkatkan kreativitas dan produktivitas pengajar
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center space-x-4 text-xs opacity-90">
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>Mulai Segera</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <BookOpen className="w-4 h-4" />
+                          <span>Online</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-lg self-start">
+                        <Star className="w-3.5 h-3.5 fill-white" />
+                        <span className="font-semibold text-sm">Gratis</span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   {stats.map((stat, index) => {
                     const Icon = stat.icon
                     return (
                       <div 
                         key={index} 
-                        className="bg-gradient-to-br from-gray-50 to-primary-50 rounded-xl p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
+                        className="bg-gradient-to-br from-gray-50 to-primary-50 rounded-xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
                       >
-                        <Icon className={`w-8 h-8 ${stat.color} mb-3`} />
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                        <div className="text-sm text-gray-600 font-medium">{stat.label}</div>
+                        <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${stat.color} mb-2 sm:mb-3`} />
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-medium">{stat.label}</div>
                       </div>
                     )
                   })}
-                </div>
-              </div>
-              {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 bg-gradient-to-r from-primary-600 to-red-600 text-white px-6 py-3 rounded-xl shadow-xl animate-bounce">
-                <div className="flex items-center space-x-2">
-                  <Star className="w-5 h-5 fill-white" />
-                  <span className="font-bold">Top Rated</span>
                 </div>
               </div>
             </div>

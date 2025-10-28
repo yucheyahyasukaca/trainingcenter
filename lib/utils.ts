@@ -15,6 +15,10 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+export function formatNumber(number: number): string {
+  return new Intl.NumberFormat('id-ID').format(number)
+}
+
 export function formatDateTime(dateString: string): string {
   const date = new Date(dateString)
   return new Intl.DateTimeFormat('id-ID', {

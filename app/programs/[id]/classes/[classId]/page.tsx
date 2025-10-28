@@ -47,6 +47,17 @@ export default function ClassDetailPage({
 
       if (programError) throw programError
 
+      // Fetch participant count from enrollments
+      const { count: participantCount, error: countError } = await supabase
+        .from('enrollments')
+        .select('*', { count: 'exact', head: true })
+        .eq('class_id', params.classId)
+        .eq('status', 'approved')
+
+      if (!countError && participantCount !== null) {
+        classInfo.current_participants = participantCount
+      }
+
       setClassData(classInfo)
       setProgramData(programInfo)
     } catch (error) {
@@ -184,8 +195,11 @@ export default function ClassDetailPage({
                   <div>
                     <p className="text-sm font-medium">Waktu</p>
                     <p className="text-sm">
-                      {classData.start_time ? formatTime(classData.start_time) : 'TBA'} - 
-                      {classData.end_time ? formatTime(classData.end_time) : 'TBA'}
+                      {classData.start_time && classData.end_time 
+                        ? `${formatTime(classData.start_time)} - ${formatTime(classData.end_time)}`
+                        : classData.start_time 
+                          ? `${formatTime(classData.start_time)}`
+                          : 'TBA'}
                     </p>
                   </div>
                 </div>
