@@ -115,35 +115,35 @@ export function SupportDialog({ isOpen, onClose }: SupportDialogProps) {
             >
               <X className="w-4 h-4 text-white" />
             </button>
-            <div className="flex items-center space-x-2 mb-1.5 sm:mb-2">
-              <span className="text-xl sm:text-2xl">👋</span>
-              <h2 className="text-white font-bold text-sm sm:text-base">
+            <div className="flex items-center space-x-2 mb-2 sm:mb-2.5">
+              <span className="text-2xl sm:text-3xl">👋</span>
+              <h2 className="text-white font-bold text-base sm:text-lg">
                 {getGreeting()} {getRoleLabel()}!
               </h2>
             </div>
-            <p className="text-primary-100 text-[11px] sm:text-xs leading-relaxed pr-6">
+            <p className="text-primary-100 text-sm sm:text-base leading-relaxed pr-8">
               Ada yang bisa kami bantu untuk perjalanan belajarmu?
             </p>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
             {/* Status Availability */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-2.5 sm:p-3.5">
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start space-x-3">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-1.5 sm:space-x-2 mb-0.5">
-                    <p className="text-xs sm:text-sm font-semibold text-gray-900">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <p className="text-sm sm:text-base font-semibold text-gray-900">
                       {isSupportAvailable() 
                         ? 'Kami sedang tersedia saat ini' 
                         : 'Kami sedang tidak tersedia'}
                     </p>
-                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${
+                    <div className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0 ${
                       isSupportAvailable() ? 'bg-green-500 animate-pulse' : 'bg-orange-500'
                     }`}></div>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {isSupportAvailable() 
                       ? 'Tim support siap membantu Anda' 
                       : 'Kembali online besok pukul 09:00'}
@@ -154,8 +154,8 @@ export function SupportDialog({ isOpen, onClose }: SupportDialogProps) {
 
             {/* Contact Methods */}
             <div>
-              <h3 className="text-[11px] sm:text-xs font-semibold text-gray-900 mb-2 sm:mb-2.5 flex items-center">
-                <HelpCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5 text-primary-600 flex-shrink-0" />
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3 flex items-center">
+                <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary-600 flex-shrink-0" />
                 Hubungi Kami
               </h3>
               <div className="space-y-1.5 sm:space-y-2">
@@ -181,8 +181,8 @@ export function SupportDialog({ isOpen, onClose }: SupportDialogProps) {
                           }`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{method.title}</p>
-                          <p className="text-[11px] sm:text-xs text-gray-600 break-all">{method.description}</p>
+                          <p className="text-sm sm:text-base font-semibold text-gray-900 truncate">{method.title}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 break-all">{method.description}</p>
                         </div>
                       </div>
                       <ChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ml-1 ${
@@ -198,28 +198,28 @@ export function SupportDialog({ isOpen, onClose }: SupportDialogProps) {
 
             {/* Popular Articles */}
             <div>
-              <h3 className="text-[11px] sm:text-xs font-semibold text-gray-900 mb-2 sm:mb-2.5">📚 Artikel Populer</h3>
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-3">📚 Artikel Populer</h3>
               <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-200">
                 {supportArticles.map((article, index) => (
                   <Link
                     key={index}
                     href={article.href}
                     onClick={onClose}
-                    className="flex items-center justify-between p-2 sm:p-2.5 hover:bg-gray-50 transition-colors group"
+                    className="flex items-center justify-between p-3 sm:p-3.5 hover:bg-gray-50 transition-colors group"
                   >
-                    <span className="text-[11px] sm:text-xs text-gray-700 group-hover:text-primary-700 font-medium pr-2 break-words">
+                    <span className="text-xs sm:text-sm text-gray-700 group-hover:text-primary-700 font-medium pr-2 break-words">
                       {article.title}
                     </span>
-                    <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                   </Link>
                 ))}
               </div>
             </div>
 
             {/* Tips */}
-            <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-lg p-2.5 sm:p-3">
-              <p className="text-[11px] sm:text-xs text-primary-900 font-medium mb-1.5 sm:mb-2">💡 Tips Cepat</p>
-              <p className="text-[11px] sm:text-xs text-primary-800 leading-relaxed">
+            <div className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-lg p-3 sm:p-4">
+              <p className="text-sm sm:text-base text-primary-900 font-semibold mb-2">💡 Tips Cepat</p>
+              <p className="text-xs sm:text-sm text-primary-800 leading-relaxed">
                 Coba cari jawaban di artikel populer terlebih dahulu. Kebanyakan pertanyaan sudah terjawab di sana!
               </p>
             </div>
