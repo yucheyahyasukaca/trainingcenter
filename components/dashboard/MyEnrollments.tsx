@@ -133,7 +133,67 @@ export function MyEnrollments() {
         }
         
         console.log('Final enrollments after aggressive filtering:', finalEnrollments)
-        setEnrollments(finalEnrollments)
+        
+        // Calculate progress for each enrollment
+        const enrollmentsWithProgress = await Promise.all(
+          finalEnrollments.map(async (enrollment: any) => {
+            if (!enrollment.program?.id || !profile?.id) {
+              return { ...enrollment, progress: enrollment.progress || 0 }
+            }
+
+            try {
+              // Get all classes for this program
+              const { data: classes } = await supabase
+                .from('classes')
+                .select('id')
+                .eq('program_id', enrollment.program.id)
+
+              if (!classes || classes.length === 0) {
+                return { ...enrollment, progress: enrollment.progress || 0 }
+              }
+
+              const classIds = classes.map((c: any) => c.id)
+
+              // Get all required learning contents for these classes
+              const { data: learningContents } = await supabase
+                .from('learning_contents')
+                .select('id')
+                .in('class_id', classIds)
+                .eq('status', 'published')
+                .eq('is_required', true)
+
+              if (!learningContents || learningContents.length === 0) {
+                return { ...enrollment, progress: enrollment.progress || 0 }
+              }
+
+              const contentIds = learningContents.map((lc: any) => lc.id)
+
+              // Get user progress for these contents
+              const { data: progressData } = await supabase
+                .from('learning_progress')
+                .select('content_id, status')
+                .eq('user_id', profile.id)
+                .in('content_id', contentIds)
+
+              // Calculate progress percentage
+              const totalContents = learningContents.length
+              const completedContents = (progressData || []).filter(
+                (p: any) => p.status === 'completed'
+              ).length
+
+              const progressPercent = totalContents > 0
+                ? Math.round((completedContents / totalContents) * 100)
+                : 0
+
+              return { ...enrollment, progress: progressPercent }
+            } catch (error) {
+              console.error('Error calculating progress:', error)
+              return { ...enrollment, progress: enrollment.progress || 0 }
+            }
+          })
+        )
+
+        setEnrollments(enrollmentsWithProgress)
       }
     } catch (error) {
       console.error('Error fetching enrollments:', error)

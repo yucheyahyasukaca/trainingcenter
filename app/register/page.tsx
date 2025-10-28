@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { signIn, signInWithGoogle } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'react-hot-toast'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -131,15 +132,15 @@ export default function RegisterPage() {
   }
 
   async function handleGoogleLogin() {
-    setLoading(true)
-    setError('')
-    try {
-      await signInWithGoogle()
-    } catch (err: any) {
-      console.error('❌ Google login error:', err)
-      setError(err.message || 'Gagal login dengan Google')
-      setLoading(false)
-    }
+    toast.error('Fitur login dengan Google saat ini belum tersedia. Silakan gunakan email dan password untuk login.', {
+      duration: 5000,
+      icon: '⚠️',
+      style: {
+        background: '#FFF3CD',
+        color: '#856404',
+        border: '1px solid #FFE69C',
+      },
+    })
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-red-50">

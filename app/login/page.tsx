@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/auth'
 import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -54,15 +55,15 @@ export default function LoginPage() {
   }
 
   async function handleGoogleLogin() {
-    setLoading(true)
-    setError('')
-    try {
-      await signInWithGoogle()
-    } catch (err: any) {
-      console.error('❌ Google login error:', err)
-      setError(err.message || 'Gagal login dengan Google')
-      setLoading(false)
-    }
+    toast.error('Fitur login dengan Google saat ini belum tersedia. Silakan gunakan email dan password untuk login.', {
+      duration: 5000,
+      icon: '⚠️',
+      style: {
+        background: '#FFF3CD',
+        color: '#856404',
+        border: '1px solid #FFE69C',
+      },
+    })
   }
 
 
@@ -145,8 +146,8 @@ export default function LoginPage() {
               <span className="flex-1 h-px bg-gray-200" />
             </div>
 
-            <button
-              type="button"
+            <button 
+              type="button" 
               onClick={handleGoogleLogin}
               disabled={loading}
               className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-2"

@@ -46,7 +46,50 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       if (classesError) throw classesError
 
       setProgram(programData)
-      setClasses(classesData || [])
+      
+      // Calculate progress for each class if user is enrolled
+      let classesWithProgress = classesData || []
+      if (profile?.id && classesWithProgress.length > 0) {
+        // Get user progress for all learning contents in these classes
+        const classIds = classesWithProgress.map((c: any) => c.id)
+        
+        const { data: learningContents } = await supabase
+          .from('learning_contents')
+          .select('id, class_id')
+          .in('class_id', classIds)
+          .eq('status', 'published')
+          .eq('is_required', true)
+
+        if (learningContents && learningContents.length > 0) {
+          const contentIds = learningContents.map((lc: any) => lc.id)
+          
+          const { data: progressData } = await supabase
+            .from('learning_progress')
+            .select('content_id, status')
+            .eq('user_id', profile.id)
+            .in('content_id', contentIds)
+
+          // Calculate progress for each class
+          classesWithProgress = classesWithProgress.map((classItem: any) => {
+            const classContents = learningContents.filter((lc: any) => lc.class_id === classItem.id)
+            const totalContents = classContents.length
+            
+            if (totalContents === 0) {
+              return { ...classItem, progress: 0 }
+            }
+
+            const completedContents = classContents.filter((lc: any) => {
+              const progress = progressData?.find((p: any) => p.content_id === lc.id)
+              return progress?.status === 'completed'
+            }).length
+
+            const progressPercent = Math.round((completedContents / totalContents) * 100)
+            return { ...classItem, progress: progressPercent }
+          })
+        }
+      }
+
+      setClasses(classesWithProgress)
 
       // Check access based on user role
       if (profile?.role === 'admin' || profile?.role === 'manager') {
