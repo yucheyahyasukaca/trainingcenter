@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 import { markdownToHtml } from '@/lib/utils'
@@ -90,6 +90,32 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }
   }, [params.programId, params.moduleId, profile])
 
+  function organizeHierarchicalData(data: LearningContent[]): any[] {
+    const mainMaterials: any[] = []
+    const subMaterialsMap = new Map<string, LearningContent[]>()
+    
+    // Separate main materials and sub materials
+    data.forEach((item: any) => {
+      if (item.material_type === 'main' || !item.parent_id) {
+        mainMaterials.push({ ...item, sub_materials: [] })
+      } else if (item.parent_id) {
+        if (!subMaterialsMap.has(item.parent_id)) {
+          subMaterialsMap.set(item.parent_id, [])
+        }
+        subMaterialsMap.get(item.parent_id)!.push(item)
+      }
+    })
+    
+    // Attach sub materials to their parents
+    mainMaterials.forEach((main: any) => {
+      const subMaterials = subMaterialsMap.get(main.id) || []
+      main.sub_materials = subMaterials.sort((a, b) => a.order_index - b.order_index)
+    })
+    
+    // Sort main materials by order_index
+    return mainMaterials.sort((a, b) => a.order_index - b.order_index)
+  }
+
   async function fetchData() {
     try {
       // Fetch class/module details
@@ -137,9 +163,42 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       if (contentsError) throw contentsError
 
       if (contentsData && contentsData.length > 0) {
-        setContents(contentsData)
-        setCurrentContent(contentsData[0])
-        setCurrentIndex(0)
+        // Organize content into hierarchical structure matching ContentManagement
+        const organizedContents = organizeHierarchicalData(contentsData)
+        
+        // Flatten hierarchical structure for display
+        const flattenedContents: LearningContent[] = []
+        organizedContents.forEach((mainContent: any) => {
+          // Add main material
+          flattenedContents.push(mainContent)
+          
+          // Add sub materials if they exist
+          if (mainContent.sub_materials && mainContent.sub_materials.length > 0) {
+            mainContent.sub_materials.forEach((subMaterial: any) => {
+              flattenedContents.push(subMaterial)
+            })
+          }
+        })
+        
+        setContents(flattenedContents)
+        
+        // Check if there's a specific content parameter in URL
+        const urlParams = new URLSearchParams(window.location.search)
+        const contentId = urlParams.get('content')
+        
+        if (contentId) {
+          const targetContentIndex = flattenedContents.findIndex(c => c.id === contentId)
+          if (targetContentIndex !== -1) {
+            setCurrentContent(flattenedContents[targetContentIndex])
+            setCurrentIndex(targetContentIndex)
+          } else {
+            setCurrentContent(flattenedContents[0])
+            setCurrentIndex(0)
+          }
+        } else {
+          setCurrentContent(flattenedContents[0])
+          setCurrentIndex(0)
+        }
 
         // Fetch progress for all contents
         if (profile) {
@@ -166,17 +225,20 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           }
         }
       }
-      
-      // Update unlocked contents after all data is loaded
-      setTimeout(() => {
-        updateUnlockedContents()
-      }, 100)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Update unlocked contents whenever contents or progress changes
+  useEffect(() => {
+    if (contents.length > 0) {
+      updateUnlockedContents()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contents, progress])
 
   async function updateProgress(contentId: string, updates: any) {
     if (!profile) return
@@ -322,9 +384,6 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       // Update overall progress
       updateOverallProgress()
       
-      // Update unlocked contents
-      updateUnlockedContents()
-      
       // Show success notification
       const content = contents.find(c => c.id === contentId)
       if (content) {
@@ -366,7 +425,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }, 4000)
   }
 
-  function updateUnlockedContents() {
+  const updateUnlockedContents = useCallback(() => {
     const unlocked = new Set<string>()
     
     // First content is always unlocked
@@ -389,23 +448,29 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }
     
     setUnlockedContents(unlocked)
-  }
+  }, [contents, progress])
 
   function isContentUnlocked(contentId: string): boolean {
     return unlockedContents.has(contentId)
   }
 
   function canAccessContent(contentId: string): boolean {
+    // Use the same logic as updateUnlockedContents for consistency
     const contentIndex = contents.findIndex(c => c.id === contentId)
     if (contentIndex === -1) return false
     
     // First content is always accessible
     if (contentIndex === 0) return true
     
-    // Check if previous content is completed
-    const previousContent = contents[contentIndex - 1]
-    const previousProgress = progress[previousContent.id]
-    return previousProgress?.status === 'completed'
+    // Check if all previous contents are completed
+    for (let i = 0; i < contentIndex; i++) {
+      const contentProgress = progress[contents[i].id]
+      if (contentProgress?.status !== 'completed') {
+        return false
+      }
+    }
+    
+    return true
   }
 
   function navigateToContent(direction: 'prev' | 'next') {
@@ -492,8 +557,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         <div className="text-center">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <p className="text-xl text-gray-700 mb-4">Belum ada materi pembelajaran</p>
-          <Link href={`/programs/${params.programId}`} className="text-primary-600 hover:underline">
-            Kembali ke Program
+          <Link href={`/programs/${params.programId}/classes`} className="text-primary-600 hover:underline">
+            Kembali ke Kelas
           </Link>
         </div>
       </div>
@@ -522,7 +587,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         <div className="hidden md:block">
           <div className="w-full px-3 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4 min-w-0 flex-1">
-              <Link href={`/programs/${params.programId}`} className="inline-flex items-center text-sm whitespace-nowrap transition-colors" style={{ color: currentTheme.text, opacity: 0.7 }}>
+              <Link href={`/programs/${params.programId}/classes`} className="inline-flex items-center text-sm whitespace-nowrap transition-colors" style={{ color: currentTheme.text, opacity: 0.7 }}>
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Kembali
               </Link>
@@ -558,7 +623,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         {/* Mobile Header */}
         <div className="md:hidden w-full px-3 py-3">
           <div className="flex items-center justify-between gap-2">
-            <Link href={`/programs/${params.programId}`} className="flex-shrink-0 p-2 rounded-lg transition-colors" style={{
+            <Link href={`/programs/${params.programId}/classes`} className="flex-shrink-0 p-2 rounded-lg transition-colors" style={{
               backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
             }}>
               <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />

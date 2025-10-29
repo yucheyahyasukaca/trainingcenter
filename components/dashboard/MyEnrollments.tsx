@@ -333,7 +333,7 @@ export function MyEnrollments() {
                   <div className="flex items-center space-x-2">
                     {enrollment.status === 'approved' && (
                       <Link
-                        href={`/programs/${enrollment.program?.id}`}
+                        href={`/programs/${enrollment.program?.id}/classes`}
                         className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
                       >
                         Akses Kelas
