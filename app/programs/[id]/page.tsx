@@ -187,14 +187,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
           >
             https://academy.garuda-21.com/gemini2025
           </a>
-          {' '}sebelum 21 November 2025 atau tonton rekamannya{' '}
-          <a 
-            href={`/programs/${programId}/recordings`} 
-            className="text-blue-600 hover:underline"
-          >
-            di tautan ini
-          </a>
-          .
+          {' '}sebelum 21 November 2025.
         </div>
       )
     }
