@@ -91,6 +91,40 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }
   }, [params.programId, params.moduleId, profile])
 
+  // Validate and fix currentContent access after contents, progress, and referral status are loaded
+  useEffect(() => {
+    if (contents.length > 0 && currentContent && unlockedContents.size > 0) {
+      // Check if current content is accessible using unlockedContents
+      const isCurrentAccessible = unlockedContents.has(currentContent.id) || 
+        (currentContent.parent_id && unlockedContents.has(currentContent.parent_id))
+      
+      // If current content is not accessible, find first accessible content
+      if (!isCurrentAccessible) {
+        // Find first accessible content
+        let foundAccessible = false
+        for (let i = 0; i < contents.length; i++) {
+          const content = contents[i]
+          const isAccessible = unlockedContents.has(content.id) || 
+            (content.parent_id && unlockedContents.has(content.parent_id))
+          
+          if (isAccessible) {
+            setCurrentContent(content)
+            setCurrentIndex(i)
+            foundAccessible = true
+            break
+          }
+        }
+        
+        // If no accessible content found, at least show first material (should always be accessible)
+        if (!foundAccessible && contents.length > 0) {
+          setCurrentContent(contents[0])
+          setCurrentIndex(0)
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contents, unlockedContents])
+
   function organizeHierarchicalData(data: LearningContent[]): any[] {
     const mainMaterials: any[] = []
     const subMaterialsMap = new Map<string, LearningContent[]>()
@@ -212,8 +246,16 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           if (progressData) {
             const progressMap: {[key: string]: Progress} = {}
             progressData.forEach((p: any) => {
-              progressMap[p.content_id] = p
+              progressMap[p.content_id] = {
+                id: p.id,
+                status: p.status || 'not_started',
+                progress_percentage: p.progress_percentage || 0,
+                time_spent: p.time_spent || 0,
+                last_position: p.last_position || 0,
+                completed_at: p.completed_at || null
+              }
             })
+            console.log('📊 Progress loaded:', Object.keys(progressMap).length, 'entries')
             setProgress(progressMap)
 
             // Calculate overall progress
@@ -239,37 +281,244 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   }
 
   async function checkReferralUsage() {
-    if (!profile?.id) return
+    if (!profile?.id) {
+      console.log('🔗 checkReferralUsage: No profile.id')
+      return
+    }
 
     try {
-      // Get user's referral codes
+      console.log('🔗 checkReferralUsage: Starting check for user_id:', profile.id)
+      
+      console.log('🔗 CORRECT LOGIC: Checking if user\'s referral codes have been USED BY OTHERS (not if user used others\' codes)')
+
+      // CORRECT LOGIC: Check if referral codes CREATED BY THIS USER have been used by others
+      // Get all referral codes created by this user (where trainer_id = profile.id)
       const { data: userReferralCodes, error: codesError } = await supabase
         .from('referral_codes')
-        .select('id')
-        .eq('user_id', profile.id)
+        .select('id, code, trainer_id')
+        .eq('trainer_id', profile.id)
+        .eq('is_active', true)
+        .limit(50)
+
+      console.log('🔍 Query 1 - Referral codes created by user:', {
+        error: codesError,
+        dataLength: userReferralCodes?.length || 0,
+        codes: userReferralCodes?.map((rc: any) => ({ id: rc.id, code: rc.code })) || []
+      })
 
       if (codesError || !userReferralCodes || userReferralCodes.length === 0) {
+        console.log('⚠️ User has no referral codes created')
         setHasReferralUsed(false)
         return
       }
 
-      // Check if any referral code has been used (confirmed status)
+      const userReferralCodeIds = userReferralCodes.map((rc: any) => rc.id)
+      console.log('📋 User referral code IDs:', userReferralCodeIds)
+
+      // Check if any of user's referral codes have been used by others (status = 'confirmed')
+      // This means someone else used this user's referral code
       const { data: trackingData, error: trackingError } = await supabase
         .from('referral_tracking')
-        .select('id')
-        .in('referral_code_id', userReferralCodes.map(code => (code as any).id))
-        .eq('status', 'confirmed')
+        .select('id, status, participant_id, referral_code_id, trainer_id')
+        .in('referral_code_id', userReferralCodeIds)
+        .in('status', ['confirmed', 'pending'])
+        .limit(50)
+
+      console.log('🔍 Query 2 - Referral tracking where user\'s codes are used by others:', {
+        error: trackingError,
+        dataLength: trackingData?.length || 0,
+        data: trackingData?.map((rt: any) => ({
+          id: rt.id,
+          referral_code_id: rt.referral_code_id,
+          participant_id: rt.participant_id,
+          status: rt.status,
+          trainer_id: rt.trainer_id
+        })) || []
+      })
 
       if (trackingError) {
-        console.error('Error checking referral usage:', trackingError)
+        console.error('❌ Error checking referral tracking:', trackingError)
         setHasReferralUsed(false)
         return
       }
 
-      // If at least 1 referral has been confirmed, unlock the materials
-      setHasReferralUsed((trackingData?.length || 0) >= 1)
+      // Count confirmed referrals (someone else used user's code and it's confirmed)
+      const confirmedReferrals = trackingData?.filter((r: any) => r.status === 'confirmed') || []
+      const hasUsed = confirmedReferrals.length >= 1
+      
+      console.log('🔗 Referral usage check (CORRECT LOGIC):', {
+        userReferralCodesCount: userReferralCodes.length,
+        trackingRecordsFound: trackingData?.length || 0,
+        confirmedCount: confirmedReferrals.length,
+        hasUsed: hasUsed ? '✅ User\'s referral codes have been used by others' : '❌ No one has used user\'s referral codes yet'
+      })
+      
+      setHasReferralUsed(hasUsed)
     } catch (error) {
-      console.error('Error checking referral usage:', error)
+      console.error('❌ Error checking referral usage:', error)
+      setHasReferralUsed(false)
+    }
+  }
+
+  // Update unlocked contents whenever contents, progress, or referral status changes
+  useEffect(() => {
+    if (contents.length > 0) {
+      updateUnlockedContents()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contents, progress, hasReferralUsed])
+
+  async function updateProgress(contentId: string, updates: any) {
+    if (!profile) return
+
+    try {
+      // Check if progress exists
+      const existing = progress[contentId]
+      
+      if (existing && (existing as any).id) {
+        // Update existing
+        const { data, error } = await (supabase as any)
+          .from('learning_progress')
+          .update(updates)
+          .eq('id', (existing as any).id)
+          .select()
+          .single()
+        
+        if (error) throw error
+        if (data) {
+          setProgress(prev => ({ ...prev, [contentId]: data }))
+        }
+      } else {
+        // Create new or upsert
+        const { data, error } = await supabase
+          .from('learning_progress')
+          .upsert([{
+            user_id: profile.id,
+            content_id: contentId,
+            enrollment_id: enrollment?.id,
+            ...updates
+          }] as any, {
+            onConflict: 'user_id,content_id'
+          })
+          .select()
+          .single()
+        
+        if (error) throw error
+        if (data) {
+          setProgress(prev => ({ ...prev, [contentId]: data }))
+        }
+      }
+
+      // Update overall progress
+      updateOverallProgress()
+    } catch (error) {
+      console.error('Error updating progress:', error)
+    }
+  }
+
+  async function markAsComplete(contentId: string) {
+    try {
+      console.log('Marking as complete:', contentId)
+      
+      if (!profile?.id) {
+        throw new Error('User not authenticated')
+      }
+      
+      // First check if table exists by trying to select from it
+      const { error: tableError } = await supabase
+        .from('learning_progress')
+        .select('id')
+        .limit(1)
+      
+      if (tableError) {
+        console.error('Table learning_progress does not exist:', tableError)
+        showNotification('error', 'Tabel progress belum tersedia. Silakan hubungi administrator.')
+        return
+      }
+      
+      // Update progress in database
+      const { data, error } = await supabase
+        .from('enrollments')
+        .select('id, referral_code_id, status')
+        .eq('participant_id', participantId)
+        .not('referral_code_id', 'is', null)
+        .limit(10)
+
+      console.log('🔍 Query 2b - Enrollments with referral_code_id:', {
+        error: enrollmentError,
+        dataLength: enrollmentData?.length || 0,
+        data: enrollmentData
+      })
+
+      // If no tracking data, check if enrollment has referral_code_id (use enrollment as fallback)
+      // Check both enrollmentData (filtered) and allEnrollments (all records)
+      const enrollmentsWithReferral = enrollmentData || []
+      const allEnrollmentsList = allEnrollments || []
+      
+      // Check if any enrollment (approved or pending) has referral_code_id
+      const enrollmentsWithReferralCode = allEnrollmentsList.filter((e: any) => e.referral_code_id != null)
+      
+      console.log('🔍 Enrollment analysis:', {
+        totalEnrollments: allEnrollmentsList.length,
+        enrollmentsWithReferralCode: enrollmentsWithReferralCode.length,
+        enrollmentsWithReferralCodeDetails: enrollmentsWithReferralCode.map((e: any) => ({
+          id: e.id,
+          status: e.status,
+          referral_code_id: e.referral_code_id
+        }))
+      })
+      
+      if ((!trackingData || trackingData.length === 0) && enrollmentsWithReferralCode.length > 0) {
+        console.log('⚠️ Found enrollments with referral_code_id but no tracking data')
+        // Use enrollment as proxy - if enrollment exists with referral_code_id and is approved, count as used
+        const approvedEnrollments = enrollmentsWithReferralCode.filter((e: any) => e.status === 'approved' && e.referral_code_id)
+        const pendingEnrollments = enrollmentsWithReferralCode.filter((e: any) => e.status === 'pending' && e.referral_code_id)
+        
+        console.log('🔍 Enrollment status breakdown:', {
+          approved: approvedEnrollments.length,
+          pending: pendingEnrollments.length
+        })
+        
+        // Count as used if approved enrollment has referral code
+        // OR if pending enrollment has referral code (user has used referral during enrollment)
+        if (approvedEnrollments.length > 0 || pendingEnrollments.length > 0) {
+          console.log('✅ Found enrollments with referral_code_id - counting as referral used')
+          setHasReferralUsed(true)
+          console.log('🔗 Referral usage check (via enrollments):', {
+            approvedEnrollmentsWithReferral: approvedEnrollments.length,
+            pendingEnrollmentsWithReferral: pendingEnrollments.length,
+            hasUsed: '✅ Has used referral (via enrollment)'
+          })
+          return
+        }
+      }
+
+      if (trackingError) {
+        console.error('❌ Error checking referral usage:', trackingError)
+      }
+
+      console.log('📊 referral_tracking query result:', {
+        foundRecords: trackingData?.length || 0,
+        records: trackingData?.map((r: any) => ({
+          id: r.id,
+          status: r.status,
+          participant_id: r.participant_id
+        })) || []
+      })
+
+      // Count confirmed referrals
+      const confirmedReferrals = trackingData?.filter((r: any) => r.status === 'confirmed') || []
+      const hasUsed = confirmedReferrals.length >= 1
+      
+      console.log('🔗 Referral usage check:', {
+        totalRecords: trackingData?.length || 0,
+        confirmedCount: confirmedReferrals.length,
+        hasUsed: hasUsed ? '✅ Has used referral' : '❌ No referral used'
+      })
+      
+      setHasReferralUsed(hasUsed)
+    } catch (error) {
+      console.error('❌ Error checking referral usage:', error)
       setHasReferralUsed(false)
     }
   }
@@ -382,49 +631,28 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         }
       }))
       
-      // Also mark all sub-materials as completed if this is a main material
-      const currentContent = contents.find(c => c.id === contentId)
-      if (currentContent && ((currentContent as any).material_type === 'main' || !(currentContent as any).material_type)) {
-        const subMaterials = contents.filter(c => (c as any).parent_id === contentId)
-        
-        // Mark sub-materials as completed in database
-        if (subMaterials.length > 0) {
-          const subMaterialIds = subMaterials.map(sub => sub.id)
-          
-          // Update sub-materials in database
-          const { error: subError } = await supabase
-            .from('learning_progress')
-            .upsert(subMaterialIds.map(subId => ({
-              user_id: profile.id,
-              content_id: subId,
-              enrollment_id: enrollment?.id,
-              status: 'completed',
-              progress_percentage: 100,
-              completed_at: new Date().toISOString()
-            })) as any, {
-              onConflict: 'user_id,content_id'
-            })
-          
-          if (!subError) {
-            // Update local state for sub-materials
-            setProgress(prev => {
-              const newProgress = { ...prev }
-              subMaterials.forEach(sub => {
-                newProgress[sub.id] = {
-                  ...newProgress[sub.id],
-                  status: 'completed',
-                  progress_percentage: 100,
-                  completed_at: new Date().toISOString()
-                }
-              })
-              return newProgress
-            })
-          }
-        }
-      }
+      // NOTE: Sub-materials should be completed independently by the user
+      // We do NOT automatically mark sub-materials as completed when main material is completed
+      // Each sub-material must be accessed and completed by the user individually
       
       // Update overall progress
       updateOverallProgress()
+      
+      // CRITICAL: Update unlocked contents after marking as complete
+      // This ensures that the next material unlocks immediately after current one is completed
+      // Force a re-render by updating a state, then call updateUnlockedContents
+      // Use multiple setTimeout calls to ensure state propagation
+      setTimeout(() => {
+        // Force update unlocked contents after state has propagated
+        updateUnlockedContents()
+        console.log('🔄 updateUnlockedContents called after markAsComplete for:', contentId)
+        
+        // Also log current progress to verify
+        setTimeout(() => {
+          console.log('🔍 Verifying unlocked contents after completion...')
+          updateUnlockedContents()
+        }, 200)
+      }, 300)
       
       // Show success notification
       const content = contents.find(c => c.id === contentId)
@@ -474,47 +702,135 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     // Main materials are those without parent_id
     const mainMaterials = contents.filter(c => !c.parent_id)
     
+    console.log('🔓 updateUnlockedContents called', {
+      mainMaterialsCount: mainMaterials.length,
+      progressKeys: Object.keys(progress).length,
+      hasReferralUsed,
+      progressStatuses: mainMaterials.map((m, idx) => ({
+        index: idx,
+        id: m.id,
+        title: m.title,
+        status: progress[m.id]?.status || 'not_started'
+      }))
+    })
+    
     if (mainMaterials.length > 0) {
-      // First 2 main materials are always unlocked (index 0 and 1)
+      // Hanya materi pertama (index 0) yang selalu bisa diakses
       unlocked.add(mainMaterials[0].id)
-      if (mainMaterials.length > 1) {
-        unlocked.add(mainMaterials[1].id)
-      }
+      console.log('✅ Unlocked material 0:', mainMaterials[0].id, mainMaterials[0].title)
       
-      // Progressive unlocking: unlock next material only if previous is completed
+      // Progressive unlocking: unlock materi berikutnya hanya jika materi sebelumnya selesai
       for (let i = 1; i < mainMaterials.length; i++) {
-        const previousContent = mainMaterials[i - 1]
-        const previousProgress = progress[previousContent.id]
-        const isPreviousCompleted = previousProgress?.status === 'completed'
+        const currentMaterial = mainMaterials[i]
         
-        if (isPreviousCompleted) {
-          // Check if this is one of the last 3 materials (index >= 2)
-          // If yes, require referral to be used
-          if (i >= 2) {
-            if (hasReferralUsed) {
-              unlocked.add(mainMaterials[i].id)
+        // FIRST: Check if ALL previous materials are FULLY completed (sequential requirement)
+        // This includes main material AND all sub-materials
+        let allPreviousCompleted = true
+        const incompleteMaterials: string[] = []
+        for (let j = 0; j < i; j++) {
+          const prevContent = mainMaterials[j]
+          const isPrevFullyCompleted = isMaterialFullyCompleted(prevContent.id)
+          
+          if (!isPrevFullyCompleted) {
+            allPreviousCompleted = false
+            const prevMainProgress = progress[prevContent.id]
+            const prevSubMaterials = contents.filter(c => c.parent_id === prevContent.id)
+            const incompleteSubs = prevSubMaterials.filter(sub => {
+              const subProgress = progress[sub.id]
+              return subProgress?.status !== 'completed'
+            })
+            
+            if (prevMainProgress?.status !== 'completed') {
+              const status = prevMainProgress?.status || 'not_started'
+              incompleteMaterials.push(`${prevContent.title} (main: ${status})`)
+            } else if (incompleteSubs.length > 0) {
+              incompleteMaterials.push(`${prevContent.title} (${incompleteSubs.length} sub-materials incomplete: ${incompleteSubs.map(s => s.title).join(', ')})`)
             } else {
-              // Stop unlocking last 3 materials if referral not used
-              break
+              incompleteMaterials.push(`${prevContent.title} (not fully completed)`)
             }
-          } else {
+          }
+        }
+        
+        // If sequential requirement is NOT met, stop unlocking - lock semua materi berikutnya
+        if (!allPreviousCompleted) {
+          console.log(`🔒 Material ${i} (${currentMaterial.title}) LOCKED - Previous incomplete:`, incompleteMaterials)
+          break
+        }
+        
+        // SECOND: If sequential requirement is met, check referral for index >= 2
+        if (i >= 2) {
+          // Material index >= 2 requires referral code to be used
+          if (hasReferralUsed) {
             unlocked.add(mainMaterials[i].id)
+            console.log(`✅ Unlocked material ${i}:`, mainMaterials[i].title, '(all previous completed + referral used)')
+          } else {
+            // Sequential requirement met, but referral not used - lock it
+            console.log(`🔒 Material ${i} (${currentMaterial.title}) LOCKED - Referral not used`)
+            break
           }
         } else {
-          // Stop unlocking if previous material is not completed
-          break
+          // Material index 1, unlock if sequential requirement met (materi 0 selesai)
+          unlocked.add(mainMaterials[i].id)
+          console.log(`✅ Unlocked material ${i}:`, mainMaterials[i].title, '(all previous completed)')
         }
       }
       
-      // Also unlock all sub-materials of unlocked main materials
+      // Unlock sub-materials of unlocked main materials SEQUENTIALLY
+      // Group sub-materials by parent
+      const subMaterialsByParent = new Map<string, LearningContent[]>()
       contents.forEach((content) => {
-        if (content.parent_id && unlocked.has(content.parent_id)) {
-          const parentProgress = progress[content.parent_id]
-          if (parentProgress?.status === 'completed') {
-            unlocked.add(content.id)
+        if (content.parent_id) {
+          if (!subMaterialsByParent.has(content.parent_id)) {
+            subMaterialsByParent.set(content.parent_id, [])
+          }
+          subMaterialsByParent.get(content.parent_id)!.push(content)
+        }
+      })
+      
+      // For each parent that is unlocked, unlock its sub-materials sequentially
+      subMaterialsByParent.forEach((subMaterials, parentId) => {
+        if (!unlocked.has(parentId)) {
+          return // Skip if parent is not unlocked
+        }
+        
+        const parentProgress = progress[parentId]
+        const isParentCompleted = parentProgress?.status === 'completed'
+        
+        // Sort sub-materials by order_index to ensure sequential unlocking
+        const sortedSubMaterials = [...subMaterials].sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+        
+        // First sub-material can be unlocked if parent is completed
+        if (sortedSubMaterials.length > 0 && isParentCompleted) {
+          // Unlock first sub-material
+          unlocked.add(sortedSubMaterials[0].id)
+          console.log(`✅ Unlocked first sub-material: ${sortedSubMaterials[0].title} (parent: ${parentId})`)
+          
+          // Unlock subsequent sub-materials only if all previous sub-materials are completed
+          for (let i = 1; i < sortedSubMaterials.length; i++) {
+            let allPreviousSubCompleted = true
+            
+            for (let j = 0; j < i; j++) {
+              const prevSub = sortedSubMaterials[j]
+              const prevSubProgress = progress[prevSub.id]
+              if (prevSubProgress?.status !== 'completed') {
+                allPreviousSubCompleted = false
+                console.log(`🔒 Sub-material ${i} (${sortedSubMaterials[i].title}) LOCKED - Previous sub incomplete: ${prevSub.title}`)
+                break
+              }
+            }
+            
+            if (allPreviousSubCompleted) {
+              unlocked.add(sortedSubMaterials[i].id)
+              console.log(`✅ Unlocked sub-material ${i}: ${sortedSubMaterials[i].title}`)
+            } else {
+              // Stop unlocking remaining sub-materials
+              break
+            }
           }
         }
       })
+      
+      console.log('🔓 Final unlocked contents:', Array.from(unlocked))
     }
     
     setUnlockedContents(unlocked)
@@ -524,45 +840,147 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     return unlockedContents.has(contentId)
   }
 
-  function canAccessContent(contentId: string): boolean {
-    // Use the same logic as updateUnlockedContents for consistency
-    const content = contents.find(c => c.id === contentId)
-    if (!content) return false
+  // Helper function to check if a main material (including all sub-materials) is fully completed
+  function isMaterialFullyCompleted(mainMaterialId: string): boolean {
+    // Check if main material itself is completed
+    const mainProgress = progress[mainMaterialId]
+    const isMainCompleted = mainProgress?.status === 'completed'
     
-    // Filter only main materials (not sub-materials) for referral check
-    // Main materials are those without parent_id
-    const mainMaterials = contents.filter(c => !c.parent_id)
-    const mainContentIndex = mainMaterials.findIndex(c => {
-      // Check if this content is the main material or a sub-material of it
-      return c.id === contentId || (content.parent_id && c.id === content.parent_id)
-    })
-    
-    if (mainContentIndex === -1) {
-      // Sub-material: check if parent is unlocked
-      if (content.parent_id) {
-        return unlockedContents.has(content.parent_id)
-      }
+    if (!isMainCompleted) {
       return false
     }
     
-    // First 2 main materials are always accessible
-    if (mainContentIndex <= 1) return true
-    
-    // For last 3 materials (index >= 2), check referral usage
-    if (mainContentIndex >= 2 && !hasReferralUsed) {
-      return false
+    // Check if all sub-materials are completed
+    const subMaterials = contents.filter(c => c.parent_id === mainMaterialId)
+    if (subMaterials.length === 0) {
+      // No sub-materials, so main material completion is enough
+      return true
     }
     
-    // Check if all previous main contents are completed
-    for (let i = 0; i < mainContentIndex; i++) {
-      const mainContent = mainMaterials[i]
-      const contentProgress = progress[mainContent.id]
-      if (contentProgress?.status !== 'completed') {
+    // Check each sub-material
+    for (const subMaterial of subMaterials) {
+      const subProgress = progress[subMaterial.id]
+      const isSubCompleted = subProgress?.status === 'completed'
+      if (!isSubCompleted) {
+        console.log(`📋 Material "${contents.find(c => c.id === mainMaterialId)?.title}" not fully completed - sub-material "${subMaterial.title}" not completed`)
         return false
       }
     }
     
     return true
+  }
+
+  function canAccessContent(contentId: string): boolean {
+    const content = contents.find(c => c.id === contentId)
+    if (!content) {
+      console.log('🚫 canAccessContent: content not found', contentId)
+      return false
+    }
+    
+    // Filter main materials
+    const mainMaterials = contents.filter(c => !c.parent_id)
+    const isMainMaterial = !content.parent_id
+    
+    if (isMainMaterial) {
+      // Find the index of this material
+      const materialIndex = mainMaterials.findIndex(m => m.id === contentId)
+      
+      if (materialIndex === -1) {
+        console.log('🚫 canAccessContent: material not found in mainMaterials', contentId)
+        return false
+      }
+      
+      // Material index 0 is always accessible
+      if (materialIndex === 0) {
+        console.log(`✅ canAccessContent [${content.title}]: Always unlocked (index 0)`)
+        return true
+      }
+      
+      // For material index >= 1, STRICTLY check if ALL previous materials are FULLY completed
+      // (including main material AND all sub-materials)
+      for (let i = 0; i < materialIndex; i++) {
+        const prevContent = mainMaterials[i]
+        const isPrevFullyCompleted = isMaterialFullyCompleted(prevContent.id)
+        
+        if (!isPrevFullyCompleted) {
+          const prevMainProgress = progress[prevContent.id]
+          const prevSubMaterials = contents.filter(c => c.parent_id === prevContent.id)
+          const incompleteSubs = prevSubMaterials.filter(sub => {
+            const subProgress = progress[sub.id]
+            return subProgress?.status !== 'completed'
+          })
+          
+          if (prevMainProgress?.status !== 'completed') {
+            console.log(`🔒 canAccessContent [${content.title}]: BLOCKED - Previous material "${prevContent.title}" main material not completed (status: ${prevMainProgress?.status || 'not_started'})`)
+          } else if (incompleteSubs.length > 0) {
+            console.log(`🔒 canAccessContent [${content.title}]: BLOCKED - Previous material "${prevContent.title}" has ${incompleteSubs.length} incomplete sub-material(s):`, incompleteSubs.map(s => s.title))
+          }
+          return false
+        }
+      }
+      
+      // If sequential requirement met, check referral requirement for index >= 2
+      if (materialIndex >= 2) {
+        if (!hasReferralUsed) {
+          console.log(`🔒 canAccessContent [${content.title}]: BLOCKED - Referral code not used`)
+          return false
+        }
+      }
+      
+      // Sequential requirement met and referral requirement (if applicable) met
+      console.log(`✅ canAccessContent [${content.title}]: Allowed (index ${materialIndex}, previous completed, ${materialIndex >= 2 ? 'referral used' : 'no referral required'})`)
+      return true
+    }
+    
+    // For sub-materials, check parent is unlocked and parent is completed
+    if (content.parent_id) {
+      // First check if parent can be accessed
+      const parentCanAccess = canAccessContent(content.parent_id)
+      if (!parentCanAccess) {
+        console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Parent not accessible`)
+        return false
+      }
+      
+      // Check if parent is completed
+      const parentProgress = progress[content.parent_id]
+      const isParentCompleted = parentProgress?.status === 'completed'
+      if (!isParentCompleted) {
+        console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Parent not completed`)
+        return false
+      }
+      
+      // Find all sub-materials of this parent
+      const subMaterials = contents.filter(c => c.parent_id === content.parent_id)
+      const sortedSubMaterials = [...subMaterials].sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+      const subIndex = sortedSubMaterials.findIndex(s => s.id === contentId)
+      
+      if (subIndex === -1) {
+        console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Sub-material not found`)
+        return false
+      }
+      
+      // First sub-material is unlocked if parent is completed
+      if (subIndex === 0) {
+        console.log(`✅ canAccessContent [SUB: ${content.title}]: Allowed (first sub-material, parent completed)`)
+        return true
+      }
+      
+      // For subsequent sub-materials, check if ALL previous sub-materials are completed
+      for (let i = 0; i < subIndex; i++) {
+        const prevSub = sortedSubMaterials[i]
+        const prevSubProgress = progress[prevSub.id]
+        if (prevSubProgress?.status !== 'completed') {
+          console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Previous sub-material "${prevSub.title}" not completed`)
+          return false
+        }
+      }
+      
+      console.log(`✅ canAccessContent [SUB: ${content.title}]: Allowed (previous sub-materials completed)`)
+      return true
+    }
+    
+    console.log('🚫 canAccessContent: no parent_id and not main material', contentId)
+    return false
   }
 
   function navigateToContent(direction: 'prev' | 'next') {
@@ -587,14 +1005,32 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         setCurrentContent(nextContent)
         setCurrentIndex(currentIndex + 1)
       } else {
-        // Check if blocked due to referral requirement
+        // Check reason for blocking
         const mainMaterials = contents.filter(c => !c.parent_id)
         const nextMainIndex = mainMaterials.findIndex(c => c.id === nextContent.id || (nextContent.parent_id && c.id === nextContent.parent_id))
         
-        if (nextMainIndex >= 2 && !hasReferralUsed) {
+        if (nextMainIndex === -1) {
+          showNotification('error', 'Materi ini tidak dapat diakses.')
+          return
+        }
+        
+        // Check if blocked due to sequential requirement
+        let sequentialBlocked = false
+        for (let i = 0; i < nextMainIndex; i++) {
+          const mainContent = mainMaterials[i]
+          const contentProgress = progress[mainContent.id]
+          if (contentProgress?.status !== 'completed') {
+            sequentialBlocked = true
+            break
+          }
+        }
+        
+        if (sequentialBlocked) {
+          showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu secara berurutan.')
+        } else if (nextMainIndex >= 2 && !hasReferralUsed) {
           showNotification('error', 'Materi ini terkunci. Bagikan kode referral kamu ke teman/rekan dan tunggu mereka mendaftar untuk membuka materi ini.')
         } else {
-          showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+          showNotification('error', 'Materi ini terkunci.')
         }
       }
     }
@@ -603,16 +1039,34 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   function selectContent(content: LearningContent, index: number) {
     // Check if content is accessible
     if (!canAccessContent(content.id)) {
-      // Check if blocked due to referral requirement
+      // Check reason for blocking
       const mainMaterials = contents.filter(c => !c.parent_id)
       const mainIndex = mainMaterials.findIndex(c => {
         return c.id === content.id || (content.parent_id && c.id === content.parent_id)
       })
       
-      if (mainIndex >= 2 && !hasReferralUsed) {
+      if (mainIndex === -1) {
+        showNotification('error', 'Materi ini tidak dapat diakses.')
+        return
+      }
+      
+      // Check if blocked due to sequential requirement
+      let sequentialBlocked = false
+      for (let i = 0; i < mainIndex; i++) {
+        const mainContent = mainMaterials[i]
+        const contentProgress = progress[mainContent.id]
+        if (contentProgress?.status !== 'completed') {
+          sequentialBlocked = true
+          break
+        }
+      }
+      
+      if (sequentialBlocked) {
+        showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu secara berurutan.')
+      } else if (mainIndex >= 2 && !hasReferralUsed) {
         showNotification('error', 'Materi ini terkunci. Bagikan kode referral kamu ke teman/rekan dan tunggu mereka mendaftar untuk membuka materi ini.')
       } else {
-        showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+        showNotification('error', 'Materi ini terkunci.')
       }
       return
     }
@@ -875,7 +1329,7 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
       case 'document':
         return <DocumentContent content={content} />
       case 'assignment':
-        return <AssignmentContent content={content} />
+        return <AssignmentContent content={content} onComplete={onComplete} />
       default:
         return <div className="text-center py-12 text-gray-500">Tipe konten tidak dikenali</div>
     }
@@ -1111,7 +1565,7 @@ function DocumentContent({ content }: any) {
 }
 
 // Assignment Content Component  
-function AssignmentContent({ content }: any) {
+function AssignmentContent({ content, onComplete }: any) {
   const { profile } = useAuth()
   const assignmentData = content.content_data || {}
   const [answer, setAnswer] = useState('')
@@ -1119,6 +1573,7 @@ function AssignmentContent({ content }: any) {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitted, setIsSubmitted] = useState(false) // Track if already submitted
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   
   // Image compression function
@@ -1337,6 +1792,11 @@ function AssignmentContent({ content }: any) {
   }
   
   const handleSubmit = async () => {
+    if (isSubmitted) {
+      setSubmitMessage({type: 'error', text: 'Tugas sudah dikirim'})
+      return
+    }
+    
     if (!answer && !uploadedFileUrl) {
       setSubmitMessage({type: 'error', text: 'Tulis jawaban atau upload file terlebih dahulu'})
       return
@@ -1350,7 +1810,13 @@ function AssignmentContent({ content }: any) {
       // For now, just show success message
       setTimeout(() => {
         setSubmitMessage({type: 'success', text: 'Tugas berhasil dikirim'})
+        setIsSubmitted(true) // Mark as submitted
         setIsSubmitting(false)
+        
+        // Automatically mark content as completed
+        if (onComplete) {
+          onComplete()
+        }
       }, 1000)
     } catch (error: any) {
       console.error('Submit error:', error)
@@ -1388,11 +1854,14 @@ function AssignmentContent({ content }: any) {
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="font-bold text-gray-900 mb-4">Submit Tugas Anda</h4>
         <textarea
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 ${
+            isSubmitted ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''
+          }`}
           rows={6}
           placeholder="Tulis jawaban Anda di sini..."
           value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
+          onChange={(e) => !isSubmitted && setAnswer(e.target.value)}
+          readOnly={isSubmitted}
         />
         
         {/* File Upload Section */}
@@ -1418,15 +1887,17 @@ function AssignmentContent({ content }: any) {
               <CheckCircle className="w-5 h-5 text-green-600" />
               <span className="text-sm text-green-900">File berhasil diupload</span>
             </div>
-            <button
-              onClick={() => {
-                setSelectedFile(null)
-                setUploadedFileUrl(null)
-              }}
-              className="text-sm text-green-700 hover:text-green-900"
-            >
-              Remove
-            </button>
+              {!isSubmitted && (
+              <button
+                onClick={() => {
+                  setSelectedFile(null)
+                  setUploadedFileUrl(null)
+                }}
+                className="text-sm text-green-700 hover:text-green-900"
+              >
+                Remove
+              </button>
+            )}
           </div>
         )}
         
@@ -1444,19 +1915,22 @@ function AssignmentContent({ content }: any) {
         <div className="mt-4 flex items-center gap-3">
           <button 
             onClick={handleSubmit}
-            disabled={isSubmitting || (!answer && !uploadedFileUrl)}
+            disabled={isSubmitting || isSubmitted || (!answer && !uploadedFileUrl)}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Mengirim...' : 'Submit'}
+            {isSubmitting ? 'Mengirim...' : isSubmitted ? 'Sudah Dikirim' : 'Submit'}
           </button>
-          <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <input 
-              type="file" 
-              className="hidden" 
-              onChange={handleFileSelect}
-            />
-            Pilih File
-          </label>
+          {!isSubmitted && (
+            <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <input 
+                type="file" 
+                className="hidden" 
+                onChange={handleFileSelect}
+                disabled={isSubmitted}
+              />
+              Pilih File
+            </label>
+          )}
         </div>
       </div>
     </div>

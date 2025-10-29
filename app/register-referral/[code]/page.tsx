@@ -2336,6 +2336,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         status: isFree ? 'approved' : 'pending',
         payment_status: isFree ? 'paid' : 'unpaid',
         amount_paid: 0,
+        referral_code_id: referralData.id, // Save referral_code_id to enrollment
         notes: `Referral Code: ${referralData.code}`
       }
 

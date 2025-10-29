@@ -1,0 +1,113 @@
+-- ============================================================================
+-- RESET LEARNING PROGRESS FOR TESTING
+-- ============================================================================
+-- Script untuk menghapus progress belajar untuk testing ulang
+-- ============================================================================
+
+-- OPTION 1: Hapus semua progress untuk user tertentu (by user_id)
+-- ============================================================================
+-- GANTI dengan user_id Anda (bisa dilihat dari auth.users atau user_profiles)
+-- 
+-- DELETE FROM learning_progress
+-- WHERE user_id = 'YOUR_USER_ID_HERE'::uuid;
+--
+-- Contoh:
+-- DELETE FROM learning_progress
+-- WHERE user_id = 'abc123-def456-ghi789'::uuid;
+
+-- OPTION 2: Hapus progress untuk enrollment tertentu
+-- ============================================================================
+-- GANTI dengan enrollment_id dari console log atau database
+--
+-- DELETE FROM learning_progress
+-- WHERE enrollment_id = 'YOUR_ENROLLMENT_ID_HERE'::uuid;
+--
+-- Contoh dengan enrollment_id yang mungkin ada di URL:
+-- Enrollment ID biasanya bisa dilihat dari enrollments table
+
+-- OPTION 3: Hapus progress untuk program tertentu (by program_id)
+-- ============================================================================
+-- Program ID dari URL: 9712d177-5cf4-4ed2-8e66-f871affb0549
+-- 
+-- DELETE FROM learning_progress lp
+-- USING enrollments e
+-- WHERE lp.enrollment_id = e.id
+-- AND e.program_id = '9712d177-5cf4-4ed2-8e66-f871affb0549'::uuid;
+--
+-- Atau jika mau hapus untuk user tertentu + program tertentu:
+--
+-- DELETE FROM learning_progress lp
+-- USING enrollments e
+-- WHERE lp.enrollment_id = e.id
+-- AND e.program_id = '9712d177-5cf4-4ed2-8e66-f871affb0549'::uuid
+-- AND lp.user_id = 'YOUR_USER_ID_HERE'::uuid;
+
+-- OPTION 4: Hapus progress untuk module/class tertentu
+-- ============================================================================
+-- Module ID dari URL: d97d8dd6-ced6-4c67-b076-216f2acf6094
+-- 
+-- DELETE FROM learning_progress lp
+-- USING learning_contents lc, enrollments e
+-- WHERE lp.content_id = lc.id
+-- AND lp.enrollment_id = e.id
+-- AND lc.class_id = 'd97d8dd6-ced6-4c67-b076-216f2acf6094'::uuid;
+--
+-- Atau dengan user_id juga:
+--
+-- DELETE FROM learning_progress lp
+-- USING learning_contents lc, enrollments e
+-- WHERE lp.content_id = lc.id
+-- AND lp.enrollment_id = e.id
+-- AND lc.class_id = 'd97d8dd6-ced6-4c67-b076-216f2acf6094'::uuid
+-- AND lp.user_id = 'YOUR_USER_ID_HERE'::uuid;
+
+-- OPTION 5: Hapus SEMUA progress (HATI-HATI! Hanya untuk development/testing)
+-- ============================================================================
+-- UNCOMMENT untuk hapus semua progress (SANGAT BERBAHAYA di production!)
+-- 
+-- DELETE FROM learning_progress;
+
+-- ============================================================================
+-- CARA MENGGUNAKAN:
+-- ============================================================================
+-- 1. Buka Supabase SQL Editor
+-- 2. Jalankan query untuk melihat data terlebih dahulu:
+--
+--    -- Lihat semua progress untuk program ini
+--    SELECT 
+--        lp.*,
+--        lc.title as content_title,
+--        lc.class_id
+--    FROM learning_progress lp
+--    JOIN learning_contents lc ON lc.id = lp.content_id
+--    JOIN enrollments e ON e.id = lp.enrollment_id
+--    WHERE e.program_id = '9712d177-5cf4-4ed2-8e66-f871affb0549'::uuid
+--    ORDER BY lp.created_at DESC;
+--
+-- 3. Setelah melihat data, pilih OPTION yang sesuai
+-- 4. UNCOMMENT dan sesuaikan ID yang akan dihapus
+-- 5. Jalankan DELETE query
+-- 
+-- ============================================================================
+-- QUICK RESET: Hapus progress untuk program + user tertentu
+-- ============================================================================
+-- GANTI YOUR_USER_ID_HERE dengan user_id Anda
+-- 
+-- DELETE FROM learning_progress lp
+-- USING enrollments e
+-- WHERE lp.enrollment_id = e.id
+-- AND e.program_id = '9712d177-5cf4-4ed2-8e66-f871affb0549'::uuid
+-- AND lp.user_id = 'YOUR_USER_ID_HERE'::uuid;
+
+-- ============================================================================
+-- VERIFIKASI SETELAH HAPUS
+-- ============================================================================
+-- Jalankan query ini untuk memastikan data sudah terhapus:
+--
+-- SELECT COUNT(*) as remaining_progress
+-- FROM learning_progress lp
+-- JOIN enrollments e ON e.id = lp.enrollment_id
+-- WHERE e.program_id = '9712d177-5cf4-4ed2-8e66-f871affb0549'::uuid;
+--
+-- Hasilnya harus 0 (atau jumlah yang sesuai dengan yang tidak dihapus)
+-- ============================================================================

@@ -185,6 +185,9 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
         status: 'pending',
         payment_status: 'unpaid',
         amount_paid: 0,
+        referral_code_id: referralData?.id || null, // Save referral_code_id to enrollment
+        referral_discount: referralData ? program.price - calculateFinalPrice() : 0,
+        final_price: calculateFinalPrice(),
         notes: referralCode ? `Referral Code: ${referralCode}` : ''
       }
 
