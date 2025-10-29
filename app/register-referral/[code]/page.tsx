@@ -2326,12 +2326,15 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         participantId = (existingParticipant as any).id
       }
 
+      // Check if program is free (finalPrice === 0 or program.price === 0)
+      const isFree = calculateFinalPrice() === 0 || program.price === 0
+
       // Create enrollment
       const enrollmentData = {
         program_id: program.id,
         participant_id: participantId,
-        status: 'pending',
-        payment_status: calculateFinalPrice() > 0 ? 'unpaid' : 'paid',
+        status: isFree ? 'approved' : 'pending',
+        payment_status: isFree ? 'paid' : 'unpaid',
         amount_paid: 0,
         notes: `Referral Code: ${referralData.code}`
       }
@@ -2346,7 +2349,14 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         throw enrollmentError
       }
 
-      // Create referral tracking
+      // Check enrollment status (might be auto-approved by trigger)
+      const enrollmentStatus = (enrollment as any).status
+      const isEnrollmentApproved = enrollmentStatus === 'approved'
+
+      // Create referral tracking with appropriate status
+      // If enrollment is approved (free program or auto-approved), referral should be confirmed
+      const referralTrackingStatus = isEnrollmentApproved ? 'confirmed' : 'pending'
+
       const { error: trackingError } = await supabase
         .from('referral_tracking')
         .insert({
@@ -2357,11 +2367,13 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
           program_id: program.id,
           discount_applied: program.price - calculateFinalPrice(),
           commission_earned: 0,
-          status: 'pending'
+          status: referralTrackingStatus
         } as any)
 
       if (trackingError) {
         console.error('Error creating referral tracking:', trackingError)
+      } else if (isEnrollmentApproved) {
+        console.log('Referral tracking created with confirmed status (free program auto-approved)')
       }
 
       addNotification({

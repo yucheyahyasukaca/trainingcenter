@@ -293,12 +293,15 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
     try {
       setProcessing(true)
 
+      // Check if program is free
+      const isFree = enrollmentData.final_price === 0 || program.price === 0
+
       // Create enrollment record
       const enrollmentRecord = {
         program_id: programId,
         participant_id: enrollmentData.participant_id,
-        status: 'pending',
-        payment_status: enrollmentData.final_price > 0 ? 'unpaid' : 'paid',
+        status: isFree ? 'approved' : 'pending',
+        payment_status: isFree ? 'paid' : 'unpaid',
         amount_paid: 0,
         notes: enrollmentData.referral_code ? `Referral Code: ${enrollmentData.referral_code}` : ''
       }
@@ -313,6 +316,10 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
         throw enrollmentError
       }
 
+      // Check enrollment status (might be auto-approved by trigger)
+      const enrollmentStatus = (enrollment as any).status
+      const isEnrollmentApproved = enrollmentStatus === 'approved'
+
       // Create referral tracking if referral code exists
       if (enrollmentData.referral_code) {
         // Get referral code data
@@ -324,6 +331,9 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
           .single()
 
         if (!referralError && referralCodeData) {
+          // If enrollment is approved (free program or auto-approved), referral should be confirmed
+          const referralTrackingStatus = isEnrollmentApproved ? 'confirmed' : 'pending'
+
           const { error: trackingError } = await (supabase as any)
             .from('referral_tracking')
             .insert({
@@ -334,11 +344,13 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
               program_id: programId,
               discount_applied: program.price - enrollmentData.final_price,
               commission_earned: 0, // Will be calculated later
-              status: 'pending'
+              status: referralTrackingStatus
             })
 
           if (trackingError) {
             console.error('Error creating referral tracking:', trackingError)
+          } else if (isEnrollmentApproved) {
+            console.log('Referral tracking created with confirmed status (free program auto-approved)')
           }
         }
       }
@@ -537,12 +549,34 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-green-800 text-sm">
-                    {hasReferralUsed 
-                      ? 'Selamat! Akses ke 3 materi terakhir telah terbuka karena kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu.'
-                      : 'Akses ke 3 materi terakhir hanya akan terbuka setelah kode referral dari user tersebut berhasil digunakan oleh minimal 1 teman atau rekan yang bergabung dalam program ini.'
-                    }
-                  </p>
+                  {hasReferralUsed ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-green-800 text-sm font-semibold mb-2">
+                        ✅ Selamat! Akses ke 3 materi terakhir telah terbuka!
+                      </p>
+                      <p className="text-green-700 text-sm">
+                        Kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu. Kamu sekarang dapat mengakses semua materi pelatihan.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-yellow-800 text-sm font-semibold mb-2">
+                        ⚠️ Materi Terakhir Masih Terkunci
+                      </p>
+                      <p className="text-yellow-700 text-sm mb-2">
+                        Untuk membuka akses ke 3 materi terakhir, kamu <strong>harus membagikan kode referral</strong> ke rekan yang lain. Materi terakhir hanya akan terbuka setelah kode referral kamu <strong>berhasil digunakan oleh minimal 1 teman atau rekan</strong> yang bergabung dalam program ini.
+                      </p>
+                      <p className="text-yellow-700 text-sm font-medium mt-2">
+                        📋 Cara membuka materi terakhir:
+                      </p>
+                      <ol className="text-yellow-700 text-sm list-decimal list-inside mt-2 space-y-1">
+                        <li>Salin link referral yang tersedia di bawah</li>
+                        <li>Bagikan link tersebut ke teman atau rekan kamu</li>
+                        <li>Tunggu teman/rekan kamu menggunakan link tersebut untuk mendaftar</li>
+                        <li>Setelah mereka terdaftar, 3 materi terakhir akan otomatis terbuka</li>
+                      </ol>
+                    </div>
+                  )}
                 </div>
               </div>
 

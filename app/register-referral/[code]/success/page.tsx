@@ -365,12 +365,34 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
                 </div>
 
                 <div className="mt-4">
-                  <p className="text-green-800 text-sm">
-                    {hasReferralUsed 
-                      ? 'Selamat! Akses ke 3 materi terakhir telah terbuka karena kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu.'
-                      : 'Akses ke 3 materi terakhir hanya akan terbuka setelah kode referral dari user tersebut berhasil digunakan oleh minimal 1 teman atau rekan yang bergabung dalam program ini.'
-                    }
-                  </p>
+                  {hasReferralUsed ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-green-800 text-sm font-semibold mb-2">
+                        ✅ Selamat! Akses ke 3 materi terakhir telah terbuka!
+                      </p>
+                      <p className="text-green-700 text-sm">
+                        Kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu. Kamu sekarang dapat mengakses semua materi pelatihan.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-yellow-800 text-sm font-semibold mb-2">
+                        ⚠️ Materi Terakhir Masih Terkunci
+                      </p>
+                      <p className="text-yellow-700 text-sm mb-2">
+                        Untuk membuka akses ke 3 materi terakhir, kamu <strong>harus membagikan kode referral</strong> ke rekan yang lain. Materi terakhir hanya akan terbuka setelah kode referral kamu <strong>berhasil digunakan oleh minimal 1 teman atau rekan</strong> yang bergabung dalam program ini.
+                      </p>
+                      <p className="text-yellow-700 text-sm font-medium mt-2">
+                        📋 Cara membuka materi terakhir:
+                      </p>
+                      <ol className="text-yellow-700 text-sm list-decimal list-inside mt-2 space-y-1">
+                        <li>Salin link referral yang tersedia di bawah</li>
+                        <li>Bagikan link tersebut ke teman atau rekan kamu</li>
+                        <li>Tunggu teman/rekan kamu menggunakan link tersebut untuk mendaftar</li>
+                        <li>Setelah mereka terdaftar, 3 materi terakhir akan otomatis terbuka</li>
+                      </ol>
+                    </div>
+                  )}
                 </div>
               </div>
 

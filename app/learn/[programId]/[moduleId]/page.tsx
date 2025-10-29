@@ -49,6 +49,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [loading, setLoading] = useState(true)
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
   const [unlockedContents, setUnlockedContents] = useState<Set<string>>(new Set())
+  const [hasReferralUsed, setHasReferralUsed] = useState<boolean>(false)
   
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
@@ -225,6 +226,11 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           }
         }
       }
+
+      // Check referral usage to determine if last 3 materials should be unlocked
+      if (profile?.id) {
+        await checkReferralUsage()
+      }
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -232,13 +238,49 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }
   }
 
-  // Update unlocked contents whenever contents or progress changes
+  async function checkReferralUsage() {
+    if (!profile?.id) return
+
+    try {
+      // Get user's referral codes
+      const { data: userReferralCodes, error: codesError } = await supabase
+        .from('referral_codes')
+        .select('id')
+        .eq('user_id', profile.id)
+
+      if (codesError || !userReferralCodes || userReferralCodes.length === 0) {
+        setHasReferralUsed(false)
+        return
+      }
+
+      // Check if any referral code has been used (confirmed status)
+      const { data: trackingData, error: trackingError } = await supabase
+        .from('referral_tracking')
+        .select('id')
+        .in('referral_code_id', userReferralCodes.map(code => (code as any).id))
+        .eq('status', 'confirmed')
+
+      if (trackingError) {
+        console.error('Error checking referral usage:', trackingError)
+        setHasReferralUsed(false)
+        return
+      }
+
+      // If at least 1 referral has been confirmed, unlock the materials
+      setHasReferralUsed((trackingData?.length || 0) >= 1)
+    } catch (error) {
+      console.error('Error checking referral usage:', error)
+      setHasReferralUsed(false)
+    }
+  }
+
+  // Update unlocked contents whenever contents, progress, or referral status changes
   useEffect(() => {
     if (contents.length > 0) {
       updateUnlockedContents()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contents, progress])
+  }, [contents, progress, hasReferralUsed])
 
   async function updateProgress(contentId: string, updates: any) {
     if (!profile) return
@@ -428,27 +470,55 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const updateUnlockedContents = useCallback(() => {
     const unlocked = new Set<string>()
     
-    // First content is always unlocked
-    if (contents.length > 0) {
-      unlocked.add(contents[0].id)
+    // Filter only main materials (not sub-materials) for referral check
+    // Main materials are those without parent_id
+    const mainMaterials = contents.filter(c => !c.parent_id)
+    
+    if (mainMaterials.length > 0) {
+      // First 2 main materials are always unlocked (index 0 and 1)
+      unlocked.add(mainMaterials[0].id)
+      if (mainMaterials.length > 1) {
+        unlocked.add(mainMaterials[1].id)
+      }
       
       // Progressive unlocking: unlock next material only if previous is completed
-      for (let i = 1; i < contents.length; i++) {
-        const previousContent = contents[i - 1]
+      for (let i = 1; i < mainMaterials.length; i++) {
+        const previousContent = mainMaterials[i - 1]
         const previousProgress = progress[previousContent.id]
         const isPreviousCompleted = previousProgress?.status === 'completed'
         
         if (isPreviousCompleted) {
-          unlocked.add(contents[i].id)
+          // Check if this is one of the last 3 materials (index >= 2)
+          // If yes, require referral to be used
+          if (i >= 2) {
+            if (hasReferralUsed) {
+              unlocked.add(mainMaterials[i].id)
+            } else {
+              // Stop unlocking last 3 materials if referral not used
+              break
+            }
+          } else {
+            unlocked.add(mainMaterials[i].id)
+          }
         } else {
           // Stop unlocking if previous material is not completed
           break
         }
       }
+      
+      // Also unlock all sub-materials of unlocked main materials
+      contents.forEach((content) => {
+        if (content.parent_id && unlocked.has(content.parent_id)) {
+          const parentProgress = progress[content.parent_id]
+          if (parentProgress?.status === 'completed') {
+            unlocked.add(content.id)
+          }
+        }
+      })
     }
     
     setUnlockedContents(unlocked)
-  }, [contents, progress])
+  }, [contents, progress, hasReferralUsed])
 
   function isContentUnlocked(contentId: string): boolean {
     return unlockedContents.has(contentId)
@@ -456,15 +526,37 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
   function canAccessContent(contentId: string): boolean {
     // Use the same logic as updateUnlockedContents for consistency
-    const contentIndex = contents.findIndex(c => c.id === contentId)
-    if (contentIndex === -1) return false
+    const content = contents.find(c => c.id === contentId)
+    if (!content) return false
     
-    // First content is always accessible
-    if (contentIndex === 0) return true
+    // Filter only main materials (not sub-materials) for referral check
+    // Main materials are those without parent_id
+    const mainMaterials = contents.filter(c => !c.parent_id)
+    const mainContentIndex = mainMaterials.findIndex(c => {
+      // Check if this content is the main material or a sub-material of it
+      return c.id === contentId || (content.parent_id && c.id === content.parent_id)
+    })
     
-    // Check if all previous contents are completed
-    for (let i = 0; i < contentIndex; i++) {
-      const contentProgress = progress[contents[i].id]
+    if (mainContentIndex === -1) {
+      // Sub-material: check if parent is unlocked
+      if (content.parent_id) {
+        return unlockedContents.has(content.parent_id)
+      }
+      return false
+    }
+    
+    // First 2 main materials are always accessible
+    if (mainContentIndex <= 1) return true
+    
+    // For last 3 materials (index >= 2), check referral usage
+    if (mainContentIndex >= 2 && !hasReferralUsed) {
+      return false
+    }
+    
+    // Check if all previous main contents are completed
+    for (let i = 0; i < mainContentIndex; i++) {
+      const mainContent = mainMaterials[i]
+      const contentProgress = progress[mainContent.id]
       if (contentProgress?.status !== 'completed') {
         return false
       }
@@ -495,7 +587,15 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         setCurrentContent(nextContent)
         setCurrentIndex(currentIndex + 1)
       } else {
-        showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+        // Check if blocked due to referral requirement
+        const mainMaterials = contents.filter(c => !c.parent_id)
+        const nextMainIndex = mainMaterials.findIndex(c => c.id === nextContent.id || (nextContent.parent_id && c.id === nextContent.parent_id))
+        
+        if (nextMainIndex >= 2 && !hasReferralUsed) {
+          showNotification('error', 'Materi ini terkunci. Bagikan kode referral kamu ke teman/rekan dan tunggu mereka mendaftar untuk membuka materi ini.')
+        } else {
+          showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+        }
       }
     }
   }
@@ -503,7 +603,17 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   function selectContent(content: LearningContent, index: number) {
     // Check if content is accessible
     if (!canAccessContent(content.id)) {
-      showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+      // Check if blocked due to referral requirement
+      const mainMaterials = contents.filter(c => !c.parent_id)
+      const mainIndex = mainMaterials.findIndex(c => {
+        return c.id === content.id || (content.parent_id && c.id === content.parent_id)
+      })
+      
+      if (mainIndex >= 2 && !hasReferralUsed) {
+        showNotification('error', 'Materi ini terkunci. Bagikan kode referral kamu ke teman/rekan dan tunggu mereka mendaftar untuk membuka materi ini.')
+      } else {
+        showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu.')
+      }
       return
     }
     

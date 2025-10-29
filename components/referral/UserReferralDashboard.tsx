@@ -127,20 +127,230 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
         .from('referral_tracking')
         .select('*')
         .in('referral_code_id', referralCodes?.map(code => (code as any).id) || [])
+        .order('created_at', { ascending: false })
 
       if (trackingError) {
         console.error('Error fetching referral tracking:', trackingError)
         throw trackingError
       }
 
-      // Calculate stats
-      const totalReferrals = referralTracking?.length || 0
-      const confirmedReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'confirmed').length || 0
-      const pendingReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'pending').length || 0
-      const cancelledReferrals = referralTracking?.filter(tracking => (tracking as any).status === 'cancelled').length || 0
-      const totalCommissionEarned = referralTracking?.reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
-      const confirmedCommission = referralTracking?.filter(tracking => (tracking as any).status === 'confirmed').reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
-      const totalDiscountGiven = referralTracking?.reduce((sum, tracking) => sum + ((tracking as any).discount_applied || 0), 0) || 0
+      // Sync referral tracking status with enrollment status
+      // If enrollment is approved but referral tracking is still pending, update it
+      if (referralTracking && referralTracking.length > 0) {
+        // Get enrollment IDs
+        const enrollmentIds = [...new Set(referralTracking.map((t: any) => t.enrollment_id).filter(Boolean))]
+        
+        if (enrollmentIds.length > 0) {
+          // Fetch enrollments to check their status
+          const { data: enrollments, error: enrollmentsError } = await supabase
+            .from('enrollments')
+            .select('id, status, payment_status')
+            .in('id', enrollmentIds)
+
+          if (!enrollmentsError && enrollments) {
+            // Create a map for quick lookup
+            const enrollmentMap = new Map(enrollments.map((e: any) => [e.id, e]))
+
+            // Find tracking records that need updating
+            const trackingToUpdate = referralTracking.filter((tracking: any) => {
+              const enrollment = enrollmentMap.get(tracking.enrollment_id)
+              return enrollment && 
+                     enrollment.status === 'approved' && 
+                     tracking.status === 'pending'
+            })
+
+            // Update referral tracking status for approved enrollments
+            for (const tracking of trackingToUpdate) {
+              try {
+                const { error: updateError } = await supabase
+                  .from('referral_tracking')
+                  .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+                  .eq('id', tracking.id)
+                
+                if (!updateError) {
+                  console.log(`Updated referral tracking ${tracking.id} to confirmed (enrollment already approved)`)
+                  
+                  // Update local tracking data
+                  const index = referralTracking.findIndex((t: any) => t.id === tracking.id)
+                  if (index !== -1) {
+                    referralTracking[index].status = 'confirmed'
+                  }
+                } else {
+                  console.error('Error updating referral tracking:', updateError)
+                }
+              } catch (updateError) {
+                console.error('Error updating referral tracking status:', updateError)
+              }
+            }
+            
+            // If we updated any tracking, refresh the data to get latest status
+            if (trackingToUpdate.length > 0) {
+              // Re-fetch referral tracking after updates
+              const { data: refreshedTracking } = await supabase
+                .from('referral_tracking')
+                .select('*')
+                .in('referral_code_id', referralCodes?.map(code => (code as any).id) || [])
+                .order('created_at', { ascending: false })
+              
+              if (refreshedTracking) {
+                referralTracking.length = 0
+                referralTracking.push(...refreshedTracking)
+              }
+            }
+          }
+        }
+      }
+
+      // Fetch participant and program data separately if tracking data exists
+      let enrichedTracking: any[] = []
+      if (referralTracking && referralTracking.length > 0) {
+        // Get unique participant and program IDs
+        const participantIds = [...new Set(referralTracking.map(t => (t as any).participant_id))].filter(Boolean)
+        const programIds = [...new Set(referralTracking.map(t => (t as any).program_id))].filter(Boolean)
+        const enrollmentIds = [...new Set(referralTracking.map(t => (t as any).enrollment_id))].filter(Boolean)
+
+        // Fetch participants data
+        // Strategy: Get enrollments first (which we have access to via referral_tracking),
+        // then try to get participant info through user_profiles if participant has user_id
+        let participants: any[] = []
+        
+        // First, get enrollments to find participant_ids
+        if (enrollmentIds.length > 0) {
+          console.log('Fetching enrollments for participant info:', enrollmentIds)
+          const { data: enrollmentsData, error: enrollmentsError } = await supabase
+            .from('enrollments')
+            .select('id, participant_id, notes')
+            .in('id', enrollmentIds)
+          
+          if (enrollmentsError) {
+            console.error('Error fetching enrollments:', enrollmentsError)
+          } else if (enrollmentsData) {
+            console.log('Fetched enrollments:', enrollmentsData)
+            
+            // Try to get participants by querying with specific IDs
+            // Use a different approach: try to get via user_profiles if participant has user_id
+            const allParticipantIds = [...new Set(enrollmentsData.map(e => e.participant_id).filter(Boolean))]
+            
+            if (allParticipantIds.length > 0) {
+              console.log('Attempting to fetch participants for IDs:', allParticipantIds)
+              
+              // Try query participants with a workaround
+              // Since RLS might block, we'll try to get user info from enrollments notes or use participant_id as fallback
+              const { data: participantsData, error: participantsError } = await supabase
+                .from('participants')
+                .select('id, name, email, user_id')
+                .in('id', allParticipantIds)
+              
+              if (participantsError) {
+                console.error('Error fetching participants (RLS may be blocking):', participantsError)
+              }
+              
+              // Handle the results - whether successful or failed
+              if (participantsData && participantsData.length > 0) {
+                participants = participantsData
+                console.log('Successfully fetched participants:', participants)
+              } else {
+                // No participants returned (either RLS blocked or data doesn't exist)
+                console.warn('No participants returned from query. This might be due to RLS policy restrictions.')
+              }
+              
+              // Always ensure we have participant objects for all participant_ids
+              // Create fallback entries for any missing participants
+              allParticipantIds.forEach(participantId => {
+                const existingParticipant = participants.find(p => p.id === participantId)
+                if (!existingParticipant) {
+                  // Try to extract info from enrollment notes
+                  const enrollment = enrollmentsData.find((e: any) => e.participant_id === participantId)
+                  let participantName = 'Peserta'
+                  let participantEmail = ''
+                  
+                  // Try to extract info from notes
+                  if (enrollment?.notes) {
+                    const emailMatch = enrollment.notes.match(/email[:\s]+([^\s,\n]+)/i) || enrollment.notes.match(/([\w\.-]+@[\w\.-]+\.\w+)/i)
+                    if (emailMatch) {
+                      participantEmail = emailMatch[1] || emailMatch[0]
+                      participantName = participantEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+                    }
+                    
+                    const nameMatch = enrollment.notes.match(/name[:\s]+([^\n,]+)/i) || enrollment.notes.match(/nama[:\s]+([^\n,]+)/i)
+                    if (nameMatch) {
+                      participantName = nameMatch[1].trim()
+                    }
+                  }
+                  
+                  // Create participant entry with available or fallback data
+                  participants.push({
+                    id: participantId,
+                    name: participantName,
+                    email: participantEmail || `${participantId.substring(0, 8)}...`
+                  })
+                  
+                  console.log(`Created fallback participant entry for ID: ${participantId}`)
+                }
+              })
+            }
+          }
+        }
+        
+        // Verify all participant IDs have corresponding entries
+        const foundParticipantIds = participants.map(p => p.id)
+        const missingParticipantIds = participantIds.filter(id => !foundParticipantIds.includes(id))
+        if (missingParticipantIds.length > 0) {
+          console.warn('Still missing participants after all attempts:', missingParticipantIds)
+          // This should not happen if above logic works correctly, but just in case
+          missingParticipantIds.forEach(id => {
+            if (!participants.find(p => p.id === id)) {
+              participants.push({
+                id: id,
+                name: 'Peserta',
+                email: `${id.substring(0, 8)}...`
+              })
+            }
+          })
+        }
+
+        // Fetch programs (only if we have IDs)
+        let programs: any[] = []
+        if (programIds.length > 0) {
+          const { data: programsData, error: programsError } = await supabase
+            .from('programs')
+            .select('id, title')
+            .in('id', programIds)
+          
+          if (!programsError) {
+            programs = programsData || []
+          }
+        }
+
+        // Enrich tracking data
+        enrichedTracking = referralTracking.map(tracking => {
+          const participant = participants.find((p: any) => p.id === (tracking as any).participant_id)
+          const program = programs.find((p: any) => p.id === (tracking as any).program_id)
+          
+          if (!participant && (tracking as any).participant_id) {
+            console.warn(`Participant not found for ID: ${(tracking as any).participant_id}`)
+          }
+          
+          return {
+            ...tracking,
+            participant,
+            program
+          }
+        })
+        
+        console.log('Enriched tracking data:', enrichedTracking)
+      } else {
+        enrichedTracking = []
+      }
+
+      // Calculate stats using enriched tracking data
+      const totalReferrals = enrichedTracking?.length || 0
+      const confirmedReferrals = enrichedTracking?.filter(tracking => (tracking as any).status === 'confirmed').length || 0
+      const pendingReferrals = enrichedTracking?.filter(tracking => (tracking as any).status === 'pending').length || 0
+      const cancelledReferrals = enrichedTracking?.filter(tracking => (tracking as any).status === 'cancelled').length || 0
+      const totalCommissionEarned = enrichedTracking?.reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
+      const confirmedCommission = enrichedTracking?.filter(tracking => (tracking as any).status === 'confirmed').reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
+      const totalDiscountGiven = enrichedTracking?.reduce((sum, tracking) => sum + ((tracking as any).discount_applied || 0), 0) || 0
       const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
       const statsData: UserReferralStats = {
@@ -161,10 +371,10 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
           confirmed_commission: confirmedCommission,
           total_discount_given: totalDiscountGiven
         },
-        recent_referrals: referralTracking?.slice(0, 5).map(tracking => ({
+        recent_referrals: enrichedTracking?.slice(0, 5).map(tracking => ({
           id: (tracking as any).id,
-          participant_name: 'Participant', // You might need to join with participants table
-          program_title: 'Program', // You might need to join with programs table
+          participant_name: (tracking as any).participant?.name || (tracking as any).participant?.email || 'Participant',
+          program_title: (tracking as any).program?.title || 'Program',
           status: (tracking as any).status,
           commission_earned: (tracking as any).commission_earned || 0,
           discount_applied: (tracking as any).discount_applied || 0,
