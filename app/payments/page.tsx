@@ -22,21 +22,61 @@ export default function PaymentsPage() {
 
   async function fetchPayments() {
     try {
-      const { data, error } = await supabase
+      // Fetch enrollments with programs and classes only
+      const { data: enrollmentsData, error: enrollmentsError } = await supabase
         .from('enrollments')
         .select(`
           *,
           program:programs(title, price),
-          participant:participants(name, email, phone),
           class:classes(name)
         `)
         .not('payment_proof_url', 'is', null)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setPayments(data || [])
+      if (enrollmentsError) throw enrollmentsError
+
+      if (!enrollmentsData || enrollmentsData.length === 0) {
+        setPayments([])
+        setLoading(false)
+        return
+      }
+
+      // Get unique participant IDs
+      const participantIds = [...new Set(enrollmentsData.map(e => e.participant_id).filter(Boolean))]
+      
+      if (participantIds.length === 0) {
+        setPayments(enrollmentsData)
+        setLoading(false)
+        return
+      }
+
+      // Fetch participants separately
+      const { data: participantsData, error: participantsError } = await supabase
+        .from('participants')
+        .select('id, name, email, phone')
+        .in('id', participantIds)
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError)
+        setPayments(enrollmentsData)
+        setLoading(false)
+        return
+      }
+
+      // Map participants to enrollments
+      const participantsMap = new Map(
+        (participantsData || []).map(p => [p.id, p])
+      )
+
+      const paymentsWithParticipants = enrollmentsData.map(enrollment => ({
+        ...enrollment,
+        participant: participantsMap.get(enrollment.participant_id) || null
+      }))
+
+      setPayments(paymentsWithParticipants)
     } catch (error) {
       console.error('Error fetching payments:', error)
+      setPayments([])
     } finally {
       setLoading(false)
     }

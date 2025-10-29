@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get detailed referral tracking with date filter
-    const { data: detailedStats, error: detailedError } = await supabase
+    const { data: referralTrackingData, error: referralTrackingError } = await supabase
       .from('referral_tracking')
       .select(`
         id,
@@ -93,24 +93,43 @@ export async function GET(request: NextRequest) {
         commission_earned,
         discount_applied,
         created_at,
+        participant_id,
         program:programs(
           id,
           title,
           price
-        ),
-        participant:participants(
-          id,
-          name,
-          email
         )
       `)
       .eq('trainer_id', (profile as any).id)
       .order('created_at', { ascending: false })
 
-    if (detailedError) {
-      console.error('Error fetching detailed stats:', detailedError)
+    if (referralTrackingError) {
+      console.error('Error fetching detailed stats:', referralTrackingError)
       return NextResponse.json({ error: 'Failed to fetch detailed statistics' }, { status: 500 })
     }
+
+    // Get unique participant IDs
+    const participantIds = [...new Set((referralTrackingData || []).map((rt: any) => rt.participant_id).filter(Boolean))]
+    
+    let participantsMap = new Map()
+    if (participantIds.length > 0) {
+      const { data: participantsData, error: participantsError } = await supabase
+        .from('participants')
+        .select('id, name, email')
+        .in('id', participantIds)
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError)
+      } else {
+        participantsMap = new Map((participantsData || []).map(p => [p.id, p]))
+      }
+    }
+
+    // Map participants to referral tracking
+    const detailedStats = (referralTrackingData || []).map((rt: any) => ({
+      ...rt,
+      participant: participantsMap.get(rt.participant_id) || null
+    }))
 
     // Filter detailed stats by period
     const filteredDetailedStats = detailedStats?.filter(stat => {

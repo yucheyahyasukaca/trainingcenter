@@ -12,20 +12,60 @@ export function RecentEnrollments() {
   useEffect(() => {
     async function fetchEnrollments() {
       try {
-        const { data, error } = await supabase
+        // Fetch enrollments with programs only
+        const { data: enrollmentsData, error: enrollmentsError } = await supabase
           .from('enrollments')
           .select(`
             *,
-            program:programs(title),
-            participant:participants(name, email)
+            program:programs(title)
           `)
           .order('created_at', { ascending: false })
           .limit(5)
 
-        if (error) throw error
-        setEnrollments(data || [])
+        if (enrollmentsError) throw enrollmentsError
+
+        if (!enrollmentsData || enrollmentsData.length === 0) {
+          setEnrollments([])
+          setLoading(false)
+          return
+        }
+
+        // Get unique participant IDs
+        const participantIds = [...new Set(enrollmentsData.map(e => e.participant_id).filter(Boolean))]
+        
+        if (participantIds.length === 0) {
+          setEnrollments(enrollmentsData)
+          setLoading(false)
+          return
+        }
+
+        // Fetch participants separately
+        const { data: participantsData, error: participantsError } = await supabase
+          .from('participants')
+          .select('id, name, email')
+          .in('id', participantIds)
+
+        if (participantsError) {
+          console.error('Error fetching participants:', participantsError)
+          setEnrollments(enrollmentsData)
+          setLoading(false)
+          return
+        }
+
+        // Map participants to enrollments
+        const participantsMap = new Map(
+          (participantsData || []).map(p => [p.id, p])
+        )
+
+        const enrollmentsWithParticipants = enrollmentsData.map(enrollment => ({
+          ...enrollment,
+          participant: participantsMap.get(enrollment.participant_id) || null
+        }))
+
+        setEnrollments(enrollmentsWithParticipants)
       } catch (error) {
         console.error('Error fetching enrollments:', error)
+        setEnrollments([])
       } finally {
         setLoading(false)
       }

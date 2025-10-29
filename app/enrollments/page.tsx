@@ -29,19 +29,59 @@ export default function EnrollmentsPage() {
 
   async function fetchEnrollments() {
     try {
-      const { data, error } = await supabase
+      // Fetch enrollments with programs only
+      const { data: enrollmentsData, error: enrollmentsError } = await supabase
         .from('enrollments')
         .select(`
           *,
-          program:programs(title, price),
-          participant:participants(name, email, phone)
+          program:programs(title, price)
         `)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setEnrollments(data || [])
+      if (enrollmentsError) throw enrollmentsError
+
+      if (!enrollmentsData || enrollmentsData.length === 0) {
+        setEnrollments([])
+        setLoading(false)
+        return
+      }
+
+      // Get unique participant IDs
+      const participantIds = [...new Set(enrollmentsData.map(e => e.participant_id).filter(Boolean))]
+      
+      if (participantIds.length === 0) {
+        setEnrollments(enrollmentsData)
+        setLoading(false)
+        return
+      }
+
+      // Fetch participants separately
+      const { data: participantsData, error: participantsError } = await supabase
+        .from('participants')
+        .select('id, name, email, phone')
+        .in('id', participantIds)
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError)
+        setEnrollments(enrollmentsData)
+        setLoading(false)
+        return
+      }
+
+      // Map participants to enrollments
+      const participantsMap = new Map(
+        (participantsData || []).map(p => [p.id, p])
+      )
+
+      const enrollmentsWithParticipants = enrollmentsData.map(enrollment => ({
+        ...enrollment,
+        participant: participantsMap.get(enrollment.participant_id) || null
+      }))
+
+      setEnrollments(enrollmentsWithParticipants)
     } catch (error) {
       console.error('Error fetching enrollments:', error)
+      setEnrollments([])
     } finally {
       setLoading(false)
     }
@@ -49,25 +89,99 @@ export default function EnrollmentsPage() {
 
   async function fetchPrograms() {
     try {
-      const { data, error } = await supabase
+      // Fetch programs with classes only (without trainers relationship)
+      const { data: programsData, error: programsError } = await supabase
         .from('programs')
         .select(`
           *,
-          classes:classes(
-            *,
-            trainers:class_trainers(
-              *,
-              trainer:trainers(*)
-            )
-          )
+          classes:classes(*)
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setPrograms(data || [])
+      if (programsError) throw programsError
+
+      if (!programsData || programsData.length === 0) {
+        setPrograms([])
+        setLoading(false)
+        return
+      }
+
+      // Get all class IDs from all programs
+      const allClassIds: string[] = []
+      programsData.forEach((program: any) => {
+        if (program.classes && Array.isArray(program.classes)) {
+          program.classes.forEach((cls: any) => {
+            if (cls.id) allClassIds.push(cls.id)
+          })
+        }
+      })
+
+      if (allClassIds.length === 0) {
+        setPrograms(programsData)
+        setLoading(false)
+        return
+      }
+
+      // Fetch class_trainers for all classes
+      const { data: classTrainersData, error: classTrainersError } = await supabase
+        .from('class_trainers')
+        .select('*')
+        .in('class_id', allClassIds)
+
+      if (classTrainersError) {
+        console.error('Error fetching class_trainers:', classTrainersError)
+        setPrograms(programsData)
+        setLoading(false)
+        return
+      }
+
+      // Get unique trainer IDs
+      const trainerIds = [...new Set((classTrainersData || []).map((ct: any) => ct.trainer_id).filter(Boolean))]
+      
+      // Fetch trainers separately
+      let trainersMap = new Map()
+      if (trainerIds.length > 0) {
+        const { data: trainersData, error: trainersError } = await supabase
+          .from('trainers')
+          .select('*')
+          .in('id', trainerIds)
+
+        if (trainersError) {
+          console.error('Error fetching trainers:', trainersError)
+        } else {
+          trainersMap = new Map((trainersData || []).map(t => [t.id, t]))
+        }
+      }
+
+      // Map class_trainers to classes
+      const classTrainersMap: Map<string, any[]> = new Map();
+      if (classTrainersData) {
+        classTrainersData.forEach((ct: any) => {
+          if (!classTrainersMap.has(ct.class_id)) {
+            classTrainersMap.set(ct.class_id, []);
+          }
+          const trainerData = trainersMap.get(ct.trainer_id);
+          classTrainersMap.get(ct.class_id)!.push({
+            ...ct,
+            trainer: trainerData || null
+          });
+        });
+      }
+
+      // Map everything back to programs
+      const programsWithTrainers = programsData.map((program: any) => ({
+        ...program,
+        classes: (program.classes || []).map((cls: any) => ({
+          ...cls,
+          trainers: classTrainersMap.get(cls.id) || []
+        }))
+      }))
+
+      setPrograms(programsWithTrainers)
     } catch (error) {
       console.error('Error fetching programs:', error)
+      setPrograms([])
     } finally {
       setLoading(false)
     }
