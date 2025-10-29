@@ -11,39 +11,51 @@ export function TrainerPerformance() {
   useEffect(() => {
     async function fetchTrainerPerformance() {
       try {
-        // Get all trainers with their programs and enrollments
+        // Get all trainers
         const { data: trainers, error: trainersError } = await supabase
           .from('trainers')
-          .select(`
-            id,
-            name,
-            programs(
-              id,
-              enrollments(count)
-            )
-          `)
+          .select('id, name')
 
         if (trainersError) throw trainersError
 
-        // Calculate stats for each trainer
-        const trainerStats = trainers?.map((trainer: any) => {
-          const totalPrograms = trainer.programs?.length || 0
-          const totalEnrollments = trainer.programs?.reduce((sum: number, program: any) => {
-            return sum + (program.enrollments?.[0]?.count || 0)
-          }, 0) || 0
+        // For each trainer, get their programs and enrollments
+        const trainerStats = await Promise.all(
+          (trainers || []).map(async (trainer: any) => {
+            // Get programs for this trainer
+            const { data: programs } = await supabase
+              .from('programs')
+              .select('id')
+              .eq('trainer_id', trainer.id)
 
-          return {
-            id: trainer.id,
-            name: trainer.name,
-            totalPrograms,
-            totalEnrollments,
-          }
-        }).filter((trainer: any) => trainer.totalPrograms > 0) // Only show trainers with programs
+            const programIds = programs?.map((p: any) => p.id) || []
+            
+            // Get total enrollments for this trainer's programs
+            let totalEnrollments = 0
+            if (programIds.length > 0) {
+              const { count } = await supabase
+                .from('enrollments')
+                .select('*', { count: 'exact', head: true })
+                .in('program_id', programIds)
+              
+              totalEnrollments = count || 0
+            }
+
+            return {
+              id: trainer.id,
+              name: trainer.name,
+              totalPrograms: programIds.length,
+              totalEnrollments,
+            }
+          })
+        )
+
+        // Filter out trainers with no programs
+        const filteredStats = trainerStats.filter((trainer: any) => trainer.totalPrograms > 0)
 
         // Sort by total enrollments descending
-        trainerStats?.sort((a: any, b: any) => b.totalEnrollments - a.totalEnrollments)
+        filteredStats.sort((a: any, b: any) => b.totalEnrollments - a.totalEnrollments)
         
-        setTrainers(trainerStats || [])
+        setTrainers(filteredStats)
       } catch (error) {
         console.error('Error fetching trainer performance:', error)
       } finally {

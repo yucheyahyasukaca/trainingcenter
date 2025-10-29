@@ -151,10 +151,10 @@ export default function UserReferralLeaderboard({ period = 'all' }: UserReferral
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {leaderboard.slice(0, 3).map((user, index) => (
             <div key={user.user_id} className={`rounded-lg border-2 p-4 sm:p-6 ${getRankColor(index)}`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+              <div className="flex items-start justify-between mb-4 gap-4">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {getRankIcon(index)}
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-bold text-gray-900 text-sm md:text-base truncate">
                       {user.user_name}
                     </h3>
@@ -163,11 +163,11 @@ export default function UserReferralLeaderboard({ period = 'all' }: UserReferral
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <div className="text-lg md:text-2xl font-bold text-gray-900">
                     {user.confirmed_referrals}
                   </div>
-                  <div className="text-xs md:text-sm text-gray-600">Referral</div>
+                  <div className="text-xs md:text-sm text-gray-600 whitespace-nowrap">Referral</div>
                 </div>
               </div>
               

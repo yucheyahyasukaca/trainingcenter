@@ -6,12 +6,32 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, we'll get all trainers for admin view
-    // In production, you would check if user is admin
+    // Get all users who have referral codes (not just trainers with role = 'trainer')
+    // This includes trainers AND regular users with referral codes
+    const { data: referralCodesData } = await supabase
+      .from('referral_codes')
+      .select('trainer_id')
+    
+    console.log('Referral codes data:', referralCodesData)
+    
+    const trainerIds = [...new Set(referralCodesData?.map((r: any) => r.trainer_id) || [])]
+    console.log('Unique trainer IDs:', trainerIds)
+    
+    if (trainerIds.length === 0) {
+      console.log('No trainer IDs found')
+      return NextResponse.json({ 
+        success: true, 
+        data: [],
+        message: 'No users with referral codes found' 
+      })
+    }
+    
     const { data: trainers, error: trainerError } = await supabase
       .from('user_profiles')
       .select('id, full_name, email, role')
-      .eq('role', 'trainer')
+      .in('id', trainerIds)
+    
+    console.log('Trainers found:', trainers)
     
     if (trainerError || !trainers || trainers.length === 0) {
       return NextResponse.json({ 
@@ -49,6 +69,7 @@ export async function GET(request: NextRequest) {
     const leaderboardData = await Promise.all(
       trainers.map(async (trainer) => {
         // Get referral tracking data for this trainer
+        console.log(`Fetching tracking for trainer: ${trainer.full_name} (${trainer.id})`)
         const { data: trackingData, error: trackingError } = await supabase
           .from('referral_tracking')
           .select(`
@@ -59,6 +80,8 @@ export async function GET(request: NextRequest) {
             created_at
           `)
           .eq('trainer_id', (trainer as any).id)
+
+        console.log(`Tracking data for ${trainer.full_name}:`, trackingData)
 
         if (trackingError) {
           console.error(`Error fetching tracking for trainer ${(trainer as any).id}:`, trackingError)
@@ -121,6 +144,15 @@ export async function GET(request: NextRequest) {
 
         const totalReferralCodes = referralCodes?.length || 0
         const activeReferralCodes = referralCodes?.filter((c: any) => c.is_active).length || 0
+        
+        console.log(`Trainer ${trainer.full_name} stats:`, {
+          totalReferrals,
+          confirmedReferrals,
+          totalCommissionEarned,
+          confirmedCommission,
+          totalReferralCodes,
+          activeReferralCodes
+        })
 
         // Calculate conversion rate
         const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0

@@ -6,12 +6,26 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // For now, we'll get all users for admin view
-    // In production, you would check if user is admin
+    // Get all users who have referral codes (not just role = 'user')
+    // This includes all users (with any role) who have referral codes
+    const { data: referralCodesData } = await supabase
+      .from('referral_codes')
+      .select('trainer_id')
+    
+    const trainerIds = [...new Set(referralCodesData?.map((r: any) => r.trainer_id) || [])]
+    
+    if (trainerIds.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        data: [],
+        message: 'No users with referral codes found' 
+      })
+    }
+    
     const { data: users, error: userError } = await supabase
       .from('user_profiles')
       .select('id, full_name, email, role')
-      .eq('role', 'user')
+      .in('id', trainerIds)
     
     if (userError || !users || users.length === 0) {
       return NextResponse.json({ 
