@@ -808,6 +808,44 @@ export interface Database {
           notes?: string | null
         }
       }
+      short_links: {
+        Row: {
+          id: string
+          short_code: string
+          destination_url: string
+          description: string | null
+          click_count: number
+          is_active: boolean
+          expires_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          short_code: string
+          destination_url: string
+          description?: string | null
+          click_count?: number
+          is_active?: boolean
+          expires_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          short_code?: string
+          destination_url?: string
+          description?: string | null
+          click_count?: number
+          is_active?: boolean
+          expires_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

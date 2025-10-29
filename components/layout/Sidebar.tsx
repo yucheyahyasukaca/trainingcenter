@@ -19,7 +19,8 @@ import {
   Gift,
   Trophy,
   User,
-  FileText
+  FileText,
+  Link2
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -42,6 +43,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Settings, label: 'Atur Sertifikat', href: '/admin/certificate-management', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Program Referral', href: '/admin/referral-management', roles: ['admin'] },
+      { icon: Link2, label: 'URL Shortener', href: '/admin/url-shortener', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
   }
