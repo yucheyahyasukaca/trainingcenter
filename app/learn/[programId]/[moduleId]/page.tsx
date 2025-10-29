@@ -1574,7 +1574,64 @@ function AssignmentContent({ content, onComplete }: any) {
   const [isUploading, setIsUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false) // Track if already submitted
+  const [isEditing, setIsEditing] = useState(false) // Track if in revision mode
+  const [currentSubmissionId, setCurrentSubmissionId] = useState<string | null>(null)
+  const [currentAttemptNumber, setCurrentAttemptNumber] = useState<number>(1)
+  const [isLoadingSubmission, setIsLoadingSubmission] = useState(true)
   const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
+  
+  // Load existing submission on mount and reset state when content changes
+  useEffect(() => {
+    // Reset all state when content changes
+    setAnswer('')
+    setSelectedFile(null)
+    setUploadedFileUrl(null)
+    setIsSubmitted(false)
+    setIsEditing(false)
+    setIsSubmitting(false)
+    setSubmitMessage(null)
+    setCurrentSubmissionId(null)
+    setCurrentAttemptNumber(1)
+    setIsLoadingSubmission(true)
+    
+    if (!profile) {
+      setIsLoadingSubmission(false)
+      return
+    }
+    
+    async function loadExistingSubmission() {
+      try {
+        const { data, error } = await supabase
+          .from('assignment_submissions')
+          .select('*')
+          .eq('user_id', profile.id)
+          .eq('content_id', content.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+          console.error('Error loading submission:', error)
+          return
+        }
+        
+        if (data) {
+          setIsSubmitted(true)
+          setIsEditing(false)
+          setAnswer(data.answer_text || '')
+          setUploadedFileUrl(data.file_url || null)
+          setCurrentSubmissionId(data.id)
+          setCurrentAttemptNumber(data.attempt_number || 1)
+        }
+      } catch (error) {
+        console.error('Error loading submission:', error)
+      } finally {
+        setIsLoadingSubmission(false)
+      }
+    }
+    
+    loadExistingSubmission()
+  }, [profile, content.id])
   
   // Image compression function
   const compressImage = async (
@@ -1791,9 +1848,20 @@ function AssignmentContent({ content, onComplete }: any) {
     }
   }
   
+  const handleRevision = () => {
+    setIsEditing(true)
+    setIsSubmitted(false)
+    setSubmitMessage(null)
+  }
+  
   const handleSubmit = async () => {
-    if (isSubmitted) {
-      setSubmitMessage({type: 'error', text: 'Tugas sudah dikirim'})
+    if (!profile) {
+      setSubmitMessage({type: 'error', text: 'Anda harus login untuk mengirim tugas'})
+      return
+    }
+    
+    if (!isEditing && isSubmitted) {
+      setSubmitMessage({type: 'error', text: 'Tugas sudah dikirim. Klik "Revisi" untuk mengubah.'})
       return
     }
     
@@ -1806,21 +1874,97 @@ function AssignmentContent({ content, onComplete }: any) {
     setSubmitMessage(null)
     
     try {
-      // TODO: Save submission to database
-      // For now, just show success message
-      setTimeout(() => {
-        setSubmitMessage({type: 'success', text: 'Tugas berhasil dikirim'})
-        setIsSubmitted(true) // Mark as submitted
-        setIsSubmitting(false)
+      let data, error
+      
+      // If editing existing submission, update it or create new attempt
+      if (isEditing && currentSubmissionId) {
+        // Try to update existing submission first
+        const updateResult = await supabase
+          .from('assignment_submissions')
+          .update({
+            answer_text: answer || null,
+            file_url: uploadedFileUrl || null,
+            status: 'submitted',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentSubmissionId)
+          .select()
+          .single()
         
-        // Automatically mark content as completed
-        if (onComplete) {
-          onComplete()
+        if (updateResult.error && updateResult.error.code !== '42501') { // Ignore RLS errors, try insert instead
+          // If update fails (maybe due to RLS), create new attempt
+          const newAttemptNumber = currentAttemptNumber + 1
+          const insertResult = await supabase
+            .from('assignment_submissions')
+            .insert({
+              user_id: profile.id,
+              content_id: content.id,
+              answer_text: answer || null,
+              file_url: uploadedFileUrl || null,
+              status: 'submitted',
+              attempt_number: newAttemptNumber
+            })
+            .select()
+            .single()
+          
+          data = insertResult.data
+          error = insertResult.error
+          
+          if (!error && data) {
+            setCurrentAttemptNumber(newAttemptNumber)
+            setCurrentSubmissionId(data.id)
+          }
+        } else {
+          data = updateResult.data
+          error = updateResult.error
         }
-      }, 1000)
+      } else {
+        // New submission
+        const insertResult = await supabase
+          .from('assignment_submissions')
+          .insert({
+            user_id: profile.id,
+            content_id: content.id,
+            answer_text: answer || null,
+            file_url: uploadedFileUrl || null,
+            status: 'submitted',
+            attempt_number: 1
+          })
+          .select()
+          .single()
+        
+        data = insertResult.data
+        error = insertResult.error
+        
+        if (!error && data) {
+          setCurrentSubmissionId(data.id)
+          setCurrentAttemptNumber(1)
+        }
+      }
+      
+      if (error) {
+        console.error('Submit error:', error)
+        throw new Error(error.message || 'Gagal menyimpan submission ke database')
+      }
+      
+      if (!data) {
+        throw new Error('Submission tidak berhasil disimpan')
+      }
+      
+      // Only mark as submitted and complete after successful save
+      const wasEditing = isEditing // Capture before state change
+      setIsSubmitted(true)
+      setIsEditing(false)
+      setSubmitMessage({type: 'success', text: wasEditing ? 'Revisi tugas berhasil dikirim' : 'Tugas berhasil dikirim'})
+      
+      // Automatically mark content as completed
+      if (onComplete) {
+        onComplete()
+      }
     } catch (error: any) {
       console.error('Submit error:', error)
-      setSubmitMessage({type: 'error', text: 'Gagal mengirim tugas'})
+      setSubmitMessage({type: 'error', text: error.message || 'Gagal mengirim tugas'})
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -1853,16 +1997,22 @@ function AssignmentContent({ content, onComplete }: any) {
       
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="font-bold text-gray-900 mb-4">Submit Tugas Anda</h4>
-        <textarea
-          className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 ${
-            isSubmitted ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''
-          }`}
-          rows={6}
-          placeholder="Tulis jawaban Anda di sini..."
-          value={answer}
-          onChange={(e) => !isSubmitted && setAnswer(e.target.value)}
-          readOnly={isSubmitted}
-        />
+        {isLoadingSubmission ? (
+          <div className="py-8 text-center text-gray-500">
+            Memuat data tugas...
+          </div>
+        ) : (
+          <>
+            <textarea
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                isSubmitted && !isEditing ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''
+              }`}
+              rows={6}
+              placeholder="Tulis jawaban Anda di sini..."
+              value={answer}
+              onChange={(e) => !isSubmitted || isEditing ? setAnswer(e.target.value) : undefined}
+              readOnly={isSubmitted && !isEditing}
+            />
         
         {/* File Upload Section */}
         {selectedFile && !uploadedFileUrl && (
@@ -1887,7 +2037,7 @@ function AssignmentContent({ content, onComplete }: any) {
               <CheckCircle className="w-5 h-5 text-green-600" />
               <span className="text-sm text-green-900">File berhasil diupload</span>
             </div>
-              {!isSubmitted && (
+              {(!isSubmitted || isEditing) && (
               <button
                 onClick={() => {
                   setSelectedFile(null)
@@ -1912,26 +2062,36 @@ function AssignmentContent({ content, onComplete }: any) {
           </div>
         )}
         
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-3 flex-wrap">
           <button 
             onClick={handleSubmit}
-            disabled={isSubmitting || isSubmitted || (!answer && !uploadedFileUrl)}
+            disabled={isSubmitting || (isSubmitted && !isEditing) || (!answer && !uploadedFileUrl)}
             className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Mengirim...' : isSubmitted ? 'Sudah Dikirim' : 'Submit'}
+            {isSubmitting ? 'Mengirim...' : isEditing ? 'Kirim Revisi' : isSubmitted ? 'Sudah Dikirim' : 'Submit'}
           </button>
-          {!isSubmitted && (
+          {isSubmitted && !isEditing && (
+            <button
+              onClick={handleRevision}
+              className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              Revisi Tugas
+            </button>
+          )}
+          {(!isSubmitted || isEditing) && (
             <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
               <input 
-                type="file" 
+                type="file"
                 className="hidden" 
                 onChange={handleFileSelect}
-                disabled={isSubmitted}
+                disabled={isSubmitted && !isEditing}
               />
               Pilih File
             </label>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   )
