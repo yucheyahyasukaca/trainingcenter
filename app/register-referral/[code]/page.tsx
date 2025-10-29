@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { CheckCircle, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useNotification } from '@/components/ui/Notification'
+import { generateWelcomeEmail } from '@/lib/email-templates'
 
 interface Program {
   id: string
@@ -2375,6 +2376,132 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         console.error('Error creating referral tracking:', trackingError)
       } else if (isEnrollmentApproved) {
         console.log('Referral tracking created with confirmed status (free program auto-approved)')
+      }
+
+      // Get or create user referral code and send welcome email
+      try {
+        // Get or create user referral code
+        let userReferralCode: string | null = null
+        
+        const { data: existingCodes } = await supabase
+          .from('referral_codes')
+          .select('code')
+          .eq('trainer_id', profile.id)
+          .eq('is_active', true)
+          .limit(1)
+
+        if (existingCodes && existingCodes.length > 0) {
+          userReferralCode = (existingCodes[0] as any).code
+        } else {
+          // Generate new referral code
+          const generateReferralCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+            let result = ''
+            for (let i = 0; i < 8; i++) {
+              result += chars.charAt(Math.floor(Math.random() * chars.length))
+            }
+            return result
+          }
+
+          let newReferralCode = generateReferralCode()
+          let attempts = 0
+          let codeExists = true
+
+          while (codeExists && attempts < 10) {
+            const { data: checkCodes } = await supabase
+              .from('referral_codes')
+              .select('id')
+              .eq('code', newReferralCode)
+              .limit(1)
+
+            if (!checkCodes || checkCodes.length === 0) {
+              codeExists = false
+            } else {
+              newReferralCode = generateReferralCode()
+              attempts++
+            }
+          }
+
+          if (!codeExists) {
+            const { data: newCode } = await supabase
+              .from('referral_codes')
+              .insert({
+                code: newReferralCode,
+                trainer_id: profile.id,
+                description: 'Referral code untuk berbagi program',
+                is_active: true,
+                discount_percentage: 0,
+                discount_amount: 0,
+                commission_percentage: 0,
+                commission_amount: 0
+              } as any)
+              .select('code')
+              .single()
+
+            if (newCode) {
+              userReferralCode = (newCode as any).code
+            }
+          }
+        }
+
+        // Check if user has used referral (has confirmed referral tracking)
+        const { data: trackingData } = await supabase
+          .from('referral_tracking')
+          .select('id')
+          .eq('trainer_id', profile.id)
+          .eq('status', 'confirmed')
+          .limit(1)
+
+        const hasReferralUsed = trackingData && trackingData.length > 0
+
+        // Materials list
+        const materials = [
+          'Fondasi AI Generatif dan Prompting Efektif',
+          'Dari Ide Menjadi Materi Ajar di Gemini Canvas',
+          'Integrasi Lanjutan, Etika dan Pemberdayaan Siswa',
+          'Sertifikasi Internasional Gemini Certified Educator',
+          'Diseminasi Pengimbasan Program'
+        ]
+
+        const openMaterials = hasReferralUsed ? materials : materials.slice(0, 2)
+        const lockedMaterials = hasReferralUsed ? [] : materials.slice(2)
+
+        // Generate referral link
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+        const referralLink = userReferralCode ? `${baseUrl}/referral/${userReferralCode}` : undefined
+
+        // Generate email HTML
+        const emailHtml = generateWelcomeEmail({
+          participantName: formData.full_name,
+          programTitle: program.title,
+          programDescription: program.description || '',
+          userReferralCode: userReferralCode || undefined,
+          referralLink: referralLink,
+          dashboardUrl: `${baseUrl}/dashboard`,
+          openMaterials,
+          lockedMaterials,
+          hasReferralUsed: !!hasReferralUsed,
+        })
+
+        // Send email via API (async, tidak perlu menunggu)
+        fetch('/api/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: formData.email,
+            subject: `Selamat Bergabung - ${program.title} | GARUDA-21 Training Center`,
+            html: emailHtml,
+            useQueue: true, // Use queue untuk scalability
+          }),
+        }).catch((error) => {
+          console.error('Error sending welcome email:', error)
+          // Don't throw - email sending failure shouldn't block enrollment
+        })
+      } catch (emailError) {
+        console.error('Error preparing welcome email:', emailError)
+        // Don't throw - email sending failure shouldn't block enrollment
       }
 
       addNotification({

@@ -283,15 +283,20 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
                 </div>
 
                 {/* Step 2 - Current */}
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                     <span className="text-white text-sm font-semibold">2</span>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Akses Kelas</p>
-                    <p className="text-sm text-gray-600">
-                      Kamu sudah terdaftar dan mendapatkan 2 kelas pertama. Bagikan link referral ke 1 teman untuk membuka kelas-kelas berikutnya.
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 mb-1">Akses Kelas & Bagikan Referral</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Kamu sudah terdaftar dan mendapatkan akses ke 2 kelas pertama. 
                     </p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs font-medium text-gray-700">✓ Cek email untuk detail lengkap</p>
+                      <p className="text-xs font-medium text-gray-700">✓ Akses dashboard untuk mulai belajar</p>
+                      <p className="text-xs font-medium text-blue-600">→ Bagikan link referral untuk membuka 3 kelas berikutnya</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -313,15 +318,47 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-blue-600 font-semibold">Langkah 1</span>
                   <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-sm text-gray-500">Selesai</span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900">Isi Formulir Registrasi</h2>
+                <p className="text-gray-600 mt-2">Formulir registrasi Anda telah berhasil disubmit dan diverifikasi.</p>
+              </div>
+
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600 font-semibold">Langkah 2</span>
+                  <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                    <span className="text-white text-xs font-semibold">2</span>
+                  </div>
+                  <span className="text-sm text-blue-600 font-medium">Sedang Berlangsung</span>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Akses Kelas & Bagikan Referral</h2>
+                <p className="text-gray-600 mb-3">
+                  Sekarang adalah waktunya untuk mulai belajar dan membagikan program ini ke teman-teman Anda.
+                </p>
               </div>
 
               {/* Success Message */}
               <div className="mb-6">
-                <p className="text-gray-700 mb-4">
-                  Pendaftaran berhasil dilakukan. Detail lebih lanjut telah dikirim ke email kamu ({profile?.email}).
-                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="text-blue-900 font-semibold mb-1">Email Konfirmasi Telah Dikirim</h4>
+                      <p className="text-blue-800 text-sm mb-2">
+                        Kami telah mengirimkan email konfirmasi lengkap ke <strong>{profile?.email}</strong>. 
+                        Silakan cek inbox email Anda (juga folder spam/junk) untuk melihat detail pendaftaran dan informasi penting lainnya.
+                      </p>
+                      <p className="text-blue-700 text-xs">
+                        📧 Email berisi: Detail program, materi yang dapat diakses, link referral, dan panduan selanjutnya.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Success Card */}
