@@ -422,26 +422,38 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
     })
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    addNotification({
-      type: 'success',
-      title: 'Berhasil',
-      message: 'Kode referral berhasil disalin'
+  const copyToClipboard = (code: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const referralUrl = `${baseUrl}/referral/${code}`
+    
+    navigator.clipboard.writeText(referralUrl).then(() => {
+      addNotification({
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Link referral berhasil disalin ke clipboard'
+      })
+    }).catch(() => {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Gagal menyalin link referral'
+      })
     })
   }
 
   const shareReferralCode = (code: string) => {
-    const shareText = `Hai! Saya ingin mengundang Anda untuk bergabung di program pelatihan GARUDA-21. Gunakan kode referral saya: ${code} untuk mendapatkan diskon khusus!`
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const referralUrl = `${baseUrl}/referral/${code}`
+    const shareText = `Hai! Saya ingin mengundang Anda untuk bergabung di program pelatihan GARUDA-21. Gunakan link referral saya untuk mendapatkan diskon khusus: ${referralUrl}`
     
     if (navigator.share) {
       navigator.share({
         title: 'Undangan Program GARUDA-21',
         text: shareText,
-        url: window.location.origin
+        url: referralUrl
       })
     } else {
-      copyToClipboard(shareText)
+      copyToClipboard(code)
     }
   }
 
@@ -591,7 +603,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
                         <button
                           onClick={() => copyToClipboard(code.code)}
                           className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                          title="Salin kode"
+                          title="Salin link referral"
                         >
                           <Copy className="h-4 w-4" />
                         </button>

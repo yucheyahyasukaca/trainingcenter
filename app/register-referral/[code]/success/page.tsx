@@ -23,8 +23,22 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
   
   const [program, setProgram] = useState<Program | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasReferralUsed, setHasReferralUsed] = useState(false)
+  const [userReferralCode, setUserReferralCode] = useState<string | null>(null)
   
   const referralCode = params.code
+
+  // List of materials
+  const materials = [
+    'Fondasi AI Generatif dan Prompting Efektif',
+    'Dari Ide Menjadi Materi Ajar di Gemini Canvas',
+    'Integrasi Lanjutan, Etika dan Pemberdayaan Siswa',
+    'Sertifikasi Internasional Gemini Certified Educator',
+    'Diseminasi Pengimbasan Program'
+  ]
+
+  const openMaterials = hasReferralUsed ? materials : materials.slice(0, 2)
+  const lockedMaterials = hasReferralUsed ? [] : materials.slice(2)
 
   useEffect(() => {
     if (!authLoading && !profile) {
@@ -33,7 +47,136 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
     }
     
     fetchProgramData()
+    checkReferralUsage()
+    getOrCreateUserReferralCode()
   }, [profile, authLoading, referralCode])
+
+  const getOrCreateUserReferralCode = async () => {
+    if (!profile?.id) return
+
+    try {
+      // Check if user already has a referral code
+      const { data: existingCodes, error: fetchError } = await supabase
+        .from('referral_codes')
+        .select('code')
+        .eq('trainer_id', profile.id)
+        .eq('is_active', true)
+        .limit(1)
+
+      if (fetchError) {
+        console.error('Error fetching user referral codes:', fetchError)
+        return
+      }
+
+      if (existingCodes && existingCodes.length > 0) {
+        // User already has a referral code
+        setUserReferralCode((existingCodes[0] as any).code)
+        return
+      }
+
+      // Create new referral code for user
+      const generateReferralCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        let result = ''
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length))
+        }
+        return result
+      }
+
+      // Generate unique referral code (retry if duplicate)
+      let newReferralCode = generateReferralCode()
+      let attempts = 0
+      let codeExists = true
+
+      while (codeExists && attempts < 10) {
+        const { data: existingCodes, error: checkError } = await supabase
+          .from('referral_codes')
+          .select('id')
+          .eq('code', newReferralCode)
+          .limit(1)
+
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Error checking referral code:', checkError)
+          return
+        }
+
+        if (!existingCodes || existingCodes.length === 0) {
+          codeExists = false
+        } else {
+          newReferralCode = generateReferralCode()
+          attempts++
+        }
+      }
+
+      if (codeExists) {
+        console.error('Failed to generate unique referral code after 10 attempts')
+        return
+      }
+
+      const { data: newCode, error: createError } = await supabase
+        .from('referral_codes')
+        .insert({
+          code: newReferralCode,
+          trainer_id: profile.id,
+          description: 'Referral code untuk berbagi program',
+          is_active: true,
+          discount_percentage: 0,
+          discount_amount: 0,
+          commission_percentage: 0,
+          commission_amount: 0
+        } as any)
+        .select('code')
+        .single()
+
+      if (createError) {
+        console.error('Error creating referral code:', createError)
+        return
+      }
+
+      if (newCode) {
+        setUserReferralCode((newCode as any).code)
+      }
+    } catch (error) {
+      console.error('Error getting or creating referral code:', error)
+    }
+  }
+
+  const checkReferralUsage = async () => {
+    if (!profile?.id) return
+
+    try {
+      // Get user's referral codes
+      const { data: userReferralCodes, error: codesError } = await supabase
+        .from('referral_codes')
+        .select('id')
+        .eq('trainer_id', profile.id)
+
+      if (codesError || !userReferralCodes || userReferralCodes.length === 0) {
+        setHasReferralUsed(false)
+        return
+      }
+
+      // Check if any referral code has been used (confirmed status)
+      const { data: trackingData, error: trackingError } = await supabase
+        .from('referral_tracking')
+        .select('id')
+        .in('referral_code_id', userReferralCodes.map(code => (code as any).id))
+        .eq('status', 'confirmed')
+
+      if (trackingError) {
+        console.error('Error checking referral usage:', trackingError)
+        setHasReferralUsed(false)
+        return
+      }
+
+      // If at least 1 referral has been confirmed, unlock the materials
+      setHasReferralUsed((trackingData?.length || 0) >= 1)
+    } catch (error) {
+      console.error('Error checking referral usage:', error)
+      setHasReferralUsed(false)
+    }
+  }
 
   const fetchProgramData = async () => {
     try {
@@ -72,9 +215,9 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
   }
 
   const generateReferralLink = () => {
-    if (!profile) return ''
-    const baseUrl = window.location.origin
-    return `${baseUrl}/register-referral/${profile.id.slice(-8)}${referralCode.slice(-8)}`
+    if (!userReferralCode) return ''
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/referral/${userReferralCode}`
   }
 
   const copyReferralLink = async () => {
@@ -193,35 +336,23 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
 
                 <div className="bg-white rounded-lg p-4 mb-4">
                   <h4 className="font-semibold text-gray-900 mb-3">
-                    Berikut adalah kelas-kelas yang perlu kamu selesaikan:
+                    Berikut adalah daftar materi pelatihan yang perlu kamu selesaikan:
                   </h4>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-700">Belajar Penerapan Data Science dengan Microsoft Fabric</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-gray-700">Membangun Aplikasi Gen AI dengan Microsoft Azure</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-xs text-gray-600">🔒</span>
+                    {openMaterials.map((material, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-gray-700">{material}</span>
                       </div>
-                      <span className="text-sm text-gray-500">Memulai Pemrograman dengan Python</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-xs text-gray-600">🔒</span>
+                    ))}
+                    {lockedMaterials.map((material, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-xs text-gray-600">🔒</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{material}</span>
                       </div>
-                      <span className="text-sm text-gray-500">Belajar Machine Learning untuk Pemula</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-xs text-gray-600">🔒</span>
-                      </div>
-                      <span className="text-sm text-gray-500">Belajar Fundamental Pemrosesan Data</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -235,7 +366,10 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
 
                 <div className="mt-4">
                   <p className="text-green-800 text-sm">
-                    Akses ke 3 kelas terakhir hanya akan terbuka setelah kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung dalam program ini melalui tautan referral-mu.
+                    {hasReferralUsed 
+                      ? 'Selamat! Akses ke 3 materi terakhir telah terbuka karena kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu.'
+                      : 'Akses ke 3 materi terakhir hanya akan terbuka setelah kode referral dari user tersebut berhasil digunakan oleh minimal 1 teman atau rekan yang bergabung dalam program ini.'
+                    }
                   </p>
                 </div>
               </div>
@@ -248,23 +382,29 @@ export default function RegisterReferralSuccessPage({ params }: { params: { code
                   Jadilah bagian penting dari program ini dengan mengajak lebih banyak teman atau kerabat! Semakin banyak yang bergabung melalui referral-mu, semakin besar peluangmu memenangkan hadiah menarik seperti laptop, gadget, dan voucher eksklusif.
                 </p>
 
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={generateReferralLink()}
-                      readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                    />
+                {userReferralCode ? (
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={generateReferralLink()}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={copyReferralLink}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Salin Link
+                    </button>
                   </div>
-                  <button
-                    onClick={copyReferralLink}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Salin Link
-                  </button>
-                </div>
+                ) : (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">Sedang memuat kode referral Anda...</p>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

@@ -1,20 +1,38 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/auth'
 import { Mail, Lock, AlertCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [referralCode, setReferralCode] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   })
+
+  useEffect(() => {
+    // Check for referral code in URL
+    const referral = searchParams.get('referral')
+    if (referral) {
+      setReferralCode(referral)
+      // Store in sessionStorage to persist
+      sessionStorage.setItem('referralCode', referral)
+    } else {
+      // Also check sessionStorage
+      const storedReferral = sessionStorage.getItem('referralCode')
+      if (storedReferral) {
+        setReferralCode(storedReferral)
+      }
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -35,8 +53,14 @@ export default function LoginPage() {
       
       // Wait a bit for auth state to update
       setTimeout(() => {
-        console.log('🔄 Redirecting to dashboard...')
-        router.push('/dashboard')
+        console.log('🔄 Redirecting...')
+        // Redirect based on referral code
+        if (referralCode) {
+          // Redirect to referral registration page
+          router.push(`/register-referral/${referralCode}`)
+        } else {
+          router.push('/dashboard')
+        }
         router.refresh()
       }, 1000)
     } catch (err: any) {
@@ -83,6 +107,22 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
           <p className="text-gray-600">Silakan login untuk melanjutkan</p>
+          
+          {/* Referral Code Info */}
+          {referralCode && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-green-600">🎁</span>
+                <span className="font-semibold text-green-800">Kode referral aktif!</span>
+              </div>
+              <p className="text-sm text-green-700">
+                Kode: <span className="font-mono font-bold">{referralCode}</span>
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                Setelah login, Anda akan diarahkan ke pendaftaran program dengan diskon khusus.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Login Form */}

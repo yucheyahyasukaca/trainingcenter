@@ -34,11 +34,19 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   }, [params.id])
 
   useEffect(() => {
-    // Check for referral code in URL parameters
+    // Check for referral code in URL parameters first
     const referral = searchParams.get('referral')
     if (referral) {
       setReferralCode(referral)
+      sessionStorage.setItem('referralCode', referral)
       fetchTrainerClasses(referral)
+    } else {
+      // If no referral in URL, check sessionStorage
+      const storedReferral = sessionStorage.getItem('referralCode')
+      if (storedReferral) {
+        setReferralCode(storedReferral)
+        fetchTrainerClasses(storedReferral)
+      }
     }
   }, [searchParams])
 

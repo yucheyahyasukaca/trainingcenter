@@ -1,19 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signUp } from '@/lib/auth'
 
 export default function NewRegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Check for referral code in URL
+    const referral = searchParams.get('referral')
+    if (referral) {
+      setReferralCode(referral)
+      // Store in sessionStorage to persist across redirects
+      sessionStorage.setItem('referralCode', referral)
+    } else {
+      // Also check sessionStorage in case user came from /register?referral=CODE
+      const storedReferral = sessionStorage.getItem('referralCode')
+      if (storedReferral) {
+        setReferralCode(storedReferral)
+      }
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -28,8 +46,13 @@ export default function NewRegisterPage() {
       setSuccess(true)
       
       // Redirect to login page after successful registration
+      // Preserve referral code in redirect
       setTimeout(() => {
-        router.push('/login')
+        if (referralCode) {
+          router.push(`/login?referral=${referralCode}`)
+        } else {
+          router.push('/login')
+        }
       }, 2000)
     } catch (err: any) {
       console.error('Registration error:', err)
@@ -71,6 +94,23 @@ export default function NewRegisterPage() {
           <div>
             <h1 className="text-4xl font-bold text-gray-900">Buat Akun Garuda Academy</h1>
             <p className="text-gray-600 mt-2">Silakan isi formulir di bawah ini untuk membuat akun Garuda Academy.</p>
+            
+            {/* Referral Code Info */}
+            {referralCode && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-green-600">🎁</span>
+                  <span className="font-semibold text-green-800">Anda memiliki kode referral!</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Kode referral: <span className="font-mono font-bold">{referralCode}</span>
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Setelah membuat akun dan login, kode referral ini akan otomatis digunakan saat pendaftaran program.
+                </p>
+              </div>
+            )}
+            
             <div className="h-px bg-gray-200 my-6" />
 
             <form onSubmit={handleSubmit} className="space-y-5">
