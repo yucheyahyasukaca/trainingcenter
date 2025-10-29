@@ -100,8 +100,11 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
 
   useEffect(() => {
     if (profile?.id) {
-      fetchStats()
-      fetchReferralCodes()
+      setLoading(true)
+      Promise.all([fetchStats(), fetchReferralCodes()])
+        .finally(() => {
+          setLoading(false)
+        })
     }
   }, [selectedPeriod, profile?.id])
 
@@ -111,7 +114,20 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
     try {
       console.log('Fetching user referral stats for:', profile.id)
       
-      // Get referral codes count
+      // Get referral tracking data directly by trainer_id
+      // This is more direct and accurate than going through referral_codes first
+      const { data: referralTracking, error: trackingError } = await supabase
+        .from('referral_tracking')
+        .select('*')
+        .eq('trainer_id', profile.id)
+        .order('created_at', { ascending: false })
+
+      if (trackingError) {
+        console.error('Error fetching referral tracking:', trackingError)
+        throw trackingError
+      }
+
+      // Also get referral codes for display purposes
       const { data: referralCodes, error: codesError } = await supabase
         .from('referral_codes')
         .select('id')
@@ -119,19 +135,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
 
       if (codesError) {
         console.error('Error fetching referral codes:', codesError)
-        throw codesError
-      }
-
-      // Get referral tracking data
-      const { data: referralTracking, error: trackingError } = await supabase
-        .from('referral_tracking')
-        .select('*')
-        .in('referral_code_id', referralCodes?.map(code => (code as any).id) || [])
-        .order('created_at', { ascending: false })
-
-      if (trackingError) {
-        console.error('Error fetching referral tracking:', trackingError)
-        throw trackingError
+        // Don't throw, just log - referral codes are not critical for stats
       }
 
       // Sync referral tracking status with enrollment status
@@ -189,7 +193,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
               const { data: refreshedTracking } = await supabase
                 .from('referral_tracking')
                 .select('*')
-                .in('referral_code_id', referralCodes?.map(code => (code as any).id) || [])
+                .eq('trainer_id', profile.id)
                 .order('created_at', { ascending: false })
               
               if (refreshedTracking) {
@@ -343,7 +347,7 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
         enrichedTracking = []
       }
 
-      // Calculate stats using enriched tracking data
+      // Calculate all-time stats using enriched tracking data
       const totalReferrals = enrichedTracking?.length || 0
       const confirmedReferrals = enrichedTracking?.filter(tracking => (tracking as any).status === 'confirmed').length || 0
       const pendingReferrals = enrichedTracking?.filter(tracking => (tracking as any).status === 'pending').length || 0
@@ -352,6 +356,37 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
       const confirmedCommission = enrichedTracking?.filter(tracking => (tracking as any).status === 'confirmed').reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0) || 0
       const totalDiscountGiven = enrichedTracking?.reduce((sum, tracking) => sum + ((tracking as any).discount_applied || 0), 0) || 0
       const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
+
+      // Filter tracking data by selected period
+      const now = new Date()
+      const filteredTracking = enrichedTracking?.filter(tracking => {
+        if (selectedPeriod === 'all') return true
+        
+        const trackingDate = new Date((tracking as any).created_at)
+        
+        switch (selectedPeriod) {
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            return trackingDate >= weekAgo
+          case 'month':
+            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            return trackingDate >= monthAgo
+          case 'year':
+            const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+            return trackingDate >= yearAgo
+          default:
+            return true
+        }
+      }) || []
+
+      // Calculate period stats using filtered data
+      const periodTotalReferrals = filteredTracking.length
+      const periodConfirmedReferrals = filteredTracking.filter(tracking => (tracking as any).status === 'confirmed').length
+      const periodPendingReferrals = filteredTracking.filter(tracking => (tracking as any).status === 'pending').length
+      const periodCancelledReferrals = filteredTracking.filter(tracking => (tracking as any).status === 'cancelled').length
+      const periodTotalCommissionEarned = filteredTracking.reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0)
+      const periodConfirmedCommission = filteredTracking.filter(tracking => (tracking as any).status === 'confirmed').reduce((sum, tracking) => sum + ((tracking as any).commission_earned || 0), 0)
+      const periodTotalDiscountGiven = filteredTracking.reduce((sum, tracking) => sum + ((tracking as any).discount_applied || 0), 0)
 
       const statsData: UserReferralStats = {
         total_referrals: totalReferrals,
@@ -363,15 +398,15 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
         total_discount_given: totalDiscountGiven,
         conversion_rate: conversionRate,
         period_stats: {
-          total_referrals: totalReferrals,
-          confirmed_referrals: confirmedReferrals,
-          pending_referrals: pendingReferrals,
-          cancelled_referrals: cancelledReferrals,
-          total_commission_earned: totalCommissionEarned,
-          confirmed_commission: confirmedCommission,
-          total_discount_given: totalDiscountGiven
+          total_referrals: periodTotalReferrals,
+          confirmed_referrals: periodConfirmedReferrals,
+          pending_referrals: periodPendingReferrals,
+          cancelled_referrals: periodCancelledReferrals,
+          total_commission_earned: periodTotalCommissionEarned,
+          confirmed_commission: periodConfirmedCommission,
+          total_discount_given: periodTotalDiscountGiven
         },
-        recent_referrals: enrichedTracking?.slice(0, 5).map(tracking => ({
+        recent_referrals: filteredTracking?.slice(0, 5).map(tracking => ({
           id: (tracking as any).id,
           participant_name: (tracking as any).participant?.name || (tracking as any).participant?.email || 'Participant',
           program_title: (tracking as any).program?.title || 'Program',
@@ -390,6 +425,27 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
         type: 'error',
         title: 'Error',
         message: 'Gagal memuat statistik referral'
+      })
+      // Set stats to empty/default values on error so UI still renders
+      setStats({
+        total_referrals: 0,
+        confirmed_referrals: 0,
+        pending_referrals: 0,
+        cancelled_referrals: 0,
+        total_commission_earned: 0,
+        confirmed_commission: 0,
+        total_discount_given: 0,
+        conversion_rate: 0,
+        period_stats: {
+          total_referrals: 0,
+          confirmed_referrals: 0,
+          pending_referrals: 0,
+          cancelled_referrals: 0,
+          total_commission_earned: 0,
+          confirmed_commission: 0,
+          total_discount_given: 0
+        },
+        recent_referrals: []
       })
     }
   }
