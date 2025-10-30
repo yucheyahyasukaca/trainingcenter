@@ -22,10 +22,12 @@ export async function GET(request: NextRequest) {
       })
     }
     
+    // Only include regular users; exclude trainers/managers from this list
     const { data: users, error: userError } = await supabase
       .from('user_profiles')
       .select('id, full_name, email, role')
       .in('id', trainerIds)
+      .eq('role', 'user')
     
     if (userError || !users || users.length === 0) {
       return NextResponse.json({ 

@@ -68,23 +68,22 @@ export async function GET(request: NextRequest) {
     // Get detailed stats for each trainer
     const leaderboardData = await Promise.all(
       trainers.map(async (trainer) => {
-        // Get referral tracking data for this trainer
-        console.log(`Fetching tracking for trainer: ${trainer.full_name} (${trainer.id})`)
-        const { data: trackingData, error: trackingError } = await supabase
-          .from('referral_tracking')
-          .select(`
-            id,
-            status,
-            commission_earned,
-            discount_applied,
-            created_at
-          `)
+        // Strategy change:
+        // Some deployments have empty referral_tracking due to historical data or RLS.
+        // For admin view, compute usage based on enrollments tied to the trainer's referral codes.
+
+        // Fetch this trainer's referral codes first
+        const { data: trainerCodes } = await supabase
+          .from('referral_codes')
+          .select('id, is_active')
           .eq('trainer_id', (trainer as any).id)
 
-        console.log(`Tracking data for ${trainer.full_name}:`, trackingData)
+        const codeIds = (trainerCodes || []).map((c: any) => c.id)
+        const totalReferralCodes = trainerCodes?.length || 0
+        const activeReferralCodes = trainerCodes?.filter((c: any) => c.is_active).length || 0
 
-        if (trackingError) {
-          console.error(`Error fetching tracking for trainer ${(trainer as any).id}:`, trackingError)
+        // If no codes, return zeroed stats
+        if (codeIds.length === 0) {
           return {
             trainer_id: (trainer as any).id,
             trainer_name: (trainer as any).full_name,
@@ -96,54 +95,44 @@ export async function GET(request: NextRequest) {
             total_commission_earned: 0,
             confirmed_commission: 0,
             total_discount_given: 0,
-            total_referral_codes: 0,
-            active_referral_codes: 0,
+            total_referral_codes: totalReferralCodes,
+            active_referral_codes: activeReferralCodes,
             conversion_rate: 0,
             last_referral_date: null
           }
         }
 
+        // Pull enrollments that used any of these codes
+        const { data: enrollmentsData } = await supabase
+          .from('enrollments')
+          .select('id, status, created_at')
+          .in('referral_code_id', codeIds)
+
         // Filter by period
-        const filteredTrackingData = trackingData?.filter(stat => {
+        const filteredEnrollments = (enrollmentsData || []).filter((enr: any) => {
           if (period === 'all') return true
-          
-          const statDate = new Date((stat as any).created_at)
+          const enrDate = new Date(enr.created_at)
           const now = new Date()
-          
           switch (period) {
             case 'week':
-              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-              return statDate >= weekAgo
+              return enrDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
             case 'month':
-              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-              return statDate >= monthAgo
+              return enrDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
             case 'year':
-              const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
-              return statDate >= yearAgo
+              return enrDate >= new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
             default:
               return true
           }
-        }) || []
+        })
 
-        // Calculate stats
-        const totalReferrals = filteredTrackingData.length
-        const confirmedReferrals = filteredTrackingData.filter((s: any) => s.status === 'confirmed').length
-        const pendingReferrals = filteredTrackingData.filter((s: any) => s.status === 'pending').length
-        const cancelledReferrals = filteredTrackingData.filter((s: any) => s.status === 'cancelled').length
-        const totalCommissionEarned = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
-        const confirmedCommission = filteredTrackingData
-          .filter((s: any) => s.status === 'confirmed')
-          .reduce((sum: number, s: any) => sum + (s.commission_earned || 0), 0)
-        const totalDiscountGiven = filteredTrackingData.reduce((sum: number, s: any) => sum + (s.discount_applied || 0), 0)
-
-        // Get referral codes count
-        const { data: referralCodes, error: codesError } = await supabase
-          .from('referral_codes')
-          .select('id, is_active')
-          .eq('trainer_id', (trainer as any).id)
-
-        const totalReferralCodes = referralCodes?.length || 0
-        const activeReferralCodes = referralCodes?.filter((c: any) => c.is_active).length || 0
+        // Derive stats
+        const totalReferrals = filteredEnrollments.length
+        const confirmedReferrals = filteredEnrollments.filter((e: any) => e.status === 'approved').length
+        const pendingReferrals = filteredEnrollments.filter((e: any) => e.status === 'pending').length
+        const cancelledReferrals = filteredEnrollments.filter((e: any) => e.status === 'cancelled').length
+        const totalCommissionEarned = 0 // Not derived here; left as 0 to avoid misleading sums
+        const confirmedCommission = 0
+        const totalDiscountGiven = 0
         
         console.log(`Trainer ${trainer.full_name} stats:`, {
           totalReferrals,
@@ -158,8 +147,8 @@ export async function GET(request: NextRequest) {
         const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
         // Get last referral date
-        const lastReferralDate = filteredTrackingData.length > 0        
-          ? (filteredTrackingData.sort((a: any, b: any) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime())[0] as any).created_at                      
+        const lastReferralDate = filteredEnrollments.length > 0
+          ? (filteredEnrollments.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0] as any).created_at
           : null
 
         return {
