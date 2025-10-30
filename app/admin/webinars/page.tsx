@@ -14,6 +14,7 @@ interface WebinarForm {
   hero_image_file?: File | null
   recording_url?: string
   meeting_url?: string
+  platform?: string
 }
 
 export default function AdminWebinarsPage() {
@@ -23,7 +24,7 @@ export default function AdminWebinarsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<WebinarForm>({
-    title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: ''
+    title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams'
   })
   const [speakers, setSpeakers] = useState<Array<{ name: string; title: string; avatar?: File | null; avatar_url?: string }>>([
     { name: '', title: '', avatar: null, avatar_url: undefined }
@@ -91,6 +92,7 @@ export default function AdminWebinarsPage() {
           is_published: form.is_published,
           hero_image_url: heroUrl,
           meeting_url: form.meeting_url || null,
+          platform: form.platform || 'microsoft-teams',
           created_by: profile?.id || null
         }).select('id').single()
         if (insErr) throw insErr
@@ -104,7 +106,8 @@ export default function AdminWebinarsPage() {
           end_time: new Date(form.end_time).toISOString(),
           is_published: form.is_published,
           hero_image_url: heroUrl ?? undefined,
-          meeting_url: form.meeting_url || null
+          meeting_url: form.meeting_url || null,
+          platform: form.platform || 'microsoft-teams'
         }).eq('id', editingId)
         if (updErr) throw updErr
       }
@@ -155,7 +158,7 @@ export default function AdminWebinarsPage() {
       }
       const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
       setItems(data || [])
-      setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '' })
+      setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
       setSpeakers([{ name: '', title: '', avatar: null }])
       setEditingId(null)
       alert('Webinar disimpan')
@@ -178,7 +181,8 @@ export default function AdminWebinarsPage() {
       end_time: data.end_time ? new Date(data.end_time).toISOString().slice(0,16) : '',
       is_published: !!data.is_published,
       recording_url: '',
-      meeting_url: data.meeting_url || ''
+      meeting_url: data.meeting_url || '',
+      platform: data.platform || 'microsoft-teams'
     })
     // Load existing recording
     const { data: recs } = await supabase.from('webinar_recordings').select('recording_url').eq('webinar_id', id).order('created_at', { ascending: false }).limit(1)
@@ -268,6 +272,18 @@ export default function AdminWebinarsPage() {
             value={form.meeting_url || ''}
             onChange={e=>setForm(f=>({...f,meeting_url:e.target.value}))}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Platform</label>
+          <select
+            className="input w-full"
+            value={form.platform || 'microsoft-teams'}
+            onChange={e=>setForm(f=>({...f,platform:e.target.value}))}
+          >
+            <option value="microsoft-teams">Microsoft Teams</option>
+            <option value="google-meet">Google Meet</option>
+            <option value="zoom">Zoom</option>
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <input id="pub" type="checkbox" checked={form.is_published} onChange={e=>setForm(f=>({...f,is_published:e.target.checked}))} />

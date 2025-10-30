@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: Params) {
     const supabase = createServerClient()
     const { data: webinar, error } = await supabase
       .from('webinars')
-      .select(`id, slug, title, description, hero_image_url, start_time, end_time, is_published, meeting_url`)
+      .select(`id, slug, title, description, hero_image_url, start_time, end_time, is_published, meeting_url, platform`)
       .eq('slug', params.slug)
       .single()
 
