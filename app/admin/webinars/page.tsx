@@ -361,7 +361,7 @@ export default function AdminWebinarsPage() {
                       <div className="flex gap-2">
                         <button onClick={()=>loadForEdit(it.id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Edit</button>
                         <a href={`/admin/webinars/${it.id}/participants`} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Peserta</a>
-                        <a href={`/admin/webinars/${it.slug}/certificates`} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Sertifikat</a>
+                        <a href={`/admin/webinars/${it.id}/certificates`} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Sertifikat</a>
                         <button onClick={()=>handleDelete(it.id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-red-50 text-red-600">Hapus</button>
                       </div>
                     </td>

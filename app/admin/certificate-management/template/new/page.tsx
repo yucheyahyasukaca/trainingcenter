@@ -19,6 +19,9 @@ export default function CreateTemplatePage() {
   const toast = useToast()
   const router = useRouter()
   const [programs, setPrograms] = useState<Program[]>([])
+  const [webinars, setWebinars] = useState<Array<{ id: string; title: string; slug: string }>>([])
+  const [targetType, setTargetType] = useState<'program' | 'webinar'>('program')
+  const [selectedWebinarId, setSelectedWebinarId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -45,6 +48,7 @@ export default function CreateTemplatePage() {
   useEffect(() => {
     if (profile?.role === 'admin') {
       fetchPrograms()
+      fetchWebinars()
     }
   }, [profile])
 
@@ -61,6 +65,14 @@ export default function CreateTemplatePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchWebinars = async () => {
+    try {
+      const res = await fetch('/api/webinars')
+      const json = await res.json()
+      setWebinars((json.webinars || []).map((w: any) => ({ id: w.id, title: w.title, slug: w.slug })))
+    } catch (e) {}
   }
 
   const addSignatory = () => {
@@ -188,31 +200,55 @@ export default function CreateTemplatePage() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Buat Template Sertifikat</h1>
-          <p className="mt-2 text-gray-600">Buat template sertifikat baru untuk program</p>
+          <p className="mt-2 text-gray-600">Buat template sertifikat baru untuk program atau webinar</p>
         </div>
 
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={async (e)=>{ await handleSubmit(e); try { if (targetType==='webinar' && selectedWebinarId) { window.location.href = `/admin/webinars/${selectedWebinarId}/certificates` } } catch {} }} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Program *
-                </label>
-                <select
-                  value={formData.program_id}
-                  onChange={(e) => setFormData({ ...formData, program_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Pilih Program</option>
-                  {programs.map((program) => (
-                    <option key={program.id} value={program.id}>
-                      {program.title} ({program.category})
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Target</label>
+                <div className="flex items-center gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="targetType" checked={targetType==='program'} onChange={()=>setTargetType('program')} /> Program</label>
+                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="targetType" checked={targetType==='webinar'} onChange={()=>setTargetType('webinar')} /> Webinar</label>
+                </div>
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {targetType === 'program' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Program *</label>
+                  <select
+                    value={formData.program_id}
+                    onChange={(e) => setFormData({ ...formData, program_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Pilih Program</option>
+                    {programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.title} ({program.category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Webinar</label>
+                  <select
+                    value={selectedWebinarId}
+                    onChange={(e)=> setSelectedWebinarId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Pilih Webinar</option>
+                    {webinars.map((w) => (
+                      <option key={w.id} value={w.id}>{w.title}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Template akan disimpan, lalu Anda akan diarahkan untuk memasangnya ke webinar ini.</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -373,3 +409,4 @@ export default function CreateTemplatePage() {
     </div>
   )
 }
+
