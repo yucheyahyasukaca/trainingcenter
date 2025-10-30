@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 
 interface PublicNavProps {
-  activeLink?: 'programs' | 'trainers' | 'about' | 'contact'
+  activeLink?: 'programs' | 'trainers' | 'webinars' | 'about' | 'contact'
 }
 
 export function PublicNav({ activeLink }: PublicNavProps) {
@@ -38,6 +38,16 @@ export function PublicNav({ activeLink }: PublicNavProps) {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4 lg:space-x-6">
+              <Link
+                href="/webinars"
+                className={`text-sm font-medium transition-colors ${
+                  activeLink === 'webinars'
+                    ? 'text-primary-600 border-b-2 border-primary-600'
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                Webinar
+              </Link>
               <Link
                 href="/programs"
                 className={`text-sm font-medium transition-colors ${
@@ -197,6 +207,14 @@ export function PublicNav({ activeLink }: PublicNavProps) {
           {/* Navigation Links */}
           <div className="px-2.5 sm:px-4 py-2">
             <nav className="space-y-1">
+              <Link
+                href="/webinars"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-3 sm:px-4 py-2.5 sm:py-3 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-medium text-sm sm:text-base">Webinar</span>
+                <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" />
+              </Link>
               <Link
                 href="/programs"
                 onClick={() => setIsMobileMenuOpen(false)}

@@ -203,6 +203,12 @@ export default function LandingPage() {
                {/* Header Menu */}
                <nav className="flex items-center space-x-6">
                  <Link
+                   href="/webinars"
+                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                 >
+                   Webinar
+                 </Link>
+                 <Link
                    href="/programs"
                    className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
                  >
@@ -306,6 +312,14 @@ export default function LandingPage() {
             {/* Navigation Links */}
             <div className="px-4 py-3 max-w-full">
               <nav className="space-y-2">
+                <Link
+                  href="/webinars"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-semibold text-base">Webinar</span>
+                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                </Link>
                 <Link
                   href="/programs"
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -657,6 +671,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center space-x-6">
+              <Link href="/webinars" className="text-sm hover:text-white transition-colors">Webinar</Link>
               <Link href="/programs" className="text-sm hover:text-white transition-colors">Program</Link>
               <Link href="/trainers" className="text-sm hover:text-white transition-colors">Trainer</Link>
               <Link href="/about" className="text-sm hover:text-white transition-colors">Tentang</Link>

@@ -21,6 +21,11 @@ export default function LoginPage() {
   useEffect(() => {
     // Check for referral code in URL
     const referral = searchParams.get('referral')
+    // Webinar next redirect support
+    const next = searchParams.get('next')
+    if (next) {
+      sessionStorage.setItem('nextAfterAuth', next)
+    }
     if (referral) {
       setReferralCode(referral)
       // Store in sessionStorage to persist
@@ -32,6 +37,17 @@ export default function LoginPage() {
         setReferralCode(storedReferral)
       }
     }
+    // If already logged in, go directly to next target
+    (async () => {
+      try {
+        const { data: { session } } = await (await import('@/lib/supabase')).supabase.auth.getSession()
+        const storedNext = sessionStorage.getItem('nextAfterAuth')
+        if (session && storedNext) {
+          router.push(storedNext)
+          router.refresh()
+        }
+      } catch {}
+    })()
   }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,9 +70,15 @@ export default function LoginPage() {
       // Wait a bit for auth state to update
       setTimeout(() => {
         console.log('🔄 Redirecting...')
+        const next = sessionStorage.getItem('nextAfterAuth')
+        if (next) {
+          sessionStorage.removeItem('nextAfterAuth')
+          router.push(next)
+          router.refresh()
+          return
+        }
         // Redirect based on referral code
         if (referralCode) {
-          // Redirect to referral registration page
           router.push(`/register-referral/${referralCode}`)
         } else {
           router.push('/dashboard')

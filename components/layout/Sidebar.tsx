@@ -36,6 +36,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     return [
       ...baseItems,
       { icon: BarChart3, label: 'Program', href: '/admin/programs', roles: ['admin'] },
+      { icon: Calendar, label: 'Webinar', href: '/admin/webinars', roles: ['admin'] },
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
       { icon: UserCog, label: 'Trainer', href: '/admin/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
@@ -64,6 +65,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
     const userItems = [
       ...baseItems,
       { icon: BarChart3, label: 'Program', href: '/programs', roles: ['user'] },
+      { icon: Calendar, label: 'Webinar Saya', href: '/my-webinars', roles: ['user'] },
       { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
       { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['user'] },
       { icon: Gift, label: 'Referral Saya', href: '/my-referral', roles: ['user'] },

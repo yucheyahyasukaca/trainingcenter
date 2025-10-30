@@ -20,11 +20,27 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const referral = searchParams.get('referral')
+    // Webinar next redirect support
+    const next = searchParams.get('next')
+    if (next) {
+      sessionStorage.setItem('nextAfterAuth', next)
+    }
     if (referral) {
       setReferralCode(referral)
       // Validate referral code and get program info
       validateReferralCode(referral)
     }
+    // If already logged in, go directly to next target
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const storedNext = sessionStorage.getItem('nextAfterAuth')
+        if (session && storedNext) {
+          router.push(storedNext)
+          router.refresh()
+        }
+      } catch {}
+    })()
   }, [searchParams])
 
   const validateReferralCode = async (referralCode: string) => {
@@ -115,11 +131,16 @@ export default function RegisterPage() {
       
       // Redirect based on referral code
       setTimeout(() => {
+        const next = sessionStorage.getItem('nextAfterAuth')
+        if (next) {
+          sessionStorage.removeItem('nextAfterAuth')
+          router.push(next)
+          router.refresh()
+          return
+        }
         if (referralCode) {
-          // Redirect to referral registration page
           router.push(`/register-referral/${referralCode}`)
         } else {
-          // Normal redirect to dashboard
           router.push('/dashboard')
         }
         router.refresh()
