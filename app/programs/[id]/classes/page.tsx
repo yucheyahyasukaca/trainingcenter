@@ -96,31 +96,76 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         // Admin and manager have full access
         setEnrollment({ id: 'admin-access', status: 'approved' })
       } else if ((profile as any)?.role === 'trainer') {
-        // Check if trainer is assigned to this program
+        // Try granting trainer access; if not applicable, fall back to regular user enrollment detection
+        let hasTrainerAccess = false
         if (profile?.id) {
-          const { data: trainerData } = await supabase
-            .from('trainers')
-            .select('id')
-            .eq('user_id', profile.id)
-            .single()
-
-          if (trainerData && (programData as any).trainer_id === (trainerData as any).id) {
-            setEnrollment({ id: 'trainer-access', status: 'approved' })
+          // Some deployments use programs.trainer_id referencing user_profiles.id, others use trainers.id
+          // 1) Direct match against user profile id
+          if ((programData as any)?.trainer_id === profile.id) {
+            hasTrainerAccess = true
           } else {
-            // Check if assigned to any class in this program
-            const { data: classTrainer } = await supabase
-              .from('class_trainers')
+            // 2) Resolve trainers.id from current user, then check program/class assignments
+            const { data: trainerData } = await supabase
+              .from('trainers')
               .select('id')
-              .eq('trainer_id', (trainerData as any)?.id)
-              .in('class_id', (classesData || []).map((c: any) => c.id))
-              .single()
+              .eq('user_id', profile.id)
+              .maybeSingle()
 
-            if (classTrainer) {
-              setEnrollment({ id: 'trainer-access', status: 'approved' })
+            if (trainerData) {
+              if ((programData as any)?.trainer_id === (trainerData as any).id) {
+                hasTrainerAccess = true
+              } else {
+                const { data: classTrainer } = await supabase
+                  .from('class_trainers')
+                  .select('id')
+                  .eq('trainer_id', (trainerData as any).id)
+                  .in('class_id', (classesData || []).map((c: any) => c.id))
+                  .maybeSingle()
+
+                if (classTrainer) {
+                  hasTrainerAccess = true
+                }
+              }
             }
           }
         }
-              } else {
+
+        if (hasTrainerAccess) {
+          setEnrollment({ id: 'trainer-access', status: 'approved' })
+        } else {
+          // Fallback to regular user flow
+          // Regular user - find participant first, then check enrollment
+          console.log('🔍 Trainer role without assignment; falling back to participant for user:', profile?.id)
+          const { data: participant, error: participantError } = await supabase
+            .from('participants')
+            .select('id, user_id, email, name')
+            .eq('user_id', profile?.id || '')
+            .maybeSingle()
+
+          const typedParticipant = participant as any
+
+          if (participantError || !typedParticipant) {
+            setEnrollment(null)
+          } else {
+            const { data: enrollmentData } = await supabase
+              .from('enrollments')
+              .select(`
+                *,
+                class:classes(*)
+              `)
+              .eq('participant_id', typedParticipant.id)
+              .eq('program_id', params.id)
+              .maybeSingle()
+
+            const typedEnrollment = enrollmentData as any
+            if (typedEnrollment && typedEnrollment.status === 'approved') {
+              setEnrollment(typedEnrollment)
+            } else {
+              setEnrollment(null)
+            }
+          }
+        }
+      } else {
           // Regular user - find participant first, then check enrollment
           console.log('🔍 Looking for participant for user:', profile?.id)
           
