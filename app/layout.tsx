@@ -5,7 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/ui/Notification'
 import { ToastProvider } from '@/contexts/ToastContext'
 import ToastContainer from '@/components/ui/ToastContainer'
-import { Toaster } from 'react-hot-toast'
+import { GlobalToaster } from '@/components/GlobalToaster'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,7 +27,7 @@ export default function RootLayout({
             <ToastProvider>
               {children}
               <ToastContainer />
-              <Toaster position="top-center" />
+              <GlobalToaster />
             </ToastProvider>
           </NotificationProvider>
         </AuthProvider>

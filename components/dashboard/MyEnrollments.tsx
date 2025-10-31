@@ -133,10 +133,62 @@ export function MyEnrollments() {
         }
         
         console.log('Final enrollments after aggressive filtering:', finalEnrollments)
+
+        const statusPriority: Record<string, number> = {
+          approved: 3,
+          pending: 2,
+          rejected: 1,
+          cancelled: 1,
+        }
+
+        const enrollmentMap = new Map<string, any>()
+        const enrollmentsWithoutProgram: any[] = []
+
+        finalEnrollments.forEach((enrollment: any) => {
+          const programId = enrollment.program?.id
+
+          if (!programId) {
+            enrollmentsWithoutProgram.push(enrollment)
+            return
+          }
+
+          const existing = enrollmentMap.get(programId)
+
+          if (!existing) {
+            enrollmentMap.set(programId, enrollment)
+            return
+          }
+
+          const existingStatus = (existing.status ?? '').toString().trim().toLowerCase()
+          const newStatus = (enrollment.status ?? '').toString().trim().toLowerCase()
+
+          const existingPriority = statusPriority[existingStatus as keyof typeof statusPriority] ?? 0
+          const newPriority = statusPriority[newStatus as keyof typeof statusPriority] ?? 0
+
+          if (newPriority > existingPriority) {
+            enrollmentMap.set(programId, enrollment)
+            return
+          }
+
+          if (newPriority === existingPriority) {
+            const existingCreatedAt = new Date(existing.created_at).getTime()
+            const newCreatedAt = new Date(enrollment.created_at).getTime()
+
+            if (newCreatedAt > existingCreatedAt) {
+              enrollmentMap.set(programId, enrollment)
+            }
+          }
+        })
+
+        const uniqueEnrollments = [...enrollmentMap.values(), ...enrollmentsWithoutProgram]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 3)
+
+        console.log('Unique enrollments after removing duplicates:', uniqueEnrollments)
         
         // Calculate progress for each enrollment
         const enrollmentsWithProgress = await Promise.all(
-          finalEnrollments.map(async (enrollment: any) => {
+          uniqueEnrollments.map(async (enrollment: any) => {
             if (!enrollment.program?.id || !profile?.id) {
               return { ...enrollment, progress: enrollment.progress || 0 }
             }

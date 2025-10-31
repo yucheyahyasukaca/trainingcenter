@@ -213,10 +213,12 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         const typedEnrollment = enrollmentData as any
         
         // Check if enrollment exists and is approved
-        if (typedEnrollment && typedEnrollment.status === 'approved') {
+        const normalizedStatus = (typedEnrollment?.status ?? '').toString().trim().toLowerCase()
+
+        if (typedEnrollment && normalizedStatus === 'approved') {
           console.log('Approved enrollment found')
           setEnrollment(typedEnrollment)
-        } else if (typedEnrollment && typedEnrollment.status !== 'approved') {
+        } else if (typedEnrollment && normalizedStatus !== 'approved') {
           // If enrollment exists but not approved, check if program is free
           if ((programData as any).price === 0) {
             console.log('Free program with pending enrollment - auto-approving...')
