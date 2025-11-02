@@ -9,7 +9,7 @@ import { markdownToHtml } from '@/lib/utils'
 import { 
   ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, 
   Menu, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, X,
-  Video, File, HelpCircle, Play, Download
+  Video, File, HelpCircle, Play, Download, Share2, Copy, Info, Lock
 } from 'lucide-react'
 
 interface LearningContent {
@@ -50,6 +50,8 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
   const [unlockedContents, setUnlockedContents] = useState<Set<string>>(new Set())
   const [hasReferralUsed, setHasReferralUsed] = useState<boolean>(false)
+  const [userReferralCodes, setUserReferralCodes] = useState<any[]>([])
+  const [hasLockedModules, setHasLockedModules] = useState<boolean>(false)
   
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
@@ -309,8 +311,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       if (codesError || !userReferralCodes || userReferralCodes.length === 0) {
         console.log('⚠️ User has no referral codes created')
         setHasReferralUsed(false)
+        setUserReferralCodes([])
         return
       }
+
+      // Store user's referral codes for display
+      setUserReferralCodes(userReferralCodes)
 
       const userReferralCodeIds = userReferralCodes.map((rc: any) => rc.id)
       console.log('📋 User referral code IDs:', userReferralCodeIds)
@@ -359,6 +365,23 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       setHasReferralUsed(false)
     }
   }
+
+  // Check if there are locked modules due to referral requirement
+  useEffect(() => {
+    if (contents.length > 0 && unlockedContents.size > 0) {
+      const mainMaterials = contents.filter(c => !c.parent_id)
+      // Check if any material from index 2 onwards is locked
+      let hasLocked = false
+      for (let i = 2; i < mainMaterials.length; i++) {
+        const material = mainMaterials[i]
+        if (!unlockedContents.has(material.id) && !hasReferralUsed) {
+          hasLocked = true
+          break
+        }
+      }
+      setHasLockedModules(hasLocked)
+    }
+  }, [contents, unlockedContents, hasReferralUsed])
 
   // Update unlocked contents whenever contents, progress, or referral status changes
   useEffect(() => {
@@ -1233,6 +1256,80 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             onComplete={() => markAsComplete(currentContent.id)}
             onUpdateProgress={(updates) => updateProgress(currentContent.id, updates)}
           />
+        )}
+
+        {/* Referral Banner - Show when modules are locked due to referral requirement */}
+        {hasLockedModules && !hasReferralUsed && userReferralCodes.length > 0 && (
+          <div className="mt-6 p-4 md:p-5 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="flex-shrink-0 mt-0.5">
+                <Info className="w-5 h-5 md:w-6 md:h-6 text-blue-700 dark:text-blue-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
+                  Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
+                </p>
+                <div className="space-y-2">
+                  {userReferralCodes.slice(0, 2).map((refCode: any) => {
+                    const referralUrl = typeof window !== 'undefined' 
+                      ? `${window.location.origin}/referral/${refCode.code}`
+                      : `/referral/${refCode.code}`
+                    return (
+                      <button
+                        key={refCode.id}
+                        onClick={() => {
+                          navigator.clipboard.writeText(referralUrl).then(() => {
+                            showNotification('success', 'Link referral berhasil disalin! Bagikan ke teman/rekan Anda.')
+                          }).catch(() => {
+                            showNotification('error', 'Gagal menyalin link referral')
+                          })
+                        }}
+                        className="w-full text-left group"
+                      >
+                        <div className="flex items-center gap-2 p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-blue-300 dark:border-blue-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Link Referral Anda</p>
+                            <p className="text-sm md:text-base font-semibold text-blue-700 dark:text-blue-400 break-all group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors underline decoration-2 underline-offset-2">
+                              {referralUrl}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <Copy className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors" />
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs font-medium text-gray-800 dark:text-gray-200 mt-3 flex items-center gap-1.5">
+                  <span>💡</span>
+                  <span>Klik link di atas untuk menyalin, lalu bagikan via WhatsApp, email, atau media sosial</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Referral Banner - Show when user has no referral codes yet */}
+        {hasLockedModules && !hasReferralUsed && userReferralCodes.length === 0 && (
+          <div className="mt-6 p-4 md:p-5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="flex-shrink-0 mt-0.5">
+                <Info className="w-5 h-5 md:w-6 md:h-6 text-amber-700 dark:text-amber-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
+                  Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
+                </p>
+                <div className="p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-amber-300 dark:border-amber-700">
+                  <p className="text-sm text-gray-900 dark:text-gray-100 font-medium flex items-start gap-2">
+                    <span className="text-amber-700 dark:text-amber-300">⚠️</span>
+                    <span>Anda belum memiliki kode referral. Silakan hubungi administrator untuk mendapatkan kode referral Anda.</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
