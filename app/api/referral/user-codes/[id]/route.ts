@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // PUT /api/referral/user-codes/[id] - Update user referral code
 export async function PUT(
   request: NextRequest,

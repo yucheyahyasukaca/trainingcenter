@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/referral/apply - Apply referral code during enrollment
 export async function POST(request: NextRequest) {
   try {

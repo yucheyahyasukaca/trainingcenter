@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/referral/codes - Get referral codes for current trainer
 export async function GET(request: NextRequest) {
   try {
