@@ -48,36 +48,90 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
     try {
       setLoading(true)
 
-      // Fetch enrollments with participant details
-      // Query akan mengambil semua enrollment yang memiliki program_id yang sama
-      // Baik yang langsung enroll ke program maupun yang enroll ke kelas di dalam program
-      // Karena setiap enrollment (baik ke program atau kelas) tetap memiliki program_id
-      const { data: enrollments, error } = await supabase
+      // Fetch enrollments first
+      const { data: enrollments, error: enrollmentsError } = await supabase
         .from('enrollments')
-        .select(`
-          id,
-          status,
-          participant_id,
-          class_id,
-          participants:participant_id (
-            id,
-            user_id,
-            user_profiles:user_id (
-              id,
-              full_name,
-              jenjang,
-              provinsi,
-              kabupaten
-            )
-          )
-        `)
+        .select('id, status, participant_id, class_id')
         .eq('program_id', programId)
 
-      if (error) throw error
+      if (enrollmentsError) {
+        console.error('Error fetching enrollments:', enrollmentsError)
+        throw enrollmentsError
+      }
+
+      console.log('Enrollments fetched:', enrollments?.length || 0)
+
+      if (!enrollments || enrollments.length === 0) {
+        setStats({
+          total: 0,
+          byJenjang: {},
+          byProvinsi: {},
+          byKabupaten: {},
+          enrolled: 0,
+          pending: 0,
+          approved: 0
+        })
+        setLoading(false)
+        return
+      }
+
+      // Get unique participant IDs
+      const participantIds = [...new Set(enrollments.map((e: any) => e.participant_id).filter(Boolean))]
+      
+      if (participantIds.length === 0) {
+        setStats({
+          total: enrollments.length,
+          byJenjang: {},
+          byProvinsi: {},
+          byKabupaten: {},
+          enrolled: 0,
+          pending: 0,
+          approved: 0
+        })
+        setLoading(false)
+        return
+      }
+
+      // Fetch participants (jenjang/provinsi/kabupaten are in user_profiles, not participants)
+      const { data: participants, error: participantsError } = await supabase
+        .from('participants')
+        .select('id, user_id')
+        .in('id', participantIds)
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError)
+        // Continue even if participants fetch fails
+      }
+
+      // Get unique user IDs from participants
+      const userIds = [...new Set(
+        (participants || [])
+          .map((p: any) => p?.user_id)
+          .filter(Boolean)
+      )]
+
+      // Fetch user_profiles if we have user IDs
+      let userProfiles: any[] = []
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, jenjang, provinsi, kabupaten')
+          .in('id', userIds)
+
+        if (profilesError) {
+          console.error('Error fetching user_profiles:', profilesError)
+        } else {
+          userProfiles = profiles || []
+        }
+      }
+
+      // Create maps for easy lookup
+      const participantsMap = new Map((participants || []).map((p: any) => [p.id, p]))
+      const profilesMap = new Map(userProfiles.map((p: any) => [p.id, p]))
 
       // Process statistics
       const processedStats: EnrollmentStats = {
-        total: enrollments?.length || 0,
+        total: enrollments.length,
         byJenjang: {},
         byProvinsi: {},
         byKabupaten: {},
@@ -86,7 +140,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
         approved: 0
       }
 
-      enrollments?.forEach((enrollment: any) => {
+      enrollments.forEach((enrollment: any) => {
         // Count by status
         if (enrollment.status === 'approved' || enrollment.status === 'enrolled') {
           processedStats.approved++
@@ -94,24 +148,29 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
           processedStats.pending++
         }
 
-        // Count by jenjang, provinsi, kabupaten
-        const participant = enrollment.participants
+        // Get participant data from map
+        const participant = enrollment.participant_id 
+          ? participantsMap.get(enrollment.participant_id)
+          : null
+
         if (participant) {
-          // Check if jenjang/provinsi/kabupaten is directly on participant or on user_profiles
-          let jenjang = participant.jenjang
-          let provinsi = participant.provinsi
-          let kabupaten = participant.kabupaten
+          // Initialize jenjang/provinsi/kabupaten as null
+          // These fields are typically in user_profiles, not participants
+          let jenjang: string | null = null
+          let provinsi: string | null = null
+          let kabupaten: string | null = null
 
-          if (participant?.user_profiles) {
-            const profile = Array.isArray(participant.user_profiles) 
-              ? participant.user_profiles[0] 
-              : participant.user_profiles
-
-            jenjang = profile?.jenjang || jenjang
-            provinsi = profile?.provinsi || provinsi
-            kabupaten = profile?.kabupaten || kabupaten
+          // Get jenjang/provinsi/kabupaten from user_profiles if participant has user_id
+          if (participant.user_id) {
+            const profile = profilesMap.get(participant.user_id)
+            if (profile) {
+              jenjang = profile.jenjang || null
+              provinsi = profile.provinsi || null
+              kabupaten = profile.kabupaten || null
+            }
           }
 
+          // Count by jenjang, provinsi, kabupaten
           if (jenjang) {
             processedStats.byJenjang[jenjang] = 
               (processedStats.byJenjang[jenjang] || 0) + 1
@@ -126,6 +185,8 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
           }
         }
       })
+
+      console.log('Processed stats:', processedStats)
 
       setStats(processedStats)
     } catch (error) {
@@ -178,83 +239,84 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden my-auto">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden my-auto flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Statistik Pendaftaran</h2>
-            <p className="text-primary-100 text-sm mt-1">Program Pelatihan</p>
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">Statistik Pendaftaran</h2>
+            <p className="text-primary-100 text-xs sm:text-sm mt-1">Program Pelatihan</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Tutup"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-200px)] p-6">
+        <div className="overflow-y-auto max-h-[calc(95vh-180px)] sm:max-h-[calc(90vh-200px)] p-3 sm:p-4 md:p-6 flex-1">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-12 sm:py-16 md:py-20">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Memuat statistik...</p>
+                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">Memuat statistik...</p>
               </div>
             </div>
           ) : (
             <>
               {/* Statistics Boxes */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <Users className="w-8 h-8 text-blue-600" />
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-blue-200">
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
+                    <Users className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-blue-600" />
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Total Pendaftar</p>
-                  <p className="text-3xl font-bold text-gray-900">{formatNumberUtil(stats.total)}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-0.5 sm:mb-1">Total Pendaftar</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{formatNumberUtil(stats.total)}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <TrendingUp className="w-8 h-8 text-green-600" />
+                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-green-200">
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-green-600" />
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Diterima</p>
-                  <p className="text-3xl font-bold text-gray-900">{formatNumberUtil(stats.approved)}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-0.5 sm:mb-1">Diterima</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{formatNumberUtil(stats.approved)}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <BarChart3 className="w-8 h-8 text-yellow-600" />
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-yellow-200">
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
+                    <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-yellow-600" />
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Menunggu</p>
-                  <p className="text-3xl font-bold text-gray-900">{formatNumberUtil(stats.pending)}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-0.5 sm:mb-1">Menunggu</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{formatNumberUtil(stats.pending)}</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <GraduationCap className="w-8 h-8 text-purple-600" />
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 border border-purple-200">
+                  <div className="flex items-center justify-between mb-1 sm:mb-2">
+                    <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-purple-600" />
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Tingkat Konversi</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-0.5 sm:mb-1">Tingkat Konversi</p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                     {stats.total > 0 ? ((stats.approved / stats.total) * 100).toFixed(1) : 0}%
                   </p>
                 </div>
               </div>
 
               {/* Filter Section */}
-              <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">Filter Data</h3>
-                  <div className="flex flex-wrap gap-3">
+              <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
+                <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Filter Data</h3>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     <button
                       onClick={() => {
                         setSelectedFilter('jenjang')
                         setSelectedValue('all')
                       }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
                         selectedFilter === 'jenjang'
                           ? 'bg-primary-600 text-white'
                           : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -267,7 +329,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                         setSelectedFilter('provinsi')
                         setSelectedValue('all')
                       }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
                         selectedFilter === 'provinsi'
                           ? 'bg-primary-600 text-white'
                           : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -280,7 +342,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                         setSelectedFilter('kabupaten')
                         setSelectedValue('all')
                       }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
                         selectedFilter === 'kabupaten'
                           ? 'bg-primary-600 text-white'
                           : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -293,12 +355,12 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
 
                 {/* Sub-filter */}
                 {getFilterOptions().length > 1 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {getFilterOptions().map((option) => (
                       <button
                         key={option}
                         onClick={() => setSelectedValue(option)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                           selectedValue === option
                             ? 'bg-primary-100 text-primary-700 border-2 border-primary-600'
                             : 'bg-white text-gray-600 border border-gray-300 hover:border-primary-400'
@@ -312,32 +374,32 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
               </div>
 
               {/* Chart Section */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+              <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 p-3 sm:p-4 md:p-6">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 md:mb-6">
                   Grafik Berdasarkan {selectedFilter === 'jenjang' ? 'Jenjang' : selectedFilter === 'provinsi' ? 'Provinsi' : 'Kabupaten'}
                 </h3>
 
                 {chartData.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p>Tidak ada data untuk ditampilkan</p>
+                  <div className="text-center py-8 sm:py-12 text-gray-500">
+                    <BarChart3 className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-gray-300" />
+                    <p className="text-sm sm:text-base">Tidak ada data untuk ditampilkan</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-2 sm:space-y-3 md:space-y-4">
                     {chartData
                       .filter(item => selectedValue === 'all' || item.label === selectedValue)
                       .map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-4">
-                          <div className="flex-shrink-0 w-32 sm:w-40">
-                            <p className="text-sm font-medium text-gray-700 truncate">{item.label}</p>
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4">
+                          <div className="flex-shrink-0 w-full sm:w-24 md:w-32 lg:w-40">
+                            <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">{item.label}</p>
                           </div>
-                          <div className="flex-1">
-                            <div className="relative h-10 bg-gray-100 rounded-lg overflow-hidden">
+                          <div className="flex-1 w-full">
+                            <div className="relative h-8 sm:h-9 md:h-10 bg-gray-100 rounded-lg overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg transition-all duration-500 flex items-center justify-end pr-3"
+                                className="h-full bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg transition-all duration-500 flex items-center justify-end pr-2 sm:pr-3"
                                 style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
                               >
-                                <span className="text-white text-sm font-semibold">{formatNumberUtil(item.value)}</span>
+                                <span className="text-white text-xs sm:text-sm font-semibold">{formatNumberUtil(item.value)}</span>
                               </div>
                             </div>
                           </div>
@@ -351,10 +413,10 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end">
+        <div className="border-t border-gray-200 bg-gray-50 px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-end flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            className="w-full sm:w-auto px-6 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm sm:text-base"
           >
             Tutup
           </button>

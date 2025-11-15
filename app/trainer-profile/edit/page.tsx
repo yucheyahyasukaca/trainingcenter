@@ -203,7 +203,8 @@ export default function EditTrainerProfilePage() {
     provinsi: '',
     kabupaten: '',
     sektor: '',
-    whatsapp: ''
+    whatsapp: '',
+    jenjang: ''
   })
   const [provinceSearch, setProvinceSearch] = useState('')
   const [kabupatenSearch, setKabupatenSearch] = useState('')
@@ -214,6 +215,9 @@ export default function EditTrainerProfilePage() {
 
   useEffect(() => {
     if (profile) {
+      const profileProvinsi = (profile as any).provinsi || ''
+      const profileKabupaten = (profile as any).kabupaten || ''
+      
       setFormData({
         full_name: profile.full_name || '',
         email: profile.email || '',
@@ -221,13 +225,14 @@ export default function EditTrainerProfilePage() {
         instansi: (profile as any).instansi || '',
         alamat_instansi: (profile as any).alamat_instansi || '',
         alamat_pribadi: (profile as any).alamat_pribadi || '',
-        provinsi: (profile as any).provinsi || '',
-        kabupaten: (profile as any).kabupaten || '',
+        provinsi: profileProvinsi,
+        kabupaten: profileKabupaten,
         sektor: (profile as any).sektor || '',
-        whatsapp: (profile as any).whatsapp || ''
+        whatsapp: (profile as any).whatsapp || '',
+        jenjang: (profile as any).jenjang || ''
       })
-      setProvinceSearch((profile as any).provinsi || '')
-      setKabupatenSearch((profile as any).kabupaten || '')
+      setProvinceSearch(profileProvinsi)
+      setKabupatenSearch(profileKabupaten)
       setAvatarPreview(profile.avatar_url || null)
     }
   }, [profile])
@@ -235,24 +240,40 @@ export default function EditTrainerProfilePage() {
   // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside province dropdown
       if (provinceRef.current && !provinceRef.current.contains(event.target as Node)) {
-        setShowProvinceDropdown(false)
+        // Only close if dropdown is open and click is truly outside
+        if (showProvinceDropdown) {
+          setShowProvinceDropdown(false)
+        }
       }
+      // Check if click is outside kabupaten dropdown
       if (kabupatenRef.current && !kabupatenRef.current.contains(event.target as Node)) {
-        setShowKabupatenDropdown(false)
+        // Only close if dropdown is open and click is truly outside
+        if (showKabupatenDropdown) {
+          setShowKabupatenDropdown(false)
+        }
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    // Use timeout to ensure dropdown opens before checking outside clicks
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside)
+    }, 100)
+
     return () => {
+      clearTimeout(timeoutId)
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [])
+  }, [showProvinceDropdown, showKabupatenDropdown])
 
   // Filter provinces based on search
-  const filteredProvinces = provinces.filter(province =>
-    province.toLowerCase().includes(provinceSearch.toLowerCase())
-  )
+  // If search is empty, show all provinces when dropdown is open
+  const filteredProvinces = provinceSearch.trim()
+    ? provinces.filter(province =>
+        province.toLowerCase().includes(provinceSearch.toLowerCase())
+      )
+    : provinces
 
   // Get kabupaten options based on selected province
   const getKabupatenOptions = () => {
@@ -436,14 +457,15 @@ export default function EditTrainerProfilePage() {
         updated_at: new Date().toISOString()
       }
 
-      // Only add new fields if they have values to avoid database errors
-      if (formData.instansi) updateData.instansi = formData.instansi
-      if (formData.alamat_instansi) updateData.alamat_instansi = formData.alamat_instansi
-      if (formData.alamat_pribadi) updateData.alamat_pribadi = formData.alamat_pribadi
-      if (formData.provinsi) updateData.provinsi = formData.provinsi
-      if (formData.kabupaten) updateData.kabupaten = formData.kabupaten
-      if (formData.sektor) updateData.sektor = formData.sektor
-      if (formData.whatsapp) updateData.whatsapp = formData.whatsapp
+      // Add optional fields (allow empty string to clear value)
+      updateData.instansi = formData.instansi || null
+      updateData.alamat_instansi = formData.alamat_instansi || null
+      updateData.alamat_pribadi = formData.alamat_pribadi || null
+      updateData.provinsi = formData.provinsi || null
+      updateData.kabupaten = formData.kabupaten || null
+      updateData.sektor = formData.sektor || null
+      updateData.whatsapp = formData.whatsapp || null
+      updateData.jenjang = formData.jenjang || null
 
       console.log('Update data:', updateData)
 
@@ -696,6 +718,26 @@ export default function EditTrainerProfilePage() {
                     ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Jenjang Pendidikan
+                  </label>
+                  <select
+                    name="jenjang"
+                    value={formData.jenjang}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Pilih Jenjang</option>
+                    <option value="TK">TK (Taman Kanak-kanak)</option>
+                    <option value="SD">SD (Sekolah Dasar)</option>
+                    <option value="SMP">SMP (Sekolah Menengah Pertama)</option>
+                    <option value="SMA">SMA (Sekolah Menengah Atas)</option>
+                    <option value="Universitas">Universitas</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Jenjang pendidikan saat ini</p>
+                </div>
               </div>
             </div>
 
@@ -734,29 +776,44 @@ export default function EditTrainerProfilePage() {
                           setProvinceSearch(e.target.value)
                           setShowProvinceDropdown(true)
                         }}
-                        onFocus={() => setShowProvinceDropdown(true)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowProvinceDropdown(true)
+                        }}
+                        onFocus={(e) => {
+                          e.stopPropagation()
+                          setShowProvinceDropdown(true)
+                          if (!provinceSearch) {
+                            setProvinceSearch(formData.provinsi || '')
+                          }
+                        }}
                         onKeyDown={handleProvinceKeyDown}
                         placeholder="Cari atau pilih provinsi..."
-                        className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+                        readOnly={false}
                       />
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
                     
                     {showProvinceDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                         {filteredProvinces.length > 0 ? (
                           filteredProvinces.map((province) => (
                             <button
                               key={province}
                               type="button"
-                              onClick={() => handleProvinceSelect(province)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleProvinceSelect(province)
+                              }}
+                              className="w-full px-4 py-3 text-left hover:bg-primary-50 hover:text-primary-700 focus:bg-primary-50 focus:text-primary-700 focus:outline-none transition-colors border-b border-gray-100 last:border-b-0"
                             >
                               {province}
                             </button>
                           ))
                         ) : (
-                          <div className="px-4 py-3 text-gray-500">Tidak ada provinsi yang ditemukan</div>
+                          <div className="px-4 py-3 text-gray-500 text-sm">Tidak ada provinsi yang ditemukan</div>
                         )}
                       </div>
                     )}
