@@ -18,7 +18,9 @@ import {
   TrendingUp,
   Calendar,
   Clock,
-  Star
+  Star,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { useNotification } from '@/components/ui/Notification'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -97,10 +99,13 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
     message: '',
     onConfirm: () => {}
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
 
   useEffect(() => {
     if (profile?.id) {
       setLoading(true)
+      setCurrentPage(1) // Reset to first page when data changes
       Promise.all([fetchStats(), fetchReferralCodes()])
         .finally(() => {
           setLoading(false)
@@ -948,70 +953,159 @@ export default function UserReferralDashboard({ period = 'all' }: UserReferralDa
       </div>
 
       {/* Recent Referrals */}
-      {stats && stats.recent_referrals.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Referral Terbaru</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Peserta
-                  </th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Program
-                  </th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Komisi
-                  </th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tanggal
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats.recent_referrals.map((referral) => (
-                  <tr key={referral.id}>
-                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 truncate max-w-[150px] md:max-w-none">
-                        {referral.participant_name}
-                      </div>
-                    </td>
-                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 truncate max-w-[150px] md:max-w-none">
-                        {referral.program_title}
-                      </div>
-                    </td>
-                    <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        referral.status === 'confirmed' 
-                          ? 'bg-green-100 text-green-800'
-                          : referral.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {referral.status === 'confirmed' ? 'Dikonfirmasi' : 
-                         referral.status === 'pending' ? 'Menunggu' : 'Dibatalkan'}
-                      </span>
-                    </td>
-                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(referral.commission_earned)}
-                    </td>
-                    <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500">
-                      {formatDate(referral.created_at)}
-                    </td>
+      {stats && stats.recent_referrals.length > 0 && (() => {
+        const totalPages = Math.ceil(stats.recent_referrals.length / itemsPerPage)
+        const startIndex = (currentPage - 1) * itemsPerPage
+        const endIndex = startIndex + itemsPerPage
+        const paginatedReferrals = stats.recent_referrals.slice(startIndex, endIndex)
+
+        return (
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <h2 className="text-lg font-semibold text-gray-900">Referral Terbaru</h2>
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1}-{Math.min(endIndex, stats.recent_referrals.length)} dari {stats.recent_referrals.length} referral
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Peserta
+                    </th>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Program
+                    </th>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Komisi
+                    </th>
+                    <th className="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                      Tanggal
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedReferrals.map((referral) => (
+                    <tr key={referral.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[150px] md:max-w-none">
+                          {referral.participant_name}
+                        </div>
+                      </td>
+                      <td className="px-3 md:px-6 py-4">
+                        <div className="text-sm text-gray-900 truncate max-w-[150px] md:max-w-none">
+                          {referral.program_title}
+                        </div>
+                      </td>
+                      <td className="px-3 md:px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          referral.status === 'confirmed' 
+                            ? 'bg-green-100 text-green-800'
+                            : referral.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {referral.status === 'confirmed' ? 'Dikonfirmasi' : 
+                           referral.status === 'pending' ? 'Menunggu' : 'Dibatalkan'}
+                        </span>
+                      </td>
+                      <td className="px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                        {formatCurrency(referral.commission_earned)}
+                      </td>
+                      <td className="px-3 md:px-6 py-4 whitespace-nowrap text-xs md:text-sm text-gray-500 hidden md:table-cell">
+                        {formatDate(referral.created_at)}
+                      </td>
+                      {/* Mobile view - show additional info in a compact way */}
+                      <td className="px-3 md:px-6 py-4 sm:hidden">
+                        <div className="text-xs text-gray-500 space-y-1">
+                          <div>{formatCurrency(referral.commission_earned)}</div>
+                          <div>{formatDate(referral.created_at)}</div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="text-sm text-gray-700">
+                    Halaman {currentPage} dari {totalPages}
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded-lg transition-colors ${
+                        currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+                      }`}
+                      aria-label="Halaman sebelumnya"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    
+                    {/* Page numbers */}
+                    <div className="flex items-center space-x-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          if (page === 1 || page === totalPages) return true
+                          if (Math.abs(page - currentPage) <= 1) return true
+                          return false
+                        })
+                        .map((page, index, array) => {
+                          // Add ellipsis if there's a gap
+                          const prevPage = array[index - 1]
+                          const showEllipsis = prevPage && page - prevPage > 1
+                          
+                          return (
+                            <div key={page} className="flex items-center space-x-1">
+                              {showEllipsis && (
+                                <span className="px-2 text-gray-500">...</span>
+                              )}
+                              <button
+                                onClick={() => setCurrentPage(page)}
+                                className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                  currentPage === page
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            </div>
+                          )
+                        })}
+                    </div>
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`p-2 rounded-lg transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+                      }`}
+                      aria-label="Halaman berikutnya"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Create/Edit Form Modal */}
       {(showCreateForm || editingCode) && (

@@ -328,7 +328,7 @@ export function UserDashboard() {
           <div className="space-y-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
-              <h2 className="text-2xl font-bold text-gray-900">Profil Trainer</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Profil Saya</h2>
             </div>
             <TrainerProfile />
           </div>
