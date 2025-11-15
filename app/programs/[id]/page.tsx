@@ -312,10 +312,13 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                     Daftar Pelatihan
                   </Link>
                 ) : isEnrolled ? (
-                  <div className="inline-flex items-center justify-center px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium">
+                  <Link
+                    href={`/programs/${program.id}/classes`}
+                    className="inline-flex items-center justify-center px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors cursor-pointer"
+                  >
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    Anda Sudah Terdaftar
-                  </div>
+                    Akses Kelas
+                  </Link>
                 ) : isPending ? (
                   <div className="inline-flex items-center justify-center px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
                     <Clock className="w-5 h-5 mr-2" />

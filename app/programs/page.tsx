@@ -143,10 +143,13 @@ export default function ProgramsPage() {
     
     if (enrollmentStatus === 'approved') {
       return (
-        <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium">
+        <Link
+          href={`/programs/${program.id}/classes`}
+          className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors cursor-pointer"
+        >
           <Award className="w-4 h-4 mr-2" />
-          Terdaftar
-        </div>
+          Akses Kelas
+        </Link>
       )
     }
     

@@ -417,10 +417,13 @@ export function AvailablePrograms() {
                         )
                       } else if (enrollmentStatus === 'approved') {
                         return (
-                          <div className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 rounded-xl font-medium border border-green-200 text-sm">
+                          <Link
+                            href={`/programs/${program.id}/classes`}
+                            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 rounded-xl font-medium border border-green-200 text-sm hover:from-green-200 hover:to-emerald-200 transition-all cursor-pointer"
+                          >
                             <UserCheck className="w-4 h-4" />
-                            <span>Sudah Terdaftar</span>
-                          </div>
+                            <span>Akses Kelas</span>
+                          </Link>
                         )
                       } else if (enrollmentStatus === 'rejected') {
                         return (
