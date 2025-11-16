@@ -144,19 +144,48 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk
 
           if (!isComplete) {
+            // Build list of missing fields
+            const missing: string[] = []
+            if (!nameOk) missing.push('Nama Lengkap')
+            if (!emailOk) missing.push('Email')
+            if (!phoneOk) missing.push('Nomor Telepon')
+            if (!genderOk) missing.push('Jenis Kelamin')
+            if (!addressOk) missing.push('Alamat')
+
+            // Show notification about incomplete profile
+            addNotification({
+              type: 'warning',
+              title: 'Data Profil Belum Lengkap',
+              message: `Untuk mendaftar program, Anda harus melengkapi data profil terlebih dahulu. Data yang belum lengkap: ${missing.join(', ')}. Anda akan diarahkan ke halaman pengisian data.`,
+              duration: 8000
+            })
+
             // Prefer the step-based referral-like flow that forces data completion
             const currentReferral = searchParams.get('referral')
             const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
             console.log('➡️ Redirecting to step-based enrollment to complete data first')
-            router.push(`/enroll-program/${params.id}${referralQuery}`)
+            
+            setTimeout(() => {
+              router.push(`/enroll-program/${params.id}${referralQuery}`)
+            }, 1000)
             return
           }
         }
       } catch (e) {
         // If profile check fails, still fallback to step-based flow to be safe
+        addNotification({
+          type: 'info',
+          title: 'Lengkapi Data Profil',
+          message: 'Untuk mendaftar program, silakan lengkapi data profil Anda terlebih dahulu.',
+          duration: 6000
+        })
+        
         const currentReferral = searchParams.get('referral')
         const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
-        router.push(`/enroll-program/${params.id}${referralQuery}`)
+        
+        setTimeout(() => {
+          router.push(`/enroll-program/${params.id}${referralQuery}`)
+        }, 1000)
         return
       }
       
@@ -537,6 +566,9 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               <div className="h-32 bg-gray-200 rounded"></div>
             </div>
           </div>
+        </div>
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-600">Memeriksa kelengkapan data profil...</p>
         </div>
       </div>
     )

@@ -55,10 +55,20 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
     full_name: '',
     email: '',
     gender: '',
+    date_of_birth: '',
+    whatsapp: '',
+    provinsi: '',
+    kabupaten: '',
+    alamat_lengkap: '',
+    instansi: '',
+    jabatan: '',
     career_info: '',
     education: '',
-    phone: '',
-    address: '',
+    education_status: '',
+    employment_status: '',
+    it_background: '',
+    disability: '',
+    program_source: [] as string[],
     emergency_contact: '',
     emergency_phone: '',
     consent_privacy: false,
@@ -191,11 +201,11 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
     if (!program || !profile) return
 
     // Validate required fields
-    if (!formData.full_name || !formData.email || !formData.gender) {
+    if (!formData.full_name || !formData.email || !formData.gender || !formData.whatsapp || !formData.alamat_lengkap) {
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Mohon lengkapi semua field yang wajib diisi'
+        message: 'Mohon lengkapi semua field yang wajib diisi (Nama, Email, Jenis Kelamin, WhatsApp, Alamat)'
       })
       return
     }
@@ -211,6 +221,29 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
 
     try {
       setSubmitting(true)
+
+      // First, update user_profiles to ensure profile data is saved
+      const addressComposite = [formData.alamat_lengkap, formData.kabupaten, formData.provinsi]
+        .filter(Boolean)
+        .join(', ')
+
+      const { error: profileUpdateError } = await (supabase as any)
+        .from('user_profiles')
+        .upsert({
+          id: profile.id,
+          full_name: formData.full_name,
+          email: formData.email,
+          phone: formData.whatsapp || formData.emergency_phone,
+          gender: formData.gender,
+          address: formData.alamat_lengkap || addressComposite,
+          provinsi: formData.provinsi || null,
+          kabupaten: formData.kabupaten || null
+        })
+
+      if (profileUpdateError) {
+        console.error('Error updating user profile:', profileUpdateError)
+        throw profileUpdateError
+      }
 
       // Create or update participant record
       let participantId = profile.id
@@ -233,12 +266,24 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
             user_id: profile.id,
             name: formData.full_name,
             email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
-            date_of_birth: null, // You might want to add this field
+            phone: formData.whatsapp || formData.emergency_phone,
+            address: formData.alamat_lengkap || addressComposite,
+            date_of_birth: formData.date_of_birth || null,
             gender: formData.gender,
-            emergency_contact_name: formData.emergency_contact,
-            emergency_contact_phone: formData.emergency_phone
+            company: formData.instansi || null,
+            position: formData.jabatan || null,
+            emergency_contact_name: formData.emergency_contact || null,
+            emergency_contact_phone: formData.emergency_phone || null,
+            background: formData.background || null,
+            career_info: formData.career_info || null,
+            education: formData.education || null,
+            education_status: formData.education_status || null,
+            employment_status: formData.employment_status || null,
+            it_background: formData.it_background || null,
+            disability: formData.disability || null,
+            program_source: formData.program_source.length > 0 ? JSON.stringify(formData.program_source) : null,
+            provinsi: formData.provinsi || null,
+            kabupaten: formData.kabupaten || null
           })
           .select('id')
           .single()
@@ -252,11 +297,24 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
           .update({
             name: formData.full_name,
             email: formData.email,
-            phone: formData.phone,
-            address: formData.address,
+            phone: formData.whatsapp || formData.emergency_phone,
+            address: formData.alamat_lengkap || addressComposite,
+            date_of_birth: formData.date_of_birth || null,
             gender: formData.gender,
-            emergency_contact_name: formData.emergency_contact,
-            emergency_contact_phone: formData.emergency_phone
+            company: formData.instansi || null,
+            position: formData.jabatan || null,
+            emergency_contact_name: formData.emergency_contact || null,
+            emergency_contact_phone: formData.emergency_phone || null,
+            background: formData.background || null,
+            career_info: formData.career_info || null,
+            education: formData.education || null,
+            education_status: formData.education_status || null,
+            employment_status: formData.employment_status || null,
+            it_background: formData.it_background || null,
+            disability: formData.disability || null,
+            program_source: formData.program_source.length > 0 ? JSON.stringify(formData.program_source) : null,
+            provinsi: formData.provinsi || null,
+            kabupaten: formData.kabupaten || null
           })
           .eq('id', (existingParticipant as any).id)
 
@@ -569,26 +627,28 @@ export default function EnrollProgramStep1Page({ params }: { params: { programId
                     <div className="p-6 space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Nomor Telepon
+                          Nomor WhatsApp *
                         </label>
                         <input
                           type="tel"
-                          name="phone"
-                          value={formData.phone}
+                          name="whatsapp"
+                          value={formData.whatsapp}
                           onChange={handleInputChange}
+                          required
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Masukkan nomor telepon"
+                          placeholder="Masukkan nomor WhatsApp aktif"
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Alamat
+                          Alamat Lengkap *
                         </label>
                         <textarea
-                          name="address"
-                          value={formData.address}
+                          name="alamat_lengkap"
+                          value={formData.alamat_lengkap}
                           onChange={handleInputChange}
+                          required
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Masukkan alamat lengkap"
