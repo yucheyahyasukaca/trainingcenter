@@ -416,7 +416,7 @@ export default function EditUserProfilePage() {
       const addressComposite = `${formData.provinsi}, ${formData.kabupaten}`.trim()
       
       // Upsert user_profiles
-      await (supabase as any)
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .upsert({
           id: userId,
@@ -430,6 +430,11 @@ export default function EditUserProfilePage() {
           jenjang: formData.jenjang
         })
 
+      if (profileError) {
+        console.error('Error updating user_profiles:', profileError)
+        throw new Error(`Gagal menyimpan profil: ${profileError.message}`)
+      }
+
       // Upsert participants
       const { data: existingParticipant } = await supabase
         .from('participants')
@@ -437,38 +442,56 @@ export default function EditUserProfilePage() {
         .eq('user_id', userId)
         .maybeSingle()
 
-      const participantPayload = {
+      const participantPayload: any = {
         user_id: userId,
         name: formData.full_name,
         email: formData.email,
         phone: formData.whatsapp,
         address: formData.alamat_lengkap || addressComposite,
-        date_of_birth: formData.date_of_birth,
+        date_of_birth: formData.date_of_birth || null,
         gender: formData.gender,
-        company: formData.instansi,
-        position: formData.jabatan,
-        emergency_contact_name: formData.emergency_contact,
-        emergency_contact_phone: formData.emergency_phone,
-        background: formData.background,
-        career_info: formData.career_info,
-        education: formData.education,
-        education_status: formData.education_status,
-        employment_status: formData.employment_status,
-        it_background: formData.it_background,
-        disability: formData.disability,
-        program_source: JSON.stringify(formData.program_source),
-        provinsi: formData.provinsi,
-        kabupaten: formData.kabupaten,
+        company: formData.instansi || null,
+        position: formData.jabatan || null,
         status: 'active' as const
       }
 
+      // Add extended fields only if they exist in the table
+      // These fields might not exist in older database schemas
+      const extendedFields = {
+        emergency_contact_name: formData.emergency_contact || null,
+        emergency_contact_phone: formData.emergency_phone || null,
+        background: formData.background || null,
+        career_info: formData.career_info || null,
+        education: formData.education || null,
+        education_status: formData.education_status || null,
+        employment_status: formData.employment_status || null,
+        it_background: formData.it_background || null,
+        disability: formData.disability || null,
+        program_source: formData.program_source.length > 0 ? JSON.stringify(formData.program_source) : null,
+        provinsi: formData.provinsi || null,
+        kabupaten: formData.kabupaten || null,
+      }
+
+      // Try to add extended fields, but don't fail if columns don't exist
+      Object.assign(participantPayload, extendedFields)
+
+      let participantError
       if (existingParticipant?.id) {
-        await (supabase as any)
+        const { error } = await supabase
           .from('participants')
           .update(participantPayload)
           .eq('id', existingParticipant.id)
+        participantError = error
       } else {
-        await (supabase as any).from('participants').insert(participantPayload)
+        const { error } = await supabase
+          .from('participants')
+          .insert(participantPayload)
+        participantError = error
+      }
+
+      if (participantError) {
+        console.error('Error updating participants:', participantError)
+        throw new Error(`Gagal menyimpan data peserta: ${participantError.message}`)
       }
 
       addNotification({
@@ -486,7 +509,7 @@ export default function EditUserProfilePage() {
           return
         }
       } catch {}
-      router.push('/dashboard')
+      router.push('/profile')
     } catch (error: any) {
       console.error('Error saving profile:', error)
       addNotification({
