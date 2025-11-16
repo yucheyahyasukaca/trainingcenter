@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
-import { Search, Plus, Edit, Trash2, GraduationCap, Eye } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, GraduationCap, Eye, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -256,6 +256,13 @@ export default function AdminProgramsPage() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center space-x-2">
+                        <Link
+                          href={`/admin/programs/${program.id}/classes`}
+                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Lihat Kelas"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                        </Link>
                         <Link
                           href={`/programs/${program.id}/edit`}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

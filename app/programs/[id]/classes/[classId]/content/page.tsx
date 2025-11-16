@@ -166,7 +166,16 @@ export default function ClassContentManagementPage({
                   {programData?.title || 'Program'}
                 </Link>
                 <span className="text-gray-400">/</span>
-                <Link href={`/programs/${params.id}/classes`} className="hover:text-primary-600 whitespace-nowrap">Classes</Link>
+                <Link 
+                  href={
+                    (profile as any)?.role === 'admin' || (profile as any)?.role === 'manager'
+                      ? `/admin/programs/${params.id}/classes`
+                      : `/programs/${params.id}/classes`
+                  } 
+                  className="hover:text-primary-600 whitespace-nowrap"
+                >
+                  Classes
+                </Link>
                 <span className="text-gray-400">/</span>
                 <span className="text-gray-900 font-medium whitespace-nowrap">Content Management</span>
               </>
@@ -177,7 +186,13 @@ export default function ClassContentManagementPage({
         {/* Header */}
         <div className="mb-8">
           <Link
-            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
+            href={
+              (profile as any)?.role === 'trainer' 
+                ? '/trainer/classes' 
+                : (profile as any)?.role === 'admin' || (profile as any)?.role === 'manager'
+                ? `/admin/programs/${params.id}/classes`
+                : `/programs/${params.id}/classes`
+            }
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

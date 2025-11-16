@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ClassWithTrainers, ClassInsert, ClassTrainerInsert, Trainer } from '@/types'
-import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
 import { MultiSelectTrainer } from '@/components/ui/MultiSelectTrainer'
+import { useToast } from '@/hooks/useToast'
+import Link from 'next/link'
 
 interface ClassManagementProps {
   programId: string
@@ -15,6 +17,7 @@ interface ClassManagementProps {
 }
 
 export function ClassManagement({ programId, programTitle, currentUserId, isTrainerMode = false }: ClassManagementProps) {
+  const addToast = useToast()
   const [classes, setClasses] = useState<ClassWithTrainers[]>([])
   const [trainers, setTrainers] = useState<Trainer[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +41,9 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
   const [participantLimit, setParticipantLimit] = useState(100)
   const [selectedTrainers, setSelectedTrainers] = useState<string[]>([])
   const [primaryTrainer, setPrimaryTrainer] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 6
 
   useEffect(() => {
     fetchClasses()
@@ -61,15 +67,10 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
 
       console.log('✅ Classes table accessible')
 
+      // Fetch classes with a simpler query first
       const { data, error } = await supabase
         .from('classes')
-        .select(`
-          *,
-          trainers:class_trainers(
-            *,
-            trainer:trainers(*)
-          )
-        `)
+        .select('*')
         .eq('program_id', programId)
         .order('start_date', { ascending: true })
 
@@ -79,8 +80,141 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
       }
       
       console.log('🔍 Classes fetched for program', programId, ':', data?.length || 0, 'classes')
-      console.log('📋 Classes data:', data)
-      setClasses(data || [])
+      
+      // Fetch class trainers separately
+      const classIds = (data || []).map((cls: any) => cls.id)
+      console.log('🔍 ClassManagement: Class IDs to fetch trainers for:', classIds)
+      let trainersMap = new Map()
+      
+      if (classIds.length > 0) {
+        const { data: classTrainersData, error: trainersError } = await supabase
+          .from('class_trainers')
+          .select('id, class_id, trainer_id, is_primary')
+          .in('class_id', classIds)
+
+        console.log('🔍 ClassManagement: Raw class_trainers data:', classTrainersData)
+        console.log('🔍 ClassManagement: Class trainers error:', trainersError)
+
+        if (!trainersError && classTrainersData) {
+          // Group by class_id
+          classTrainersData.forEach((ct: any) => {
+            if (!trainersMap.has(ct.class_id)) {
+              trainersMap.set(ct.class_id, [])
+            }
+            trainersMap.get(ct.class_id).push(ct)
+          })
+
+          console.log('🔍 ClassManagement: Trainers map:', Array.from(trainersMap.entries()))
+
+          // Fetch trainer details - try both user_profiles and trainers tables
+          const trainerIds = [...new Set(classTrainersData.map((ct: any) => ct.trainer_id).filter(Boolean))]
+          console.log('🔍 ClassManagement: Trainer IDs to fetch:', trainerIds)
+          
+          if (trainerIds.length > 0) {
+            // Try user_profiles first (most common case)
+            const { data: trainerDetailsFromUserProfiles, error: userProfilesError } = await supabase
+              .from('user_profiles')
+              .select('id, full_name, email')
+              .in('id', trainerIds)
+
+            console.log('🔍 ClassManagement: Trainer details from user_profiles:', trainerDetailsFromUserProfiles)
+            console.log('🔍 ClassManagement: User profiles error:', userProfilesError)
+
+            // Try trainers table as fallback
+            const { data: trainerDetailsFromTrainers, error: trainersTableError } = await supabase
+              .from('trainers')
+              .select('id, name, email, user_id')
+              .in('id', trainerIds)
+
+            console.log('🔍 ClassManagement: Trainer details from trainers table:', trainerDetailsFromTrainers)
+            console.log('🔍 ClassManagement: Trainers table error:', trainersTableError)
+
+            // Build trainer map from both sources
+            const trainerDetailsMap = new Map()
+            
+            // Add from user_profiles
+            if (trainerDetailsFromUserProfiles) {
+              trainerDetailsFromUserProfiles.forEach((t: any) => {
+                trainerDetailsMap.set(t.id, { id: t.id, name: t.full_name, email: t.email })
+              })
+            }
+            
+            // Add from trainers table (if not already in map)
+            if (trainerDetailsFromTrainers) {
+              trainerDetailsFromTrainers.forEach((t: any) => {
+                if (!trainerDetailsMap.has(t.id)) {
+                  trainerDetailsMap.set(t.id, { id: t.id, name: t.name, email: t.email })
+                }
+              })
+            }
+
+            console.log('🔍 ClassManagement: Final trainer map:', Array.from(trainerDetailsMap.entries()))
+            
+            // Attach trainer details
+            trainersMap.forEach((trainers, classId) => {
+              trainers.forEach((ct: any) => {
+                ct.trainer = trainerDetailsMap.get(ct.trainer_id) || null
+                console.log(`🔍 ClassManagement: Attaching trainer to class ${classId}:`, {
+                  trainer_id: ct.trainer_id,
+                  trainer: ct.trainer
+                })
+              })
+            })
+          } else {
+            console.warn('⚠️ ClassManagement: No trainer IDs found in class_trainers data')
+          }
+        }
+      }
+
+      // Fetch participant counts for each class from enrollments
+      const classParticipantCounts = new Map()
+      if (classIds.length > 0) {
+        try {
+          // Fetch all enrollments for these classes in one query
+          const { data: enrollmentsData, error: enrollmentsError } = await supabase
+            .from('enrollments')
+            .select('class_id')
+            .in('class_id', classIds)
+            .in('status', ['pending', 'approved', 'completed'])
+
+          if (enrollmentsError) {
+            console.error('Error fetching enrollments:', enrollmentsError)
+          } else if (enrollmentsData) {
+            // Count participants per class
+            enrollmentsData.forEach((enrollment: any) => {
+              if (enrollment.class_id) {
+                const currentCount = classParticipantCounts.get(enrollment.class_id) || 0
+                classParticipantCounts.set(enrollment.class_id, currentCount + 1)
+              }
+            })
+            
+            console.log('Jumlah peserta per kelas:', Array.from(classParticipantCounts.entries()))
+          }
+        } catch (countError) {
+          console.error('Error fetching participant counts:', countError)
+          // Continue with 0 counts if there's an error
+        }
+      }
+
+      // Combine classes with trainers and participant counts
+      const classesWithTrainers = (data || []).map((cls: any) => ({
+        ...cls,
+        trainers: trainersMap.get(cls.id) || [],
+        current_participants: classParticipantCounts.get(cls.id) || 0
+      }))
+      
+      console.log('📋 Classes data with trainers:', classesWithTrainers.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        trainersCount: c.trainers?.length || 0,
+        trainers: c.trainers?.map((t: any) => ({
+          id: t.id,
+          trainer_id: t.trainer_id,
+          trainer_name: t.trainer?.name,
+          trainer_email: t.trainer?.email
+        }))
+      })))
+      setClasses(classesWithTrainers)
     } catch (error) {
       console.error('❌ Error fetching classes:', error)
       setClasses([])
@@ -141,45 +275,74 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
         // Auto-assign current trainer as primary when in trainer mode
         console.log('🔄 Auto-assigning current trainer to class:', currentUserId)
         
-        // Directly use user_id as trainer_id in class_trainers
-        const { error: trainersError } = await (supabase as any)
+        // Check if trainer already exists for this class
+        const { data: existingTrainer } = await supabase
           .from('class_trainers')
-          .insert([{
-            class_id: classId,
-            trainer_id: currentUserId, // Use user_id directly
-            role: 'instructor',
-            is_primary: true
-          }])
+          .select('id')
+          .eq('class_id', classId)
+          .eq('trainer_id', currentUserId)
+          .maybeSingle()
 
-        if (trainersError) {
-          console.error('❌ Class trainers insert error:', trainersError)
-          throw trainersError
+        if (!existingTrainer) {
+          // Directly use user_id as trainer_id in class_trainers
+          const { error: trainersError } = await (supabase as any)
+            .from('class_trainers')
+            .insert([{
+              class_id: classId,
+              trainer_id: currentUserId, // Use user_id directly
+              role: 'instructor',
+              is_primary: true
+            }])
+
+          if (trainersError) {
+            console.error('❌ Class trainers insert error:', trainersError)
+            // Don't throw - class is already created, just log the error
+            console.warn('⚠️ Failed to assign trainer, but class was created')
+          } else {
+            console.log('✅ Current trainer auto-assigned successfully')
+          }
+        } else {
+          console.log('✅ Trainer already assigned to this class')
         }
-
-        console.log('✅ Current trainer auto-assigned successfully')
       } else if (selectedTrainers.length > 0) {
         // Admin mode: use selected trainers
         console.log('🔄 Adding trainers to class:', selectedTrainers)
         
-        const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
-          class_id: classId,
-          trainer_id: trainerId,
-          role: trainerId === primaryTrainer ? 'instructor' : 'assistant',
-          is_primary: trainerId === primaryTrainer
-        }))
-
-        console.log('🔄 Class trainers data:', classTrainers)
-
-        const { error: trainersError } = await (supabase as any)
+        // Check existing trainers first
+        const { data: existingTrainers } = await supabase
           .from('class_trainers')
-          .insert(classTrainers)
+          .select('trainer_id')
+          .eq('class_id', classId)
 
-        if (trainersError) {
-          console.error('❌ Class trainers insert error:', trainersError)
-          throw trainersError
+        const existingTrainerIds = new Set((existingTrainers || []).map((et: any) => et.trainer_id))
+        
+        // Filter out trainers that already exist
+        const newTrainers = selectedTrainers.filter(trainerId => !existingTrainerIds.has(trainerId))
+        
+        if (newTrainers.length > 0) {
+          const classTrainers: ClassTrainerInsert[] = newTrainers.map(trainerId => ({
+            class_id: classId,
+            trainer_id: trainerId,
+            role: trainerId === primaryTrainer ? 'instructor' : 'assistant',
+            is_primary: trainerId === primaryTrainer
+          }))
+
+          console.log('🔄 Class trainers data (new only):', classTrainers)
+
+          const { error: trainersError } = await (supabase as any)
+            .from('class_trainers')
+            .insert(classTrainers)
+
+          if (trainersError) {
+            console.error('❌ Class trainers insert error:', trainersError)
+            // Don't throw - class is already created
+            console.warn('⚠️ Failed to assign some trainers, but class was created')
+          } else {
+            console.log('✅ Class trainers inserted successfully')
+          }
+        } else {
+          console.log('ℹ️ All selected trainers already assigned to this class')
         }
-
-        console.log('✅ Class trainers inserted successfully')
       }
 
       // Reset form
@@ -203,18 +366,21 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
       setShowAddModal(false)
       
       console.log('🔄 Refreshing classes list...')
+      addToast.success('Kelas berhasil ditambahkan', 'Berhasil')
       fetchClasses()
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding class:', error)
       
       // Show detailed error message
       let errorMessage = 'Gagal menambahkan kelas'
-      if (error instanceof Error) {
+      if (error?.message) {
         errorMessage += `: ${error.message}`
+      } else if (error?.code) {
+        errorMessage += ` (Error code: ${error.code})`
       }
       
-      alert(errorMessage)
+      addToast.error(errorMessage, 'Error')
     } finally {
       setLoading(false)
     }
@@ -275,64 +441,156 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
       // Update trainers
       console.log('🔄 Updating trainers for class:', editingClass.id)
       
-      // First, delete existing trainers
-      const { error: deleteError } = await supabase
+      // Get current trainers
+      const { data: currentTrainers, error: fetchCurrentError } = await supabase
         .from('class_trainers')
-        .delete()
+        .select('trainer_id')
         .eq('class_id', editingClass.id)
 
-      if (deleteError) {
-        console.error('❌ Delete trainers error:', deleteError)
-        throw deleteError
+      if (fetchCurrentError) {
+        console.error('❌ Error fetching current trainers:', fetchCurrentError)
+        // Continue anyway
       }
 
-      console.log('✅ Existing trainers deleted')
+      const currentTrainerIds = new Set((currentTrainers || []).map((ct: any) => ct.trainer_id))
+      const newTrainerIds = new Set(selectedTrainers)
+      
+      // Find trainers to delete (in current but not in new)
+      const trainersToDelete = Array.from(currentTrainerIds).filter(id => !newTrainerIds.has(id))
+      
+      // Find trainers to add (in new but not in current)
+      const trainersToAdd = selectedTrainers.filter(id => !currentTrainerIds.has(id))
+      
+      // Find trainers to update (in both, might need to update is_primary)
+      const trainersToUpdate = selectedTrainers.filter(id => currentTrainerIds.has(id))
 
-      // Then insert new trainers
-      if (selectedTrainers.length > 0) {
+      // Delete trainers that are no longer selected
+      if (trainersToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('class_trainers')
+          .delete()
+          .eq('class_id', editingClass.id)
+          .in('trainer_id', trainersToDelete)
+
+        if (deleteError) {
+          console.error('❌ Delete trainers error:', deleteError)
+          // Don't throw, continue with other operations
+        } else {
+          console.log('✅ Removed trainers:', trainersToDelete)
+        }
+      }
+
+      // Insert new trainers
+      if (trainersToAdd.length > 0) {
         // Validate primary trainer is in selected trainers
         if (primaryTrainer && !selectedTrainers.includes(primaryTrainer)) {
           console.warn('⚠️ Primary trainer not in selected trainers, clearing primary')
           setPrimaryTrainer('')
         }
         
-        const classTrainers: ClassTrainerInsert[] = selectedTrainers.map(trainerId => ({
+        const classTrainers: ClassTrainerInsert[] = trainersToAdd.map(trainerId => ({
           class_id: editingClass.id,
           trainer_id: trainerId,
-          role: 'assistant',
+          role: trainerId === primaryTrainer ? 'instructor' : 'assistant',
           is_primary: trainerId === primaryTrainer
         }))
 
         console.log('🔄 Inserting new trainers:', classTrainers)
 
-        const { data: trainersData, error: trainersError } = await (supabase as any)
-          .from('class_trainers')
-          .insert(classTrainers)
-          .select()
+        // Insert trainers one by one to handle duplicates gracefully
+        const insertedTrainers = []
+        const failedTrainers = []
+        
+        for (const trainer of classTrainers) {
+          try {
+            const { data: trainerData, error: trainerError } = await (supabase as any)
+              .from('class_trainers')
+              .insert([trainer])
+              .select()
+              .single()
 
-        if (trainersError) {
-          console.error('❌ Insert trainers error:', trainersError)
-          throw trainersError
+            if (trainerError) {
+              // Check if it's a duplicate error
+              if (trainerError.code === '23505' || trainerError.message?.includes('duplicate') || trainerError.message?.includes('unique') || trainerError.code === 'PGRST116') {
+                console.warn(`⚠️ Trainer ${trainer.trainer_id} already exists for this class, skipping`)
+                failedTrainers.push(trainer.trainer_id)
+              } else {
+                console.error(`❌ Error inserting trainer ${trainer.trainer_id}:`, trainerError)
+                failedTrainers.push(trainer.trainer_id)
+              }
+            } else {
+              insertedTrainers.push(trainerData)
+            }
+          } catch (err: any) {
+            console.error(`❌ Exception inserting trainer ${trainer.trainer_id}:`, err)
+            failedTrainers.push(trainer.trainer_id)
+          }
         }
 
-        console.log('✅ Trainers inserted successfully:', trainersData)
+        if (insertedTrainers.length > 0) {
+          console.log('✅ Trainers inserted successfully:', insertedTrainers.length)
+        }
+        if (failedTrainers.length > 0) {
+          console.warn('⚠️ Some trainers failed to insert (may already exist):', failedTrainers.length)
+        }
+        
+        // Only throw if ALL trainers failed and it's not a duplicate issue
+        if (insertedTrainers.length === 0 && failedTrainers.length === classTrainers.length) {
+          throw new Error('Gagal menambahkan trainer. Pastikan trainer belum terdaftar untuk kelas ini.')
+        }
+      }
+
+      // Update primary trainer status for existing trainers
+      if (primaryTrainer && trainersToUpdate.length > 0) {
+        // First, set all trainers to not primary
+        const { error: unsetPrimaryError } = await supabase
+          .from('class_trainers')
+          .update({ is_primary: false })
+          .eq('class_id', editingClass.id)
+
+        if (unsetPrimaryError) {
+          console.error('❌ Error unsetting primary trainers:', unsetPrimaryError)
+        }
+
+        // Then set the primary trainer
+        const { error: setPrimaryError } = await supabase
+          .from('class_trainers')
+          .update({ is_primary: true, role: 'instructor' })
+          .eq('class_id', editingClass.id)
+          .eq('trainer_id', primaryTrainer)
+
+        if (setPrimaryError) {
+          console.error('❌ Error setting primary trainer:', setPrimaryError)
+        } else {
+          console.log('✅ Primary trainer updated')
+        }
       }
 
       setEditingClass(null)
       setShowEditModal(false)
       setSelectedTrainers([])
       setPrimaryTrainer('')
+      addToast.success('Kelas berhasil diupdate', 'Berhasil')
       fetchClasses()
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error updating class:', error)
       
       // Show detailed error message
       let errorMessage = 'Gagal mengupdate kelas'
-      if (error instanceof Error) {
+      if (error?.message) {
         errorMessage += `: ${error.message}`
+      } else if (error?.code) {
+        errorMessage += ` (Error code: ${error.code})`
       }
       
-      alert(errorMessage)
+      // Check for specific error types
+      if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+        errorMessage = 'Trainer sudah terdaftar untuk kelas ini. Silakan pilih trainer lain atau refresh halaman.'
+      } else if (error?.code === '409' || error?.status === 409) {
+        errorMessage = 'Konflik data. Trainer mungkin sudah terdaftar. Silakan refresh halaman dan coba lagi.'
+      }
+      
+      addToast.error(errorMessage, 'Error')
     } finally {
       setLoading(false)
     }
@@ -379,13 +637,49 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
     return badges[status] || 'px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full'
   }
 
+  function getStatusText(status: string) {
+    const texts: Record<string, string> = {
+      scheduled: 'Dijadwalkan',
+      ongoing: 'Berlangsung',
+      completed: 'Selesai',
+      cancelled: 'Dibatalkan',
+      // Legacy status support
+      active: 'Aktif',
+      inactive: 'Tidak Aktif',
+      full: 'Penuh',
+    }
+    return texts[status] || status
+  }
+
+  // Filter classes based on search query
+  const filteredClasses = classes.filter((classItem) => {
+    const searchLower = searchQuery.toLowerCase()
+    return (
+      classItem.name.toLowerCase().includes(searchLower) ||
+      classItem.description?.toLowerCase().includes(searchLower) ||
+      classItem.location?.toLowerCase().includes(searchLower) ||
+      classItem.trainers?.some((t) => t.trainer?.name?.toLowerCase().includes(searchLower))
+    )
+  })
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredClasses.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentClasses = filteredClasses.slice(startIndex, endIndex)
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
   if (loading && classes.length === 0) {
     return <div className="text-center py-8">Memuat kelas...</div>
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Manajemen Kelas</h2>
           <p className="text-gray-600 mt-1">Kelola kelas untuk program: {programTitle}</p>
@@ -399,6 +693,25 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
         </button>
       </div>
 
+      {/* Search and Info */}
+      {classes.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="text-sm text-gray-600">
+            Total: {filteredClasses.length} dari {classes.length} kelas
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Cari kelas..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm w-full sm:w-64"
+            />
+          </div>
+        </div>
+      )}
+
       {classes.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -411,13 +724,22 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
             Tambah Kelas Pertama
           </button>
         </div>
+      ) : filteredClasses.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <Search className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-4">Tidak ada kelas yang ditemukan</p>
+          <p className="text-sm text-gray-500">
+            Coba ubah kata kunci pencarian Anda
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem) => (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentClasses.map((classItem) => (
             <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between mb-4">
                 <span className={getStatusBadge(classItem.status)}>
-                  {classItem.status}
+                  {getStatusText(classItem.status)}
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
@@ -453,21 +775,21 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600">Peserta</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {classItem.current_participants} / {classItem.max_participants || 'Unlimited'}
+                    {classItem.current_participants} / {classItem.max_participants || 'Tidak Terbatas'}
                   </span>
                 </div>
                 
-                {classItem.trainers && classItem.trainers.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      <span>Trainer:</span>
-                    </div>
+                <div className="mt-2">
+                  <div className="flex items-center text-sm text-gray-600 mb-1">
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    <span>Pelatih:</span>
+                  </div>
+                  {classItem.trainers && classItem.trainers.length > 0 ? (
                     <div className="space-y-1">
                       {classItem.trainers.map((ct) => (
                         <div key={ct.id} className="flex items-center justify-between">
                           <span className="text-xs text-gray-700">
-                            {ct.trainer?.name}
+                            {ct.trainer?.name || ct.trainer_id || 'Pelatih tidak ditemukan'}
                           </span>
                           {ct.is_primary && (
                             <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
@@ -477,23 +799,80 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-xs text-gray-500 italic">
+                      Belum ada pelatih yang ditugaskan
+                    </div>
+                  )}
+                </div>
                 
                 {/* Content Management Button */}
                 <div className="mt-4">
-                  <a
+                  <Link
                     href={`/programs/${programId}/classes/${classItem.id}/content`}
                     className="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     Kelola Materi
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+            <div className="text-sm text-gray-600">
+              Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredClasses.length)} dari {filteredClasses.length} kelas
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  // Show first page, last page, current page, and pages around current
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                          currentPage === page
+                            ? 'bg-primary-600 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  } else if (page === currentPage - 2 || page === currentPage + 2) {
+                    return <span key={page} className="px-2">...</span>
+                  }
+                  return null
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* Add Class Modal */}
@@ -529,7 +908,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                         }}
                         className="mr-2"
                       />
-                      <span className="text-sm text-gray-700">Unlimited</span>
+                      <span className="text-sm text-gray-700">Tidak Terbatas</span>
                     </label>
                     <label className="flex items-center">
                       <input
@@ -563,7 +942,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         {participantLimit === null || participantLimit === undefined 
-                          ? 'Unlimited peserta yang bisa bergabung' 
+                          ? 'Tidak terbatas peserta yang bisa bergabung' 
                           : `Hanya ${participantLimit} peserta yang bisa bergabung`
                         }
                       </p>
@@ -674,7 +1053,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                         onChange={() => setEditingClass({ ...editingClass, max_participants: undefined as any })}
                         className="mr-2"
                       />
-                      <span className="text-sm text-gray-700">Unlimited</span>
+                      <span className="text-sm text-gray-700">Tidak Terbatas</span>
                     </label>
                     <label className="flex items-center">
                       <input
@@ -701,7 +1080,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         {editingClass.max_participants === null || editingClass.max_participants === undefined 
-                          ? 'Unlimited peserta yang bisa bergabung' 
+                          ? 'Tidak terbatas peserta yang bisa bergabung' 
                           : `Hanya ${editingClass.max_participants} peserta yang bisa bergabung`
                         }
                       </p>
