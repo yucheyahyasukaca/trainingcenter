@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
+import { useToast } from '@/hooks/useToast'
+import { Plus, Edit, Trash2, Video, X, Calendar, Users, Award } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
 
 interface WebinarForm {
   title: string
@@ -19,10 +22,12 @@ interface WebinarForm {
 
 export default function AdminWebinarsPage() {
   const { profile } = useAuth()
+  const addToast = useToast()
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<WebinarForm>({
     title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams'
   })
@@ -161,9 +166,10 @@ export default function AdminWebinarsPage() {
       setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
       setSpeakers([{ name: '', title: '', avatar: null }])
       setEditingId(null)
-      alert('Webinar disimpan')
+      setShowForm(false)
+      addToast.success('Webinar berhasil disimpan', 'Berhasil')
     } catch (err: any) {
-      alert(err.message || 'Gagal membuat webinar')
+      addToast.error(err.message || 'Gagal membuat webinar', 'Error')
     } finally {
       setSubmitting(false)
     }
@@ -171,8 +177,12 @@ export default function AdminWebinarsPage() {
 
   async function loadForEdit(id: string) {
     const { data, error } = await supabase.from('webinars').select('*').eq('id', id).single()
-    if (error || !data) return
+    if (error || !data) {
+      addToast.error('Gagal memuat data webinar', 'Error')
+      return
+    }
     setEditingId(id)
+    setShowForm(true)
     setForm({
       title: data.title || '',
       slug: data.slug || '',
@@ -198,12 +208,25 @@ export default function AdminWebinarsPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Hapus webinar ini?')) return
-    const { error } = await supabase.from('webinars').delete().eq('id', id)
-    if (error) { alert(error.message); return }
-    const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
-    setItems(data || [])
+  function handleCancelEdit() {
+    setEditingId(null)
+    setShowForm(false)
+    setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+    setSpeakers([{ name: '', title: '', avatar: null }])
+    setSlugAvailable(null)
+  }
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus webinar "${title}"?`)) return
+    try {
+      const { error } = await supabase.from('webinars').delete().eq('id', id)
+      if (error) throw error
+      const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
+      setItems(data || [])
+      addToast.success('Webinar berhasil dihapus', 'Berhasil')
+    } catch (error: any) {
+      addToast.error(error.message || 'Gagal menghapus webinar', 'Error')
+    }
   }
 
   async function checkSlugAvailability(slug: string) {
@@ -215,177 +238,390 @@ export default function AdminWebinarsPage() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Kelola Webinar</h1>
-
-      <form onSubmit={handleCreate} className="bg-white border rounded-xl p-4 mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Judul</label>
-          <input className="input w-full" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} required />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Webinar</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola semua webinar</p>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Slug</label>
-          <input 
-            className="input w-full" 
-            value={form.slug} 
-            onChange={e=>{ setForm(f=>({...f,slug:e.target.value})); setSlugAvailable(null) }} 
-            onBlur={e=>checkSlugAvailability(e.target.value)}
-            required 
-          />
-          {slugAvailable === false && (
-            <div className="text-xs text-red-600 mt-1">Slug sudah dipakai</div>
-          )}
-          {slugAvailable === true && (
-            <div className="text-xs text-green-600 mt-1">Slug tersedia</div>
-          )}
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Deskripsi</label>
-          <textarea className="input w-full h-28" value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Mulai</label>
-          <input type="datetime-local" className="input w-full" value={form.start_time} onChange={e=>setForm(f=>({...f,start_time:e.target.value}))} required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Selesai</label>
-          <input type="datetime-local" className="input w-full" value={form.end_time} onChange={e=>setForm(f=>({...f,end_time:e.target.value}))} required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Banner (optional)</label>
-          <input type="file" accept="image/*" onChange={e=>setForm(f=>({...f,hero_image_file:e.target.files?.[0]}))} />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Recording URL (opsional)</label>
-          <input
-            className="input w-full"
-            placeholder="https://... (YouTube, Vimeo, atau file)"
-            value={form.recording_url}
-            onChange={e=>setForm(f=>({...f,recording_url:e.target.value}))}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium mb-1">Meeting URL (opsional)</label>
-          <input
-            className="input w-full"
-            placeholder="https://... (Zoom, Google Meet, Teams)"
-            value={form.meeting_url || ''}
-            onChange={e=>setForm(f=>({...f,meeting_url:e.target.value}))}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Platform</label>
-          <select
-            className="input w-full"
-            value={form.platform || 'microsoft-teams'}
-            onChange={e=>setForm(f=>({...f,platform:e.target.value}))}
+        {!showForm && (
+          <button
+            onClick={() => {
+              setShowForm(true)
+              setEditingId(null)
+              setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+              setSpeakers([{ name: '', title: '', avatar: null }])
+              setSlugAvailable(null)
+            }}
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-primary-700 transition-colors flex-shrink-0 whitespace-nowrap shadow-sm"
           >
-            <option value="microsoft-teams">Microsoft Teams</option>
-            <option value="google-meet">Google Meet</option>
-            <option value="zoom">Zoom</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <input id="pub" type="checkbox" checked={form.is_published} onChange={e=>setForm(f=>({...f,is_published:e.target.checked}))} />
-          <label htmlFor="pub" className="text-sm">Publish</label>
-        </div>
-        {/* Speakers */}
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-semibold">Pembicara</label>
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+            <span>Buat Webinar</span>
+          </button>
+        )}
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {editingId ? 'Edit Webinar' : 'Buat Webinar Baru'}
+            </h2>
             <button
               type="button"
-              onClick={() => setSpeakers(prev => [...prev, { name: '', title: '', avatar: null }])}
-              className="text-sm px-3 py-1.5 border rounded-lg hover:bg-gray-50"
+              onClick={handleCancelEdit}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
             >
-              + Tambah Pembicara
+              <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="space-y-3">
-            {speakers.map((sp, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border rounded-lg">
-                <input
-                  className="input"
-                  placeholder="Nama Pembicara"
-                  value={sp.name}
-                  onChange={e=>{
-                    const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, name:v}: x))
-                  }}
-                />
-                <input
-                  className="input"
-                  placeholder="Jabatan / Title"
-                  value={sp.title}
-                  onChange={e=>{
-                    const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, title:v}: x))
-                  }}
-                />
-                <div className="flex items-center gap-2">
-                  <input type="file" accept="image/*" onChange={e=>{
-                    const file = e.target.files?.[0] || null
-                    setSpeakers(s => s.map((x,i)=> i===idx? {...x, avatar:file}: x))
-                  }} />
-                  {sp.avatar_url && (
-                    <img src={sp.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover border" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setSpeakers(s => s.filter((_,i)=> i!==idx))}
-                    className="text-sm px-3 py-1.5 border rounded-lg hover:bg-red-50 text-red-600"
-                  >
-                    Hapus
-                  </button>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Judul</label>
+              <input 
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
+                value={form.title} 
+                onChange={e=>setForm(f=>({...f,title:e.target.value}))} 
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+              <input 
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
+                value={form.slug} 
+                onChange={e=>{ setForm(f=>({...f,slug:e.target.value})); setSlugAvailable(null) }} 
+                onBlur={e=>checkSlugAvailability(e.target.value)}
+                required 
+              />
+              {slugAvailable === false && (
+                <div className="text-xs text-red-600 mt-1">Slug sudah dipakai</div>
+              )}
+              {slugAvailable === true && (
+                <div className="text-xs text-green-600 mt-1">Slug tersedia</div>
+              )}
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+              <textarea 
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm h-28 resize-none" 
+                value={form.description} 
+                onChange={e=>setForm(f=>({...f,description:e.target.value}))} 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mulai</label>
+              <input 
+                type="datetime-local" 
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
+                value={form.start_time} 
+                onChange={e=>setForm(f=>({...f,start_time:e.target.value}))} 
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Selesai</label>
+              <input 
+                type="datetime-local" 
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
+                value={form.end_time} 
+                onChange={e=>setForm(f=>({...f,end_time:e.target.value}))} 
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Banner (opsional)</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={e=>setForm(f=>({...f,hero_image_file:e.target.files?.[0]}))}
+                className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Recording URL (opsional)</label>
+              <input
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                placeholder="https://... (YouTube, Vimeo, atau file)"
+                value={form.recording_url}
+                onChange={e=>setForm(f=>({...f,recording_url:e.target.value}))}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Meeting URL (opsional)</label>
+              <input
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                placeholder="https://... (Zoom, Google Meet, Teams)"
+                value={form.meeting_url || ''}
+                onChange={e=>setForm(f=>({...f,meeting_url:e.target.value}))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Platform</label>
+              <select
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                value={form.platform || 'microsoft-teams'}
+                onChange={e=>setForm(f=>({...f,platform:e.target.value}))}
+              >
+                <option value="microsoft-teams">Microsoft Teams</option>
+                <option value="google-meet">Google Meet</option>
+                <option value="zoom">Zoom</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input 
+                id="pub" 
+                type="checkbox" 
+                checked={form.is_published} 
+                onChange={e=>setForm(f=>({...f,is_published:e.target.checked}))}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="pub" className="text-sm text-gray-700">Publish</label>
+            </div>
+            {/* Speakers */}
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-semibold text-gray-700">Pembicara</label>
+                <button
+                  type="button"
+                  onClick={() => setSpeakers(prev => [...prev, { name: '', title: '', avatar: null }])}
+                  className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  + Tambah Pembicara
+                </button>
               </div>
+              <div className="space-y-3">
+                {speakers.map((sp, idx) => (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 border border-gray-200 rounded-lg">
+                    <input
+                      className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                      placeholder="Nama Pembicara"
+                      value={sp.name}
+                      onChange={e=>{
+                        const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, name:v}: x))
+                      }}
+                    />
+                    <input
+                      className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                      placeholder="Jabatan / Title"
+                      value={sp.title}
+                      onChange={e=>{
+                        const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, title:v}: x))
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e=>{
+                          const file = e.target.files?.[0] || null
+                          setSpeakers(s => s.map((x,i)=> i===idx? {...x, avatar:file}: x))
+                        }}
+                        className="text-sm text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                      />
+                      {sp.avatar_url && (
+                        <img src={sp.avatar_url} alt="avatar" className="w-10 h-10 rounded-full object-cover border" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSpeakers(s => s.filter((_,i)=> i!==idx))}
+                        className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="md:col-span-2 flex gap-3">
+              <button 
+                type="submit" 
+                disabled={submitting || slugAvailable === false} 
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {submitting ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Buat Webinar')}
+              </button>
+              <button 
+                type="button" 
+                onClick={handleCancelEdit}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Webinars List */}
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Daftar Webinar</h2>
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-gray-200 animate-pulse rounded"></div>
             ))}
           </div>
-        </div>
-        <div className="md:col-span-2">
-          <button type="submit" disabled={submitting || slugAvailable === false} className="btn-primary px-4 py-2 rounded-lg">{submitting? 'Menyimpan...' : (editingId? 'Simpan Perubahan' : 'Buat Webinar')}</button>
-          {editingId && (
-            <button type="button" onClick={()=>{ setEditingId(null); setForm({ title:'', slug:'', description:'', start_time:'', end_time:'', is_published:false, recording_url:'' }); setSlugAvailable(null)}} className="ml-3 px-4 py-2 border rounded-lg">Batal</button>
-          )}
-        </div>
-      </form>
-
-      <div className="bg-white border rounded-xl p-4">
-        <h2 className="text-lg font-semibold mb-3">Daftar Webinar</h2>
-        {loading ? (
-          <div>Memuat...</div>
         ) : items.length === 0 ? (
-          <div>Belum ada webinar.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left border-b">
-                  <th className="py-2 pr-4">Judul</th>
-                  <th className="py-2 pr-4">Slug</th>
-                  <th className="py-2 pr-4">Waktu</th>
-                  <th className="py-2 pr-4">Publish</th>
-                  <th className="py-2 pr-4">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(it => (
-                  <tr key={it.id} className="border-b">
-                    <td className="py-2 pr-4">{it.title}</td>
-                    <td className="py-2 pr-4">{it.slug}</td>
-                    <td className="py-2 pr-4">{new Date(it.start_time).toLocaleString('id-ID')} - {new Date(it.end_time).toLocaleString('id-ID')}</td>
-                    <td className="py-2 pr-4">{it.is_published ? 'Ya' : 'Tidak'}</td>
-                    <td className="py-2 pr-4">
-                      <div className="flex gap-2">
-                        <button onClick={()=>loadForEdit(it.id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Edit</button>
-                        <a href={`/admin/webinars/${it.id}/participants`} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Peserta</a>
-                        <a href={`/admin/webinars/${it.id}/certificates`} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Sertifikat</a>
-                        <button onClick={()=>handleDelete(it.id)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-red-50 text-red-600">Hapus</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-center py-12">
+            <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">Belum ada webinar</p>
+            <button
+              onClick={() => {
+                setShowForm(true)
+                setEditingId(null)
+                setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+                setSpeakers([{ name: '', title: '', avatar: null }])
+                setSlugAvailable(null)
+              }}
+              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Buat Webinar Pertama
+            </button>
           </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Judul</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Waktu</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => (
+                    <tr key={it.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-4 px-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 mb-1">{it.title}</p>
+                          <p className="text-xs text-gray-500">{it.slug}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-sm text-gray-600">
+                          <p>{formatDate(it.start_time)}</p>
+                          <p className="text-xs text-gray-500">s/d {formatDate(it.end_time)}</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          it.is_published 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {it.is_published ? 'Diterbitkan' : 'Draft'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => loadForEdit(it.id)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <a
+                            href={`/admin/webinars/${it.id}/participants`}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                            title="Peserta"
+                          >
+                            <Users className="w-4 h-4" />
+                          </a>
+                          <a
+                            href={`/admin/webinars/${it.id}/certificates`}
+                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                            title="Sertifikat"
+                          >
+                            <Award className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => handleDelete(it.id, it.title)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {items.map((it) => (
+                <div key={it.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{it.title}</h3>
+                      <p className="text-xs text-gray-500 mb-2">{it.slug}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      it.is_published 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {it.is_published ? 'Diterbitkan' : 'Draft'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>{formatDate(it.start_time)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>{formatDate(it.end_time)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => loadForEdit(it.id)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <a
+                      href={`/admin/webinars/${it.id}/participants`}
+                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      title="Peserta"
+                    >
+                      <Users className="w-4 h-4" />
+                    </a>
+                    <a
+                      href={`/admin/webinars/${it.id}/certificates`}
+                      className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                      title="Sertifikat"
+                    >
+                      <Award className="w-4 h-4" />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(it.id, it.title)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Hapus"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

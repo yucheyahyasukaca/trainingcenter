@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { 
   Plus, Edit, Trash2, Video, FileText, HelpCircle, File, 
-  ChevronUp, ChevronDown, Eye, Upload, PlayCircle, EyeOff
+  ChevronUp, ChevronDown, Eye, Upload, PlayCircle, EyeOff, Sparkles, Copy
 } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import Link from 'next/link'
+import { TemplateMaterials } from './TemplateMaterials'
+import { useToast } from '@/hooks/useToast'
 
 interface LearningContent {
   id: string
@@ -28,6 +30,9 @@ interface LearningContent {
   material_type: 'main' | 'sub'
   level: number
   is_expanded: boolean
+  is_template?: boolean
+  template_source_id?: string | null
+  program_id?: string | null
   sub_materials?: LearningContent[]
 }
 
@@ -39,6 +44,7 @@ interface ContentManagementProps {
 
 export function ContentManagement({ classId, className, programId }: ContentManagementProps) {
   const { profile } = useAuth()
+  const addToast = useToast()
   const [contents, setContents] = useState<LearningContent[]>([])
   const [loading, setLoading] = useState(true)
   const [reordering, setReordering] = useState<string | null>(null)
@@ -49,9 +55,12 @@ export function ContentManagement({ classId, className, programId }: ContentMana
 
   async function fetchContents() {
     try {
-      // Use the hierarchical function to get structured data
+      // Fetch all contents for this class with template fields
       const { data, error } = await supabase
-        .rpc('get_content_hierarchy', { class_uuid: classId } as any)
+        .from('learning_contents')
+        .select('*')
+        .eq('class_id', classId)
+        .order('order_index', { ascending: true })
 
       if (error) throw error
       
@@ -60,8 +69,58 @@ export function ContentManagement({ classId, className, programId }: ContentMana
       setContents(hierarchicalData)
     } catch (error) {
       console.error('Error fetching contents:', error)
+      // Fallback to RPC if direct query fails
+      try {
+        const { data, error: rpcError } = await supabase
+          .rpc('get_content_hierarchy', { class_uuid: classId } as any)
+
+        if (rpcError) throw rpcError
+        
+        const hierarchicalData = organizeHierarchicalData(data || [])
+        setContents(hierarchicalData)
+      } catch (fallbackError) {
+        console.error('Error with fallback query:', fallbackError)
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleToggleTemplate(contentId: string, currentIsTemplate: boolean) {
+    try {
+      const { error } = await supabase
+        .from('learning_contents')
+        .update({ is_template: !currentIsTemplate })
+        .eq('id', contentId)
+
+      if (error) throw error
+
+      // Update program_id if not set
+      if (!currentIsTemplate) {
+        const { error: updateProgramError } = await supabase
+          .from('learning_contents')
+          .update({ 
+            program_id: programId,
+            status: 'published' // Auto-publish when marked as template
+          })
+          .eq('id', contentId)
+
+        if (updateProgramError) {
+          console.error('Error updating program_id:', updateProgramError)
+        }
+      }
+
+      addToast.success(
+        currentIsTemplate 
+          ? 'Materi dihapus dari template' 
+          : 'Materi ditandai sebagai template',
+        'Berhasil'
+      )
+      
+      fetchContents()
+    } catch (error: any) {
+      console.error('Error toggling template:', error)
+      addToast.error('Gagal mengubah status template', 'Error')
     }
   }
 
@@ -237,14 +296,21 @@ export function ContentManagement({ classId, className, programId }: ContentMana
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Materi Pembelajaran</h2>
           <p className="text-sm text-gray-600 mt-1">Kelola video, teks, quiz, dan dokumen untuk kelas {className}</p>
         </div>
-        <Link
-          href={`/programs/${programId}/classes/${classId}/content/new`}
-          className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Tambah Materi</span>
-          <span className="sm:hidden">Tambah</span>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <TemplateMaterials 
+            programId={programId} 
+            currentClassId={classId}
+            onTemplateCopied={fetchContents}
+          />
+          <Link
+            href={`/programs/${programId}/classes/${classId}/content/new`}
+            className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Tambah Materi</span>
+            <span className="sm:hidden">Tambah</span>
+          </Link>
+        </div>
       </div>
 
       {/* Content List */}
@@ -275,6 +341,12 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                         <h3 className="font-semibold text-gray-900 text-base sm:text-lg truncate">{content.title}</h3>
                         <div className="flex flex-wrap gap-1 sm:gap-2">
                           {getStatusBadge(content.status)}
+                          {content.is_template && (
+                            <span className="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-700 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              Template
+                            </span>
+                          )}
                           {content.is_free && (
                             <span className="px-2 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700">
                               Gratis
@@ -339,6 +411,17 @@ export function ContentManagement({ classId, className, programId }: ContentMana
                     >
                       <Edit className="w-4 h-4" />
                     </Link>
+                    <button
+                      onClick={() => handleToggleTemplate(content.id, content.is_template || false)}
+                      className={`p-2 rounded hover:bg-gray-100 ${
+                        content.is_template 
+                          ? 'text-yellow-600 bg-yellow-50' 
+                          : 'text-gray-600'
+                      }`}
+                      title={content.is_template ? 'Hapus dari Template' : 'Jadikan Template'}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleDeleteContent(content.id)}
                       className="p-2 rounded hover:bg-gray-100 text-red-600"

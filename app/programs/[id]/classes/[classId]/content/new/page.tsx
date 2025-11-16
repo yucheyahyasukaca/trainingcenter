@@ -257,6 +257,7 @@ export default function NewMaterialPage({
         material_type: selectedParentId === null ? 'main' : 'sub',
         parent_id: selectedParentId,
         created_by: profile?.id,
+        program_id: params.id, // Set program_id from URL params
         order_index: contents.length
       }
 
