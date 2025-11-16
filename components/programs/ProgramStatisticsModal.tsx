@@ -242,7 +242,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
       className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden my-auto flex flex-col">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-[calc(100vw-1rem)] sm:max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden my-auto flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
           <div className="flex-1 min-w-0 pr-2">
@@ -308,49 +308,49 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
 
               {/* Filter Section */}
               <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
-                <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Filter Data</h3>
-                  <div className="flex flex-wrap gap-2 sm:gap-3">
-                    <button
-                      onClick={() => {
-                        setSelectedFilter('jenjang')
-                        setSelectedValue('all')
-                      }}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
-                        selectedFilter === 'jenjang'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                      }`}
-                    >
-                      Jenjang
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedFilter('provinsi')
-                        setSelectedValue('all')
-                      }}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
-                        selectedFilter === 'provinsi'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                      }`}
-                    >
-                      Provinsi
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedFilter('kabupaten')
-                        setSelectedValue('all')
-                      }}
-                      className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-medium transition-all flex-1 sm:flex-none min-w-[80px] ${
-                        selectedFilter === 'kabupaten'
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                      }`}
-                    >
-                      Kabupaten
-                    </button>
-                  </div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Filter Data</h3>
+                
+                {/* Main Filter Buttons */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <button
+                    onClick={() => {
+                      setSelectedFilter('jenjang')
+                      setSelectedValue('all')
+                    }}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      selectedFilter === 'jenjang'
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                    }`}
+                  >
+                    Jenjang
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFilter('provinsi')
+                      setSelectedValue('all')
+                    }}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      selectedFilter === 'provinsi'
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                    }`}
+                  >
+                    Provinsi
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFilter('kabupaten')
+                      setSelectedValue('all')
+                    }}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      selectedFilter === 'kabupaten'
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                    }`}
+                  >
+                    Kabupaten
+                  </button>
                 </div>
 
                 {/* Sub-filter */}
@@ -360,7 +360,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                       <button
                         key={option}
                         onClick={() => setSelectedValue(option)}
-                        className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                           selectedValue === option
                             ? 'bg-primary-100 text-primary-700 border-2 border-primary-600'
                             : 'bg-white text-gray-600 border border-gray-300 hover:border-primary-400'
@@ -385,21 +385,23 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                     <p className="text-sm sm:text-base">Tidak ada data untuk ditampilkan</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {chartData
                       .filter(item => selectedValue === 'all' || item.label === selectedValue)
                       .map((item, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 md:gap-4">
-                          <div className="flex-shrink-0 w-full sm:w-24 md:w-32 lg:w-40">
-                            <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">{item.label}</p>
+                        <div key={idx} className="space-y-1.5">
+                          {/* Label di atas bar untuk mobile */}
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs sm:text-sm font-medium text-gray-700 truncate pr-2">{item.label}</p>
+                            <span className="text-xs sm:text-sm font-semibold text-primary-700 flex-shrink-0">{formatNumberUtil(item.value)}</span>
                           </div>
-                          <div className="flex-1 w-full">
-                            <div className="relative h-8 sm:h-9 md:h-10 bg-gray-100 rounded-lg overflow-hidden">
+                          {/* Bar chart */}
+                          <div className="w-full">
+                            <div className="relative h-6 sm:h-8 md:h-10 bg-gray-100 rounded-lg overflow-hidden">
                               <div
-                                className="h-full bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg transition-all duration-500 flex items-center justify-end pr-2 sm:pr-3"
-                                style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%` }}
+                                className="h-full bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg transition-all duration-500"
+                                style={{ width: `${maxValue > 0 ? (item.value / maxValue) * 100 : 0}%`, minWidth: '2%' }}
                               >
-                                <span className="text-white text-xs sm:text-sm font-semibold">{formatNumberUtil(item.value)}</span>
                               </div>
                             </div>
                           </div>
