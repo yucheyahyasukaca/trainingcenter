@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Calendar, Clock, MapPin, Users, Video, FileText, Download, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, MapPin, Users, Video, FileText, Download, MessageCircle, ExternalLink, AlertCircle, X, Play, Link as LinkIcon } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatTime } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -18,6 +18,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
   const [classes, setClasses] = useState<ClassWithTrainers[]>([])
   const [enrollment, setEnrollment] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [showSessionsModal, setShowSessionsModal] = useState(false)
+  const [faceToFaceSessions, setFaceToFaceSessions] = useState<any[]>([])
+  const [sessionRecordings, setSessionRecordings] = useState<any[]>([])
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -37,7 +41,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       // Fetch classes (simplified query to avoid foreign key issues)
       const { data: classesData, error: classesError } = await supabase
         .from('classes')
-        .select('*')
+        .select('*, module_url')
         .eq('program_id', params.id)
         .order('start_date')
 
@@ -256,12 +260,43 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
     }
   }
 
-  function handleResourceClick(resourceType: 'module' | 'recording' | 'certificate') {
-    // For now, always show the notification
+  async function fetchFaceToFaceSessions(classId: string) {
+    try {
+      const { data: sessions, error } = await supabase
+        .from('face_to_face_sessions')
+        .select('*')
+        .eq('class_id', classId)
+        .order('session_date', { ascending: true })
+        .order('session_time', { ascending: true })
+
+      if (error) throw error
+      setFaceToFaceSessions(sessions || [])
+
+      // Fetch recordings for these sessions
+      if (sessions && sessions.length > 0) {
+        const sessionIds = sessions.map(s => s.id)
+        const { data: recordings, error: recordingsError } = await supabase
+          .from('session_recordings')
+          .select('*')
+          .in('session_id', sessionIds)
+          .order('created_at', { ascending: false })
+
+        if (!recordingsError) {
+          setSessionRecordings(recordings || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching face-to-face sessions:', error)
+      setFaceToFaceSessions([])
+      setSessionRecordings([])
+    }
+  }
+
+  function handleResourceClick(resourceType: 'module' | 'face_to_face' | 'certificate', classId?: string) {
     if (classes.length === 0) {
       const resourceNames = {
         module: 'Modul Pelatihan',
-        recording: 'Rekaman Kelas',
+        face_to_face: 'Sesi Tatap Muka',
         certificate: 'Sertifikat'
       }
 
@@ -274,13 +309,43 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       return
     }
 
-    // TODO: Implement actual resource download/access logic
-    addNotification({
-      type: 'info',
-      title: 'Segera Hadir',
-      message: 'Fitur download materi sedang dalam pengembangan dan akan segera tersedia.',
-      duration: 5000
-    })
+    if (resourceType === 'face_to_face') {
+      // Get the class ID - use provided classId or first class
+      const targetClassId = classId || (enrollment?.class?.id || (classes.length > 0 ? classes[0].id : null))
+      if (targetClassId) {
+        setSelectedClassId(targetClassId)
+        fetchFaceToFaceSessions(targetClassId)
+        setShowSessionsModal(true)
+      } else {
+        addNotification({
+          type: 'warning',
+          title: 'Kelas Tidak Ditemukan',
+          message: 'Tidak dapat menemukan kelas untuk menampilkan sesi tatap muka.',
+          duration: 5000
+        })
+      }
+    } else if (resourceType === 'module') {
+      // Get module URL from class
+      const targetClass = classId 
+        ? classes.find(c => c.id === classId) 
+        : (enrollment?.class || (classes.length > 0 ? classes[0] : null))
+      
+      const moduleUrl = (targetClass as any)?.module_url
+      
+      if (moduleUrl) {
+        window.open(moduleUrl, '_blank')
+      } else {
+        addNotification({
+          type: 'warning',
+          title: 'Modul Belum Tersedia',
+          message: 'URL modul pelatihan belum diatur oleh trainer. Silakan hubungi trainer atau admin untuk informasi lebih lanjut.',
+          duration: 5000
+        })
+      }
+    } else if (resourceType === 'certificate') {
+      // Navigate to certificates page
+      router.push('/my-certificates')
+    }
   }
 
   if (loading) {
@@ -447,6 +512,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                       <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                       <span className="text-sm text-purple-800">Dapat mengajar program training di platform ini</span>
                     </li>
+                    <li className="flex items-start">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                      <span className="text-sm text-purple-800">Berkesempatan mengikuti event internasional dari Garuda Academy</span>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -529,36 +598,190 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <FileText className="w-8 h-8 text-blue-600" />
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-gray-900">Modul Pelatihan</p>
               <p className="text-sm text-gray-600">Download materi</p>
             </div>
-            <Download className="w-4 h-4 text-gray-400 ml-auto" />
+            <ExternalLink className="w-4 h-4 text-gray-400" />
           </div>
           <div 
-            onClick={() => handleResourceClick('recording')}
-            className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            onClick={() => handleResourceClick('face_to_face')}
+            className="flex items-center space-x-3 p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer border-2 border-red-200"
           >
             <Video className="w-8 h-8 text-red-600" />
-            <div>
-              <p className="font-medium text-gray-900">Rekaman Kelas</p>
-              <p className="text-sm text-gray-600">Tonton ulang</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-gray-900">Sesi Tatap Muka</p>
+                <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded">WAJIB</span>
+              </div>
+              <p className="text-sm text-gray-600 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-red-600" />
+                Penting dan wajib diikuti
+              </p>
             </div>
-            <Download className="w-4 h-4 text-gray-400 ml-auto" />
+            <LinkIcon className="w-4 h-4 text-gray-400" />
           </div>
           <div 
             onClick={() => handleResourceClick('certificate')}
             className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <FileText className="w-8 h-8 text-green-600" />
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-gray-900">Sertifikat</p>
               <p className="text-sm text-gray-600">Download sertifikat</p>
             </div>
-            <Download className="w-4 h-4 text-gray-400 ml-auto" />
+            <ExternalLink className="w-4 h-4 text-gray-400" />
           </div>
         </div>
       </div>
+
+      {/* Face-to-Face Sessions Modal */}
+      {showSessionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Sesi Tatap Muka</h2>
+                <p className="text-sm text-gray-600 mt-1">Daftar sesi tatap muka yang wajib diikuti</p>
+              </div>
+              <button
+                onClick={() => setShowSessionsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {faceToFaceSessions.length === 0 ? (
+                <div className="text-center py-12">
+                  <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Belum ada sesi tatap muka yang dijadwalkan</p>
+                  <p className="text-sm text-gray-500 mt-2">Trainer akan menambahkan sesi tatap muka segera</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {faceToFaceSessions.map((session) => {
+                    const recordings = sessionRecordings.filter(r => r.session_id === session.id)
+                    const platformIcons: Record<string, any> = {
+                      zoom: '🔵',
+                      google_meet: '🟢',
+                      microsoft_teams: '🔷',
+                      other: '📹'
+                    }
+                    const platformNames: Record<string, string> = {
+                      zoom: 'Zoom',
+                      google_meet: 'Google Meet',
+                      microsoft_teams: 'Microsoft Teams',
+                      other: 'Platform Lain'
+                    }
+                    
+                    return (
+                      <div key={session.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-gray-900">{session.title}</h3>
+                              {session.is_required && (
+                                <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded">WAJIB</span>
+                              )}
+                            </div>
+                            {session.description && (
+                              <p className="text-sm text-gray-600 mb-2">{session.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                <span>{formatDate(session.session_date)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{formatTime(session.session_time)}</span>
+                                {session.duration_minutes && (
+                                  <span className="ml-1">({session.duration_minutes} menit)</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span>{platformIcons[session.meeting_platform] || '📹'}</span>
+                                <span>{platformNames[session.meeting_platform] || session.meeting_platform}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            session.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            session.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+                            session.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {session.status === 'completed' ? 'Selesai' :
+                             session.status === 'ongoing' ? 'Berlangsung' :
+                             session.status === 'cancelled' ? 'Dibatalkan' :
+                             'Terjadwal'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <a
+                            href={session.meeting_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          >
+                            <LinkIcon className="w-4 h-4" />
+                            Buka Link Meeting
+                          </a>
+                          {session.meeting_password && (
+                            <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm">
+                              <span className="text-gray-600">Password: </span>
+                              <span className="font-mono font-semibold">{session.meeting_password}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {recordings.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                              <Play className="w-4 h-4" />
+                              Rekaman Sesi ({recordings.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {recordings.map((recording) => (
+                                <a
+                                  key={recording.id}
+                                  href={recording.recording_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900 text-sm">{recording.title}</p>
+                                    {recording.description && (
+                                      <p className="text-xs text-gray-600 mt-1">{recording.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                      {recording.duration_minutes && (
+                                        <span>Durasi: {recording.duration_minutes} menit</span>
+                                      )}
+                                      {recording.file_size_mb && (
+                                        <span>Ukuran: {recording.file_size_mb} MB</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

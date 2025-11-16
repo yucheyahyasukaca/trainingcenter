@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Mail, 
   Phone, 
@@ -15,11 +17,92 @@ import {
   CheckCircle,
   Sparkles,
   Zap,
-  Heart
+  Heart,
+  Ticket,
+  Copy,
+  Check,
+  X
 } from 'lucide-react'
 import { PublicNav } from '@/components/layout/PublicNav'
+import { useToast } from '@/hooks/useToast'
 
 export default function ContactPage() {
+  const router = useRouter()
+  const addToast = useToast()
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submittedTicket, setSubmittedTicket] = useState<any>(null)
+  const [copiedTicketId, setCopiedTicketId] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    const form = e.currentTarget || formRef.current
+    if (!form) {
+      addToast.error('Error', 'Form tidak ditemukan')
+      setIsSubmitting(false)
+      return
+    }
+
+    const formData = new FormData(form)
+    const data = {
+      full_name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      phone: formData.get('phone') as string,
+      subject: formData.get('subject') as string,
+      message: formData.get('message') as string,
+    }
+
+    try {
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        const errorMessage = result.error || result.details || 'Gagal mengirim pesan. Silakan coba lagi.'
+        throw new Error(errorMessage)
+      }
+
+      setSubmittedTicket(result.data)
+      // Reset form
+      if (form) {
+        form.reset()
+      }
+      // Show success modal
+      setShowSuccessModal(true)
+    } catch (error: any) {
+      console.error('Error submitting ticket:', error)
+      addToast.error(
+        'Gagal Mengirim Pesan',
+        error.message || 'Terjadi kesalahan saat mengirim pesan. Silakan coba lagi.',
+        { duration: 5000 }
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const copyTicketId = () => {
+    if (submittedTicket?.ticket_id) {
+      navigator.clipboard.writeText(submittedTicket.ticket_id)
+      setCopiedTicketId(true)
+      addToast.success(
+        'Ticket ID Disalin',
+        `Ticket ID ${submittedTicket.ticket_id} berhasil disalin ke clipboard`,
+        { duration: 2000 }
+      )
+      setTimeout(() => setCopiedTicketId(false), 2000)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-primary-50/30 to-white">
       {/* Navigation */}
@@ -211,7 +294,7 @@ export default function ContactPage() {
             {/* Decorative gradient */}
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-600 via-red-600 to-primary-600"></div>
             
-            <form className="space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="group">
                   <label htmlFor="name" className="block text-sm font-bold text-gray-900 mb-2">
@@ -279,13 +362,23 @@ export default function ContactPage() {
                 ></textarea>
               </div>
 
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-xl font-bold text-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <Send className="w-5 h-5 mr-2" />
-                Kirim Pesan
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-xl font-bold text-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  {isSubmitting ? 'Mengirim...' : 'Kirim Pesan'}
+                </button>
+                <Link
+                  href="/contact/tickets"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-200 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-[1.02]"
+                >
+                  <Ticket className="w-5 h-5 mr-2" />
+                  Lihat Pesan Saya
+                </Link>
+              </div>
             </form>
           </div>
         </div>
@@ -423,6 +516,99 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      {/* Success Modal */}
+      {showSuccessModal && submittedTicket && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          
+          {/* Modal */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white shadow-2xl transition-all">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-8 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white">
+                  <CheckCircle className="h-10 w-10 text-green-600" />
+                </div>
+                <h3 className="mt-4 text-2xl font-bold text-white">
+                  Pesan Berhasil Dikirim!
+                </h3>
+                <p className="mt-2 text-sm text-green-50">
+                  Terima kasih atas pesan Anda. Tim kami akan menghubungi Anda dalam waktu 24 jam.
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="bg-gradient-to-br from-primary-50 to-red-50 rounded-xl p-6 border-2 border-primary-200">
+                  <p className="text-sm font-semibold text-gray-700 mb-3 text-center">
+                    Ticket ID Anda:
+                  </p>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <code className="flex-1 px-4 py-3 bg-white border-2 border-primary-300 rounded-lg text-xl font-bold text-primary-600 text-center tracking-wider">
+                      {submittedTicket.ticket_id}
+                    </code>
+                    <button
+                      onClick={copyTicketId}
+                      className="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center space-x-2 shadow-lg hover:shadow-xl"
+                      title="Salin Ticket ID"
+                    >
+                      {copiedTicketId ? (
+                        <>
+                          <Check className="w-5 h-5" />
+                          <span className="font-semibold">Disalin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-5 h-5" />
+                          <span className="font-semibold">Salin</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 text-center">
+                    Simpan Ticket ID ini untuk melacak status pesan Anda.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-6 space-y-3">
+                  <Link
+                    href={`/tickets/${submittedTicket.ticket_id}?email=${encodeURIComponent(submittedTicket.email)}`}
+                    className="block w-full px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-center font-semibold shadow-lg hover:shadow-xl"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    <Ticket className="w-5 h-5 inline-block mr-2" />
+                    Lihat Status Tiket
+                  </Link>
+                  <Link
+                    href="/contact/tickets"
+                    className="block w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center font-semibold"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    <MessageCircle className="w-5 h-5 inline-block mr-2" />
+                    Lihat Pesan Saya
+                  </Link>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">

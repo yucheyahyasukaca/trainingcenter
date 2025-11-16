@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ClassWithTrainers, ClassInsert, ClassTrainerInsert, Trainer } from '@/types'
-import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText, Search, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 import { formatDate, formatTime } from '@/lib/utils'
 import { MultiSelectTrainer } from '@/components/ui/MultiSelectTrainer'
 import { useToast } from '@/hooks/useToast'
+import { ClassResourcesManagement } from './ClassResourcesManagement'
 import Link from 'next/link'
 
 interface ClassManagementProps {
@@ -44,6 +45,8 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 6
+  const [showResourcesModal, setShowResourcesModal] = useState(false)
+  const [selectedClassForResources, setSelectedClassForResources] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
     fetchClasses()
@@ -806,8 +809,8 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                   )}
                 </div>
                 
-                {/* Content Management Button */}
-                <div className="mt-4">
+                {/* Content Management Buttons */}
+                <div className="mt-4 space-y-2">
                   <Link
                     href={`/programs/${programId}/classes/${classItem.id}/content`}
                     className="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
@@ -815,6 +818,16 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                     <FileText className="w-4 h-4 mr-2" />
                     Kelola Materi
                   </Link>
+                  <button
+                    onClick={() => {
+                      setSelectedClassForResources({ id: classItem.id, name: classItem.name })
+                      setShowResourcesModal(true)
+                    }}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Kelola Resources
+                  </button>
                 </div>
               </div>
             </div>
@@ -1179,6 +1192,18 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
             </form>
           </div>
         </div>
+      )}
+
+      {/* Resources Management Modal */}
+      {showResourcesModal && selectedClassForResources && (
+        <ClassResourcesManagement
+          classId={selectedClassForResources.id}
+          className={selectedClassForResources.name}
+          onClose={() => {
+            setShowResourcesModal(false)
+            setSelectedClassForResources(null)
+          }}
+        />
       )}
     </div>
   )

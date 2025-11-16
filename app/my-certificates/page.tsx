@@ -163,7 +163,7 @@ export default function MyCertificatesPage() {
     if (profile?.role === 'trainer') {
       router.push('/trainer/classes')
     } else {
-      router.push('/programs')
+      router.push('/dashboard/programs')
     }
   }
 

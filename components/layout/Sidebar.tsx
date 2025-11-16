@@ -20,7 +20,8 @@ import {
   Trophy,
   User,
   FileText,
-  Link2
+  Link2,
+  Ticket
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -45,6 +46,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Program Referral', href: '/admin/referral-management', roles: ['admin'] },
       { icon: Link2, label: 'URL Shortener', href: '/admin/url-shortener', roles: ['admin'] },
+      { icon: Ticket, label: 'Tiket', href: '/admin/tickets', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
     ]
   }
@@ -64,7 +66,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'user') {
     const userItems = [
       ...baseItems,
-      { icon: BarChart3, label: 'Program', href: '/programs', roles: ['user'] },
+      { icon: BarChart3, label: 'Program', href: '/dashboard/programs', roles: ['user'] },
       { icon: Calendar, label: 'Webinar Saya', href: '/my-webinars', roles: ['user'] },
       { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
       { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['user'] },
