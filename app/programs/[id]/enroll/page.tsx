@@ -114,6 +114,51 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   async function fetchProgram() {
     try {
       console.log('🔄 Fetching program with ID:', params.id)
+
+      // Before anything else, ensure user's profile/participant data is completed.
+      // If not complete, redirect to the step-based enrollment that collects data first.
+      try {
+        const { data: authUser } = await supabase.auth.getUser()
+        const userId = authUser?.user?.id
+        if (userId) {
+          // Read user profile
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('full_name, email, phone, gender, address')
+            .eq('id', userId)
+            .maybeSingle()
+
+          // Read participant if exists
+          const { data: participant } = await supabase
+            .from('participants')
+            .select('id, phone, address')
+            .eq('user_id', userId)
+            .maybeSingle()
+
+          const nameOk = !!(userProfile as any)?.full_name
+          const emailOk = !!(userProfile as any)?.email
+          const phoneOk = !!((userProfile as any)?.phone || (participant as any)?.phone)
+          const genderOk = !!(userProfile as any)?.gender
+          const addressOk = !!((userProfile as any)?.address || (participant as any)?.address)
+
+          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk
+
+          if (!isComplete) {
+            // Prefer the step-based referral-like flow that forces data completion
+            const currentReferral = searchParams.get('referral')
+            const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
+            console.log('➡️ Redirecting to step-based enrollment to complete data first')
+            router.push(`/enroll-program/${params.id}${referralQuery}`)
+            return
+          }
+        }
+      } catch (e) {
+        // If profile check fails, still fallback to step-based flow to be safe
+        const currentReferral = searchParams.get('referral')
+        const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
+        router.push(`/enroll-program/${params.id}${referralQuery}`)
+        return
+      }
       
       // First try simple query to check if program exists
       const { data: simpleData, error: simpleError } = await supabase

@@ -28,6 +28,8 @@ export function UserDashboard() {
     completedPrograms: 0
   })
   const [statsLoading, setStatsLoading] = useState(true)
+  const [profileIncomplete, setProfileIncomplete] = useState(false)
+  const [missingFields, setMissingFields] = useState<string[]>([])
 
   const getTrainerLevelInfo = (level: string) => {
     switch (level) {
@@ -79,11 +81,26 @@ export function UserDashboard() {
 
   // Fetch user statistics from database
   useEffect(() => {
-    const fetchUserStats = async () => {
+    async function fetchUserStats() {
       if (!profile?.id) return
 
       try {
         setStatsLoading(true)
+
+        // Check profile completeness: user_profiles + participants
+        const [{ data: userProfile }, { data: participantInfo }] = await Promise.all([
+          supabase.from('user_profiles').select('full_name, email, phone, gender, address').eq('id', profile.id).maybeSingle(),
+          supabase.from('participants').select('phone, address').eq('user_id', profile.id).maybeSingle()
+        ])
+
+        const missing: string[] = []
+        if (!(userProfile as any)?.full_name) missing.push('Nama Lengkap')
+        if (!(userProfile as any)?.email) missing.push('Email')
+        if (!((userProfile as any)?.phone || (participantInfo as any)?.phone)) missing.push('Nomor Telepon')
+        if (!(userProfile as any)?.gender) missing.push('Jenis Kelamin')
+        if (!((userProfile as any)?.address || (participantInfo as any)?.address)) missing.push('Alamat')
+        setMissingFields(missing)
+        setProfileIncomplete(missing.length > 0)
         
         // Get participant ID
         const { data: participant } = await supabase
@@ -134,6 +151,17 @@ export function UserDashboard() {
     }
 
     fetchUserStats()
+
+    // Recheck on window focus (misalnya setelah user selesai edit profil)
+    const onFocus = () => { fetchUserStats() }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus)
+      }
+    }
   }, [profile?.id])
 
   const statsData = [
@@ -230,6 +258,32 @@ export function UserDashboard() {
         <div className="absolute -top-4 -right-4 w-32 h-32 bg-white/10 rounded-full"></div>
         <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full"></div>
       </div>
+
+      {/* Persuasive profile completion banner */}
+      {profileIncomplete && (
+        <div className="px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="border border-yellow-300 bg-yellow-50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex-1">
+              <h3 className="text-base sm:text-lg font-semibold text-yellow-900">Lengkapi Profil Anda</h3>
+              <p className="text-sm text-yellow-800 mt-1">
+                Untuk mendapatkan statistik pelatihan yang akurat dan menjaga akun tetap aktif, mohon lengkapi data Anda.
+                Akun berisiko dinonaktifkan dalam 3×24 jam jika data belum lengkap.
+              </p>
+              {missingFields.length > 0 && (
+                <p className="text-xs text-yellow-800 mt-2">
+                  Data belum lengkap: {missingFields.join(', ')}
+                </p>
+              )}
+            </div>
+            <Link
+              href={`/profile/edit?return=${encodeURIComponent('/dashboard')}`}
+              className="inline-flex items-center justify-center px-4 py-2 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 text-sm font-semibold"
+            >
+              Lengkapi Sekarang
+            </Link>
+          </div>
+        </div>
+      )}
 
 
       {/* User Stats - Modern Cards */}

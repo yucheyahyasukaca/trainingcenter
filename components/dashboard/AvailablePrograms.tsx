@@ -168,85 +168,14 @@ export function AvailablePrograms() {
       }
 
       const list = data || []
-      console.log('Raw enrollments from database:', list)
-      
-      // Filter out sample/test enrollments that might have been created by setup scripts
-      const validEnrollments = list.filter((enrollment: any) => {
-        // Skip enrollments that are clearly sample data
-        if (enrollment.notes && (
-          enrollment.notes.includes('Sample enrollment') ||
-          enrollment.notes.includes('sample') ||
-          enrollment.notes.includes('test') ||
-          enrollment.notes.includes('Sample') ||
-          enrollment.notes.includes('Test')
-        )) {
-          console.log('Filtering out sample enrollment by notes:', enrollment)
-          return false
-        }
-        
-        // Skip enrollments that were created very recently (within last 5 minutes) 
-        // and have approved status - likely sample data
-        const enrollmentTime = new Date(enrollment.created_at)
-        const now = new Date()
-        const timeDiff = now.getTime() - enrollmentTime.getTime()
-        const minutesDiff = timeDiff / (1000 * 60)
-        
-        if (enrollment.status === 'approved' && minutesDiff < 5) {
-          console.log('Filtering out recent approved enrollment (likely sample):', enrollment)
-          return false
-        }
-        
-        // For new users (participant created recently), be more aggressive about filtering
-        const participantTime = new Date((participant as any).created_at)
-        const participantTimeDiff = now.getTime() - participantTime.getTime()
-        const participantMinutesDiff = participantTimeDiff / (1000 * 60)
-        
-        // If participant was created in the last 10 minutes, filter out all enrollments
-        // as they are likely sample data
-        if (participantMinutesDiff < 10) {
-          console.log('Filtering out all enrollments for new participant (likely sample data):', enrollment)
-          return false
-        }
-        
-        return true
-      })
+      console.log('User enrollments:', list)
 
-      console.log('Valid enrollments after filtering:', validEnrollments)
-      
-      // Additional check: if this is a new user and they have enrollments, 
-      // but all enrollments are very recent (within 1 hour), they might be sample data
-      const now = new Date()
-      const oneHourAgo = new Date(now.getTime() - (60 * 60 * 1000))
-      const participantTime = new Date((participant as any).created_at)
-      
-      const hasRecentEnrollments = validEnrollments.some((enrollment: any) => {
-        const enrollmentTime = new Date(enrollment.created_at)
-        return enrollmentTime > oneHourAgo
-      })
-      
-      const hasOldEnrollments = validEnrollments.some((enrollment: any) => {
-        const enrollmentTime = new Date(enrollment.created_at)
-        return enrollmentTime <= oneHourAgo
-      })
-      
-      // Determine final enrollments to use
-      let finalEnrollments = validEnrollments
-      
-      // For new users, be very aggressive about filtering
-      if (participantTime > oneHourAgo) {
-        console.log('New participant detected - filtering out all enrollments as likely sample data')
-        finalEnrollments = []
-      } else if (hasRecentEnrollments && !hasOldEnrollments) {
-        console.log('Filtering out all recent enrollments for participant with no old enrollments (likely all sample data)')
-        finalEnrollments = []
-      }
-      
-      setUserEnrollments(finalEnrollments)
-      try { localStorage.setItem('tc_user_enrollments', JSON.stringify(finalEnrollments)) } catch {}
-      
-      // Build in-memory map so UI renders from a single source of truth
+      setUserEnrollments(list)
+      try { localStorage.setItem('tc_user_enrollments', JSON.stringify(list)) } catch {}
+
+      // Build in-memory map so UI renders from a single source of truth (no aggressive filtering)
       const map: Record<string, string> = {}
-      finalEnrollments.forEach((e: any) => {
+      list.forEach((e: any) => {
         const key = String(e?.program_id || '').trim().toLowerCase()
         if (key) map[key] = e.status
       })
@@ -392,19 +321,6 @@ export function AvailablePrograms() {
                             <X className="w-4 h-4" />
                             <span>Belum ada kelas yang dibuka</span>
                           </div>
-                        )
-                      }
-                      
-                      // Extra protection: if user has no enrollments at all, always show "Daftar Sekarang"
-                      if (userEnrollments.length === 0) {
-                        return (
-                          <Link
-                            href={`/programs/${program.id}/enroll`}
-                            className="group flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium text-sm"
-                          >
-                            <GraduationCap className="w-4 h-4" />
-                            <span>Daftar Sekarang</span>
-                          </Link>
                         )
                       }
                       
