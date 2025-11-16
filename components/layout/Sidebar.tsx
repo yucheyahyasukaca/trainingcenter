@@ -86,6 +86,8 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
   if (role === 'trainer') {
     return [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/trainer/dashboard', roles: ['trainer'] },
+      { icon: BarChart3, label: 'Program', href: '/dashboard/programs', roles: ['trainer'] },
+      { icon: Calendar, label: 'Webinar', href: '/my-webinars', roles: ['trainer'] },
       { icon: BookOpen, label: 'Kelas Saya', href: '/trainer/classes', roles: ['trainer'] },
       { icon: Gift, label: 'Referral', href: '/trainer/referral', roles: ['trainer'] },
       { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },

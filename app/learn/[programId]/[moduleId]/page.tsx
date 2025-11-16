@@ -55,6 +55,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [hasLockedModules, setHasLockedModules] = useState<boolean>(false)
   const [certificateStatus, setCertificateStatus] = useState<'none' | 'generating' | 'generated' | 'error'>('none')
   const [certificateData, setCertificateData] = useState<any>(null)
+  const [autoCompleteDone, setAutoCompleteDone] = useState<boolean>(false)
   
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
@@ -186,7 +187,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           .select('*, programs:program_id(*)')
           .eq('participant_id', participantId)
           .eq('class_id', params.moduleId)
-          .eq('status', 'approved')
+          .in('status', ['approved', 'completed']) // Accept both approved and completed
           .maybeSingle()
         
         setEnrollment(enrollmentData)
@@ -735,6 +736,52 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     })
   }
 
+  // Auto mark enrollment as completed when all contents are completed
+  useEffect(() => {
+    const markEnrollmentCompleted = async () => {
+      try {
+        if (!enrollment?.id) return
+
+        // Skip if already completed
+        const currentStatus = (enrollment.status || '').toString().toLowerCase()
+        if (currentStatus === 'completed') {
+          setAutoCompleteDone(true)
+          return
+        }
+
+        const { error } = await (supabase as any)
+          .from('enrollments')
+          .update({ status: 'completed' })
+          .eq('id', enrollment.id)
+
+        if (error) {
+          console.error('Error updating enrollment to completed:', error)
+          return
+        }
+
+        setEnrollment((prev: any) => ({ ...(prev || {}), status: 'completed' }))
+        setAutoCompleteDone(true)
+        showNotification('success', 'Selamat! Program ini berhasil ditandai selesai.')
+
+        // Optional: trigger certificate generation if not generated yet
+        // Keep it non-blocking and best-effort
+        try {
+          if (certificateStatus === 'none') {
+            await generateCertificate()
+          }
+        } catch (e) {
+          console.warn('Certificate generation skipped or failed silently:', e)
+        }
+      } catch (e) {
+        console.error('Unexpected error on auto-complete:', e)
+      }
+    }
+
+    if (!autoCompleteDone && overallProgress === 100 && enrollment?.id) {
+      markEnrollmentCompleted()
+    }
+  }, [overallProgress, enrollment?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function showNotification(type: 'success' | 'error', message: string) {
     setNotification({ type, message })
     setTimeout(() => {
@@ -780,7 +827,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       setCertificateData(result.data)
       
       if (program?.program_type === 'tot') {
-        showNotification('success', 'Sertifikat berhasil digenerate! Anda sekarang menjadi Trainer Level 0.')
+        showNotification('success', 'Sertifikat berhasil digenerate! Anda sekarang menjadi Junior Trainer.')
       } else {
         showNotification('success', 'Sertifikat kelulusan berhasil digenerate!')
       }
@@ -1362,23 +1409,17 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                   </div>
                   <div className="flex items-center justify-center gap-4">
                     <Link
-                      href={`/certificate/${certificateData.certificate_number}`}
+                      href="/my-certificates"
                       className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                     >
                       <Download className="w-5 h-5" />
                       Lihat / Unduh Sertifikat
                     </Link>
-                    <Link
-                      href="/dashboard/certificates"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors"
-                    >
-                      Lihat Semua Sertifikat
-                    </Link>
                   </div>
                   {program?.program_type === 'tot' && (
                     <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                       <p className="text-sm text-purple-800">
-                        <strong>Selamat!</strong> Anda sekarang menjadi <strong>Trainer Level 0</strong> karena menyelesaikan program Training of Trainers (TOT).
+                        <strong>Selamat!</strong> Anda sekarang menjadi <strong>Junior Trainer</strong> karena menyelesaikan program Training of Trainers (TOT). Buat kelas pertama Anda, bagikan dan ajak rekan lain bergabung di kelas Anda untuk mengikuti program internasional Garuda Academy.
                       </p>
                     </div>
                   )}

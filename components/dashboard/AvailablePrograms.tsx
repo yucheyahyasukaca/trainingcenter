@@ -425,6 +425,16 @@ export function AvailablePrograms() {
                             <span>Akses Kelas</span>
                           </Link>
                         )
+                      } else if (enrollmentStatus === 'completed') {
+                        return (
+                          <Link
+                            href={`/programs/${program.id}/classes`}
+                            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-xl font-medium border border-blue-200 text-sm hover:from-blue-200 hover:to-indigo-200 transition-all cursor-pointer"
+                          >
+                            <GraduationCap className="w-4 h-4" />
+                            <span>Selesai - Lihat Materi</span>
+                          </Link>
+                        )
                       } else if (enrollmentStatus === 'rejected') {
                         return (
                           <div className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-100 to-pink-100 text-red-800 rounded-xl font-medium border border-red-200 text-sm">

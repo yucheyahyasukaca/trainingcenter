@@ -14,6 +14,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import Link from 'next/link'
+import { CertificatePreviewModal } from '@/components/CertificatePreviewModal'
 
 interface Certificate {
   id: string
@@ -38,6 +39,8 @@ export function MyCertificates() {
   const { profile } = useAuth()
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCertificate, setSelectedCertificate] = useState<string | null>(null)
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   useEffect(() => {
     if (profile?.id) {
@@ -67,28 +70,14 @@ export function MyCertificates() {
     }
   }
 
-  const handleDownloadPDF = async (certificateNumber: string, pdfUrl?: string) => {
-    if (!pdfUrl) {
-      console.error('PDF URL not available')
-      return
-    }
+  const handleViewCertificate = (certificateNumber: string) => {
+    setSelectedCertificate(certificateNumber)
+    setShowPreviewModal(true)
+  }
 
-    try {
-      const response = await fetch(pdfUrl)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `sertifikat-${certificateNumber}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      }
-    } catch (error) {
-      console.error('Error downloading certificate:', error)
-    }
+  const handleCloseModal = () => {
+    setShowPreviewModal(false)
+    setSelectedCertificate(null)
   }
 
   const getStatusInfo = (status: string) => {
@@ -272,23 +261,14 @@ export function MyCertificates() {
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      {cert.status === 'issued' && cert.certificate_pdf_url ? (
-                        <>
-                          <button 
-                            onClick={() => handleDownloadPDF(cert.certificate_number, cert.certificate_pdf_url)}
-                            className="flex items-center space-x-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                          >
-                            <Download className="w-4 h-4" />
-                            <span>Download</span>
-                          </button>
-                          <Link
-                            href={`/certificate/${cert.certificate_number}`}
-                            className="flex items-center space-x-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-                          >
-                            <Eye className="w-4 h-4" />
-                            <span>Lihat</span>
-                          </Link>
-                        </>
+                      {cert.status === 'issued' ? (
+                        <button 
+                          onClick={() => handleViewCertificate(cert.certificate_number)}
+                          className="flex items-center space-x-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>Lihat</span>
+                        </button>
                       ) : (
                         <button className="flex items-center space-x-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg cursor-not-allowed text-sm font-medium">
                           <Clock className="w-4 h-4" />
@@ -325,6 +305,15 @@ export function MyCertificates() {
             </div>
           )}
         </>
+      )}
+
+      {/* Certificate Preview Modal */}
+      {selectedCertificate && (
+        <CertificatePreviewModal
+          certificateNumber={selectedCertificate}
+          isOpen={showPreviewModal}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   )

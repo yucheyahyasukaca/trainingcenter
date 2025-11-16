@@ -259,6 +259,8 @@ export function MyEnrollments() {
     switch (status) {
       case 'approved':
         return { label: 'Disetujui', color: 'bg-green-100 text-green-800', icon: CheckCircle }
+      case 'completed':
+        return { label: 'Selesai', color: 'bg-blue-100 text-blue-800', icon: CheckCircle }
       case 'pending':
         return { label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800', icon: Clock }
       case 'rejected':
@@ -366,7 +368,7 @@ export function MyEnrollments() {
                   )}
                 </div>
 
-                {enrollment.status === 'approved' && (
+                {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
                   <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-100">
                     <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
                       <span>Progress Pembelajaran</span>
@@ -383,7 +385,7 @@ export function MyEnrollments() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    {enrollment.status === 'approved' && (
+                    {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
                       <Link
                         href={`/programs/${enrollment.program?.id}/classes`}
                         className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"

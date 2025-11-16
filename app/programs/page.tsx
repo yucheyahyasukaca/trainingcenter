@@ -153,6 +153,18 @@ export default function ProgramsPage() {
       )
     }
     
+    if (enrollmentStatus === 'completed') {
+      return (
+        <Link
+          href={`/programs/${program.id}/classes`}
+          className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+        >
+          <GraduationCap className="w-4 h-4 mr-2" />
+          Selesai - Lihat Materi
+        </Link>
+      )
+    }
+    
     if (enrollmentStatus === 'pending') {
       return (
         <div className="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">

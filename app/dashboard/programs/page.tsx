@@ -21,7 +21,8 @@ export default function DashboardProgramsPage() {
 
   useEffect(() => {
     fetchPrograms()
-    if (profile?.role === 'user') {
+    // Fetch enrollments for both 'user' and 'trainer' roles
+    if (profile?.role === 'user' || profile?.role === 'trainer') {
       fetchUserEnrollments()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,37 +56,62 @@ export default function DashboardProgramsPage() {
   }
 
   async function fetchUserEnrollments() {
-    if (!profile?.id) return
+    console.log('🔍 fetchUserEnrollments called, profile.id:', profile?.id)
+    
+    if (!profile?.id) {
+      console.log('❌ No profile ID, skipping enrollment fetch')
+      return
+    }
 
     try {
       setEnrollmentsLoading(true)
-      const { data: participant } = await supabase
+      
+      const { data: participant, error: participantError } = await supabase
         .from('participants')
         .select('id')
         .eq('user_id', profile.id)
         .maybeSingle()
 
+      console.log('👤 Participant lookup:', { participant, participantError })
+
       if (!participant) {
+        console.log('❌ No participant found for user:', profile.id)
         setUserEnrollments([])
         setEnrollmentMap({})
         setEnrollmentsLoading(false)
         return
       }
 
-      const { data } = await supabase
+      console.log('✅ Participant found:', (participant as any).id)
+
+      const { data, error } = await supabase
         .from('enrollments')
         .select('program_id, status, created_at, notes')
         .eq('participant_id', (participant as any).id)
+
+      console.log('📋 Enrollments query result:', { data, error, count: data?.length || 0 })
+
+      if (error) {
+        console.error('❌ Error fetching enrollments:', error)
+        setUserEnrollments([])
+        setEnrollmentMap({})
+        return
+      }
 
       setUserEnrollments(data || [])
       
       const map: Record<string, string> = {}
       ;(data || []).forEach((e: any) => {
-        map[String(e?.program_id || '')] = e.status
+        if (e?.program_id && e?.status) {
+          console.log(`📌 Mapping: ${e.program_id} → ${e.status}`)
+          map[String(e.program_id)] = e.status
+        }
       })
+      
+      console.log('🗺️ Final enrollment map:', map)
       setEnrollmentMap(map)
     } catch (error) {
-      console.error('Error fetching user enrollments:', error)
+      console.error('💥 Exception in fetchUserEnrollments:', error)
     } finally {
       setEnrollmentsLoading(false)
     }
@@ -122,6 +148,11 @@ export default function DashboardProgramsPage() {
     }
 
     const enrollmentStatus = enrollmentMap[String(program.id)] || getUserEnrollmentStatus(program.id)
+    console.log(`🎯 Button for "${program.title}" (${program.id}):`, {
+      enrollmentStatus,
+      hasInMap: !!enrollmentMap[String(program.id)],
+      mapKeys: Object.keys(enrollmentMap)
+    })
     
     if (enrollmentStatus === 'approved') {
       return (
@@ -131,6 +162,18 @@ export default function DashboardProgramsPage() {
         >
           <Award className="w-4 h-4 mr-2" />
           Akses Kelas
+        </Link>
+      )
+    }
+    
+    if (enrollmentStatus === 'completed') {
+      return (
+        <Link
+          href={`/programs/${program.id}/classes`}
+          className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium hover:bg-blue-200 transition-colors cursor-pointer"
+        >
+          <GraduationCap className="w-4 h-4 mr-2" />
+          Selesai - Lihat Materi
         </Link>
       )
     }

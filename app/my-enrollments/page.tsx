@@ -331,6 +331,7 @@ export default function MyEnrollmentsPage() {
       pending: 'px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-800 rounded-full',
       approved: 'px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full',
       rejected: 'px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full',
+      completed: 'px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full',
     }
     return badges[status] || 'px-3 py-1 text-sm font-medium bg-gray-100 text-gray-800 rounded-full'
   }
@@ -340,6 +341,7 @@ export default function MyEnrollmentsPage() {
       pending: 'Menunggu Persetujuan',
       approved: 'Disetujui',
       rejected: 'Ditolak',
+      completed: 'Selesai',
     }
     return texts[status] || status
   }
@@ -405,6 +407,7 @@ export default function MyEnrollmentsPage() {
             <option value="all">Semua Status</option>
             <option value="pending">Menunggu</option>
             <option value="approved">Disetujui</option>
+            <option value="completed">Selesai</option>
             <option value="rejected">Ditolak</option>
           </select>
         </div>
@@ -492,7 +495,7 @@ export default function MyEnrollmentsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  {enrollment.status === 'approved' && (
+                  {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
                     <>
                       <Link
                         href={`/programs/${enrollment.program?.id}/classes`}

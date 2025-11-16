@@ -162,7 +162,8 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               .maybeSingle()
 
             const typedEnrollment = enrollmentData as any
-            if (typedEnrollment && typedEnrollment.status === 'approved') {
+            // Allow access for both approved and completed enrollments
+            if (typedEnrollment && (typedEnrollment.status === 'approved' || typedEnrollment.status === 'completed')) {
               setEnrollment(typedEnrollment)
             } else {
               setEnrollment(null)
@@ -216,14 +217,14 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
         const typedEnrollment = enrollmentData as any
         
-        // Check if enrollment exists and is approved
+        // Check if enrollment exists and is approved or completed
         const normalizedStatus = (typedEnrollment?.status ?? '').toString().trim().toLowerCase()
 
-        if (typedEnrollment && normalizedStatus === 'approved') {
-          console.log('Approved enrollment found')
+        if (typedEnrollment && (normalizedStatus === 'approved' || normalizedStatus === 'completed')) {
+          console.log('Approved or completed enrollment found')
           setEnrollment(typedEnrollment)
-        } else if (typedEnrollment && normalizedStatus !== 'approved') {
-          // If enrollment exists but not approved, check if program is free
+        } else if (typedEnrollment && normalizedStatus !== 'approved' && normalizedStatus !== 'completed') {
+          // If enrollment exists but not approved/completed, check if program is free
           if ((programData as any).price === 0) {
             console.log('Free program with pending enrollment - auto-approving...')
             
@@ -370,7 +371,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Akses Ditolak</h1>
           <p className="text-gray-600 mb-6">Anda belum terdaftar atau belum disetujui untuk program ini.</p>
-          <Link href="/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+          <Link href="/dashboard/programs" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali ke Daftar Program
           </Link>
@@ -382,7 +383,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
+        <Link href="/dashboard/programs" className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm">
           <ArrowLeft className="w-4 h-4" />
           <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>
@@ -535,11 +536,26 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {classes.map((classItem) => (
+            {classes.map((classItem) => {
+              // Determine status badge based on progress and class status
+              const progress = Math.min(100, Math.max(0, (classItem as any).progress || 0))
+              let statusBadge = { text: 'Akan Datang', class: 'bg-gray-100 text-gray-800' }
+              
+              if (progress === 100 || classItem.status === 'completed') {
+                statusBadge = { text: 'Selesai', class: 'bg-green-100 text-green-800' }
+              } else if (progress > 0 && progress < 100) {
+                statusBadge = { text: 'Sedang Belajar', class: 'bg-blue-100 text-blue-800' }
+              } else if (classItem.status === 'ongoing') {
+                statusBadge = { text: 'Aktif', class: 'bg-emerald-100 text-emerald-800' }
+              } else if (classItem.status === 'scheduled') {
+                statusBadge = { text: 'Akan Datang', class: 'bg-gray-100 text-gray-800' }
+              }
+              
+              return (
               <div key={classItem.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${classItem.status === 'ongoing' ? 'bg-green-100 text-green-800' : classItem.status === 'scheduled' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{classItem.status === 'ongoing' ? 'Aktif' : classItem.status === 'scheduled' ? 'Akan Datang' : 'Selesai'}</span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusBadge.class}`}>{statusBadge.text}</span>
                 </div>
 
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
@@ -584,7 +600,8 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                   </Link>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
