@@ -9,7 +9,7 @@ import { markdownToHtml } from '@/lib/utils'
 import { 
   ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, 
   Menu, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, X,
-  Video, File, HelpCircle, Play, Download, Share2, Copy, Info, Lock
+  Video, File, HelpCircle, Play, Download, Share2, Copy, Info, Lock, Award
 } from 'lucide-react'
 
 interface LearningContent {
@@ -46,12 +46,15 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enrollment, setEnrollment] = useState<any>(null)
+  const [program, setProgram] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
   const [unlockedContents, setUnlockedContents] = useState<Set<string>>(new Set())
   const [hasReferralUsed, setHasReferralUsed] = useState<boolean>(false)
   const [userReferralCodes, setUserReferralCodes] = useState<any[]>([])
   const [hasLockedModules, setHasLockedModules] = useState<boolean>(false)
+  const [certificateStatus, setCertificateStatus] = useState<'none' | 'generating' | 'generated' | 'error'>('none')
+  const [certificateData, setCertificateData] = useState<any>(null)
   
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
@@ -180,13 +183,34 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       if (participantId) {
         const { data: enrollmentData } = await supabase
           .from('enrollments')
-          .select('*')
+          .select('*, programs:program_id(*)')
           .eq('participant_id', participantId)
           .eq('class_id', params.moduleId)
           .eq('status', 'approved')
           .maybeSingle()
         
         setEnrollment(enrollmentData)
+        if (enrollmentData && (enrollmentData as any).programs) {
+          setProgram((enrollmentData as any).programs)
+        }
+        
+        // Check if certificate already exists
+        // Note: recipient_id in certificates table stores participant_id (not user_id)
+        if (enrollmentData) {
+          const { data: existingCert } = await supabase
+            .from('certificates')
+            .select('*')
+            .eq('program_id', (enrollmentData as any).program_id)
+            .eq('class_id', params.moduleId)
+            .eq('recipient_type', 'participant')
+            .eq('recipient_id', (enrollmentData as any).participant_id)
+            .maybeSingle()
+          
+          if (existingCert) {
+            setCertificateStatus('generated')
+            setCertificateData(existingCert)
+          }
+        }
       }
 
       // Fetch learning contents
@@ -718,6 +742,55 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     }, 4000)
   }
 
+  async function generateCertificate() {
+    if (!enrollment?.id) {
+      showNotification('error', 'Enrollment tidak ditemukan')
+      return
+    }
+
+    setCertificateStatus('generating')
+    
+    try {
+      // Get session token for authorization
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        throw new Error('Session tidak ditemukan. Silakan login ulang.')
+      }
+
+      const response = await fetch('/api/certificates/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        credentials: 'include', // Include cookies
+        body: JSON.stringify({
+          enrollment_id: enrollment.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal generate sertifikat')
+      }
+
+      setCertificateStatus('generated')
+      setCertificateData(result.data)
+      
+      if (program?.program_type === 'tot') {
+        showNotification('success', 'Sertifikat berhasil digenerate! Anda sekarang menjadi Trainer Level 0.')
+      } else {
+        showNotification('success', 'Sertifikat kelulusan berhasil digenerate!')
+      }
+    } catch (error: any) {
+      console.error('Error generating certificate:', error)
+      setCertificateStatus('error')
+      showNotification('error', error.message || 'Gagal generate sertifikat')
+    }
+  }
+
   const updateUnlockedContents = useCallback(() => {
     const unlocked = new Set<string>()
     
@@ -1247,6 +1320,88 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
       {/* Content layout */}
       <div className="max-w-4xl mx-auto w-full px-4 py-6 pb-20">
+        {/* Completion Message - Show when all materials are completed */}
+        {overallProgress === 100 && (
+          <div className="mb-8 p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl shadow-lg">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                <Award className="w-12 h-12 text-green-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-green-900 mb-2">
+                Selamat! Pembelajaran Sudah Selesai
+              </h2>
+              <p className="text-lg text-green-700 mb-6">
+                Anda telah menyelesaikan semua materi pembelajaran dengan sempurna.
+              </p>
+              
+              {certificateStatus === 'none' && (
+                <button
+                  onClick={generateCertificate}
+                  disabled={certificateStatus === 'generating'}
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {certificateStatus === 'generating' ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Menggenerate Sertifikat...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-6 h-6" />
+                      <span>Generate Sertifikat Kelulusan</span>
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {certificateStatus === 'generated' && certificateData && (
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-800 rounded-lg">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-semibold">Sertifikat sudah digenerate</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-4">
+                    <Link
+                      href={`/certificate/${certificateData.certificate_number}`}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                    >
+                      <Download className="w-5 h-5" />
+                      Lihat / Unduh Sertifikat
+                    </Link>
+                    <Link
+                      href="/dashboard/certificates"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors"
+                    >
+                      Lihat Semua Sertifikat
+                    </Link>
+                  </div>
+                  {program?.program_type === 'tot' && (
+                    <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                      <p className="text-sm text-purple-800">
+                        <strong>Selamat!</strong> Anda sekarang menjadi <strong>Trainer Level 0</strong> karena menyelesaikan program Training of Trainers (TOT).
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {certificateStatus === 'error' && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">
+                    Gagal generate sertifikat. Silakan coba lagi atau hubungi administrator.
+                  </p>
+                  <button
+                    onClick={generateCertificate}
+                    className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                  >
+                    Coba Lagi
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {currentContent && (
           <ContentRenderer
             content={currentContent}
@@ -1474,7 +1629,8 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
       </div>
 
       {/* Complete Button */}
-      {progress?.status !== 'completed' && content.content_type !== 'quiz' && (
+      {/* Hide for quiz (handled by QuizPlayer) and assignment (must submit valid task first) */}
+      {progress?.status !== 'completed' && content.content_type !== 'quiz' && content.content_type !== 'assignment' && (
         <div className="mt-12 flex justify-center">
           <button
             onClick={onComplete}
@@ -1483,6 +1639,16 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
             <Check className="w-7 h-7" />
             Tandai Selesai
           </button>
+        </div>
+      )}
+      
+      {/* For assignments: Show info that task must be submitted first */}
+      {progress?.status !== 'completed' && content.content_type === 'assignment' && (
+        <div className="mt-12 flex justify-center">
+          <div className="inline-flex items-center gap-3 px-8 py-4 bg-yellow-50 border-2 border-yellow-200 text-yellow-800 rounded-xl">
+            <Info className="w-6 h-6" />
+            <span className="font-medium">Submit tugas terlebih dahulu untuk menandai selesai</span>
+          </div>
         </div>
       )}
     </div>
@@ -1794,6 +1960,106 @@ function AssignmentContent({ content, onComplete }: any) {
     })
   }
 
+  // Universal file compression function
+  const compressFile = async (file: File): Promise<{ file: Blob; fileName: string; contentType: string; wasCompressed: boolean; originalSize: number; compressedSize: number }> => {
+    const originalSize = file.size
+    
+    // For images, use image compression
+    if (file.type.startsWith('image/')) {
+      try {
+        const compressed = await compressImage(file, {
+          maxWidth: 1600,
+          maxHeight: 1200,
+          quality: 0.8,
+          mimeType: 'image/jpeg'
+        })
+        
+        return {
+          file: compressed,
+          fileName: `${Date.now()}.jpg`,
+          contentType: 'image/jpeg',
+          wasCompressed: true,
+          originalSize,
+          compressedSize: compressed.size
+        }
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error)
+        return {
+          file,
+          fileName: file.name,
+          contentType: file.type,
+          wasCompressed: false,
+          originalSize,
+          compressedSize: originalSize
+        }
+      }
+    }
+    
+    // For non-image files larger than 500KB, use gzip compression
+    if (file.size > 500 * 1024) {
+      try {
+        // Check if CompressionStream is available (modern browsers)
+        // @ts-ignore - CompressionStream is a browser API available in modern browsers
+        if (typeof CompressionStream !== 'undefined') {
+          const fileStream = file.stream()
+          // @ts-ignore - CompressionStream is a browser API available in modern browsers
+          const compressionStream = new CompressionStream('gzip')
+          const compressedStream = fileStream.pipeThrough(compressionStream)
+          
+          const chunks: Uint8Array[] = []
+          const reader = compressedStream.getReader()
+          
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            chunks.push(value)
+          }
+          
+          // Combine chunks
+          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
+          const combined = new Uint8Array(totalLength)
+          let offset = 0
+          for (const chunk of chunks) {
+            combined.set(chunk, offset)
+            offset += chunk.length
+          }
+          
+          const compressedBlob = new Blob([combined], { type: 'application/gzip' })
+          
+          // Only use compressed if it's actually smaller
+          if (compressedBlob.size < file.size * 0.9) {
+            const fileExt = file.name.split('.').pop() || 'file'
+            return {
+              file: compressedBlob,
+              fileName: `${Date.now()}_${file.name.replace(/\.[^/.]+$/, '')}.gz`,
+              contentType: 'application/gzip',
+              wasCompressed: true,
+              originalSize,
+              compressedSize: compressedBlob.size
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Gzip compression failed or not available, using original:', error)
+      }
+    }
+    
+    // No compression applied
+    const normalizedFileName = file.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/\s+/g, '_')
+      .toLowerCase()
+    
+    return {
+      file,
+      fileName: `${Date.now()}.${normalizedFileName.split('.').pop()}`,
+      contentType: file.type || 'application/octet-stream',
+      wasCompressed: false,
+      originalSize,
+      compressedSize: originalSize
+    }
+  }
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
@@ -1810,37 +2076,23 @@ function AssignmentContent({ content, onComplete }: any) {
       setSubmitMessage(null)
       
       try {
-        // Compress image first if it's an image
-        let fileToUpload: Blob = file
-        let fileName = file.name
-        let contentType = file.type
-        
+        // Show compression message
         if (file.type.startsWith('image/')) {
           setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+        } else if (file.size > 500 * 1024) {
+          setSubmitMessage({type: 'success', text: 'Mengompress file...'})
+        }
+        
+        // Compress file using universal compression
+        const { file: fileToUpload, fileName, contentType, wasCompressed, originalSize, compressedSize } = await compressFile(file)
+        
+        if (wasCompressed) {
+          const originalSizeKB = (originalSize / 1024).toFixed(2)
+          const compressedSizeKB = (compressedSize / 1024).toFixed(2)
+          const savings = ((1 - compressedSize / originalSize) * 100).toFixed(0)
           
-          try {
-            fileToUpload = await compressImage(file, {
-              maxWidth: 1600,
-              maxHeight: 1200,
-              quality: 0.8,
-              mimeType: 'image/jpeg'
-            })
-            fileName = `${Date.now()}.jpg`
-            contentType = 'image/jpeg'
-            
-            // Show compression result
-            const originalSize = (file.size / 1024).toFixed(2)
-            const compressedSize = (fileToUpload.size / 1024).toFixed(2)
-            const savings = ((1 - fileToUpload.size / file.size) * 100).toFixed(0)
-            
-            console.log(`📦 Kompresi: ${originalSize}KB → ${compressedSize}KB (hemat ${savings}%)`)
-            setSubmitMessage({type: 'success', text: `Dikompres: ${originalSize}KB → ${compressedSize}KB`})
-          } catch (compressError) {
-            console.warn('Compression failed, using original:', compressError)
-            fileName = `${Date.now()}.${file.name.split('.').pop()}`
-          }
-        } else {
-          fileName = `${Date.now()}.${file.name.split('.').pop()}`
+          console.log(`📦 Kompresi: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`)
+          setSubmitMessage({type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`})
         }
         
         // Upload to Supabase Storage
@@ -1877,45 +2129,23 @@ function AssignmentContent({ content, onComplete }: any) {
     setSubmitMessage(null)
     
     try {
-      // Compress image first if it's an image
-      let fileToUpload: Blob = selectedFile
-      let fileName = selectedFile.name
-      let contentType = selectedFile.type
-      
+      // Show compression message
       if (selectedFile.type.startsWith('image/')) {
         setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+      } else if (selectedFile.size > 500 * 1024) {
+        setSubmitMessage({type: 'success', text: 'Mengompress file...'})
+      }
+      
+      // Compress file using universal compression
+      const { file: fileToUpload, fileName, contentType, wasCompressed, originalSize, compressedSize } = await compressFile(selectedFile)
+      
+      if (wasCompressed) {
+        const originalSizeKB = (originalSize / 1024).toFixed(2)
+        const compressedSizeKB = (compressedSize / 1024).toFixed(2)
+        const savings = ((1 - compressedSize / originalSize) * 100).toFixed(0)
         
-        try {
-          fileToUpload = await compressImage(selectedFile, {
-            maxWidth: 1600,
-            maxHeight: 1200,
-            quality: 0.8,
-            mimeType: 'image/jpeg'
-          })
-          fileName = `${Date.now()}.jpg`
-          contentType = 'image/jpeg'
-          
-          // Show compression result
-          const originalSize = (selectedFile.size / 1024).toFixed(2)
-          const compressedSize = (fileToUpload.size / 1024).toFixed(2)
-          const savings = ((1 - fileToUpload.size / selectedFile.size) * 100).toFixed(0)
-          
-          console.log(`📦 Kompresi: ${originalSize}KB → ${compressedSize}KB (hemat ${savings}%)`)
-          setSubmitMessage({type: 'success', text: `Dikompres: ${originalSize}KB → ${compressedSize}KB`})
-        } catch (compressError) {
-          console.warn('Compression failed, using original:', compressError)
-          const normalizedFileName = selectedFile.name
-            .replace(/[^a-zA-Z0-9.-]/g, '_')
-            .replace(/\s+/g, '_')
-            .toLowerCase()
-          fileName = `${Date.now()}.${normalizedFileName.split('.').pop()}`
-        }
-      } else {
-        const normalizedFileName = selectedFile.name
-          .replace(/[^a-zA-Z0-9.-]/g, '_')
-          .replace(/\s+/g, '_')
-          .toLowerCase()
-        fileName = `${Date.now()}.${normalizedFileName.split('.').pop()}`
+        console.log(`📦 Kompresi: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`)
+        setSubmitMessage({type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`})
       }
       
       // Upload to assignments bucket
@@ -1965,6 +2195,15 @@ function AssignmentContent({ content, onComplete }: any) {
     if (!answer && !uploadedFileUrl) {
       setSubmitMessage({type: 'error', text: 'Tulis jawaban atau upload file terlebih dahulu'})
       return
+    }
+    
+    // Validate text answer: if contains text, must be at least 20 words
+    if (answer && answer.trim().length > 0) {
+      const wordCount = answer.trim().split(/\s+/).filter(word => word.length > 0).length
+      if (wordCount < 20) {
+        setSubmitMessage({type: 'error', text: `Jawaban harus minimal 20 kata. Saat ini: ${wordCount} kata.`})
+        return
+      }
     }
     
     setIsSubmitting(true)
@@ -2054,7 +2293,8 @@ function AssignmentContent({ content, onComplete }: any) {
       setIsEditing(false)
       setSubmitMessage({type: 'success', text: wasEditing ? 'Revisi tugas berhasil dikirim' : 'Tugas berhasil dikirim'})
       
-      // Automatically mark content as completed
+      // Automatically mark content as completed only if submission is valid
+      // For assignments, validation must pass before marking as complete
       if (onComplete) {
         onComplete()
       }

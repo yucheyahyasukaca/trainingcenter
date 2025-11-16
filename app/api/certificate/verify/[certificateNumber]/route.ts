@@ -11,14 +11,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Certificate number is required' }, { status: 400 })
     }
 
-    // Get certificate details
+    // Get certificate details (include template_id to fetch signatories)
     const { data: certificateData, error: certificateError } = await supabaseAdmin
       .from('certificates')
       .select(`
         *,
+        template_id,
         template:template_id (
           id,
           template_name,
+          template_description,
+          template_fields,
           signatory_name,
           signatory_position,
           signatory_signature_url
@@ -46,6 +49,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Certificate not found' }, { status: 404 })
     }
 
+    // Fetch all active signatories for this template
+    let signatories: any[] = []
+    const { data: signatoriesDb } = await supabaseAdmin
+      .from('certificate_signatories')
+      .select('id, signatory_name, signatory_position, signatory_signature_url, sign_order')
+      .eq('template_id', (certificateData as any).template_id)
+      .eq('is_active', true)
+      .order('sign_order', { ascending: true })
+
+    if (signatoriesDb && signatoriesDb.length > 0) {
+      signatories = signatoriesDb
+    } else {
+      // Fallback: try to read from template.template_fields -> signatories (array of objects)
+      const tf = (certificateData as any).template?.template_fields
+      if (tf && tf.signatories && Array.isArray(tf.signatories)) {
+        signatories = tf.signatories.map((s: any, idx: number) => ({
+          id: `${(certificateData as any).template_id}-${idx + 1}`,
+          signatory_name: s.name || s.signatory_name || '',
+          signatory_position: s.position || s.signatory_position || '',
+          signatory_signature_url: s.signature_url || s.signatory_signature_url || null,
+          sign_order: s.sign_order || idx + 1
+        }))
+      }
+    }
+
     // Check if certificate is valid
     let verificationResult = 'valid'
     if (certificateData.status === 'revoked') {
@@ -69,10 +97,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         verification_result: verificationResult
       })
 
-    // Return certificate data with verification result
+    // Return certificate data with verification result and signatories
     return NextResponse.json({
       data: {
         ...certificateData,
+        signatories,
         verification_result: verificationResult,
         verified_at: new Date().toISOString()
       }

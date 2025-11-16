@@ -45,7 +45,8 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
 
   useEffect(() => {
     fetchQuestions()
-  }, [contentId])
+    fetchExistingAnswers()
+  }, [contentId, profile?.id])
 
   async function fetchQuestions() {
     try {
@@ -74,11 +75,98 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
     }
   }
 
-  function handleAnswer(questionId: string, answer: Partial<Answer>) {
+  async function fetchExistingAnswers() {
+    if (!profile?.id) return
+
+    try {
+      const { data: existingAnswers, error } = await supabase
+        .from('quiz_submissions')
+        .select('question_id, selected_option_id, answer_text')
+        .eq('user_id', profile.id)
+        .eq('content_id', contentId)
+        .eq('attempt_number', 1) // Load answers from first attempt
+
+      if (error) throw error
+
+      if (existingAnswers && existingAnswers.length > 0) {
+        const answersMap: {[key: string]: Answer} = {}
+        existingAnswers.forEach((submission: any) => {
+          answersMap[submission.question_id] = {
+            question_id: submission.question_id,
+            selected_option_id: submission.selected_option_id || undefined,
+            answer_text: submission.answer_text || undefined
+          }
+        })
+        setAnswers(answersMap)
+      }
+    } catch (error) {
+      console.error('Error fetching existing answers:', error)
+    }
+  }
+
+  async function handleAnswer(questionId: string, answer: Partial<Answer>) {
+    if (!profile?.id) return
+
+    // Update local state immediately for UI responsiveness
+    const updatedAnswer = { ...answers[questionId], question_id: questionId, ...answer }
     setAnswers(prev => ({
       ...prev,
-      [questionId]: { ...prev[questionId], question_id: questionId, ...answer }
+      [questionId]: updatedAnswer
     }))
+
+    // Save to database asynchronously
+    try {
+      const submissionData = {
+        user_id: profile.id,
+        content_id: contentId,
+        question_id: questionId,
+        selected_option_id: answer.selected_option_id || null,
+        answer_text: answer.answer_text || null,
+        attempt_number: 1
+      }
+
+      // Try to find existing submission
+      const { data: existing, error: selectError } = await supabase
+        .from('quiz_submissions')
+        .select('id')
+        .eq('user_id', profile.id)
+        .eq('content_id', contentId)
+        .eq('question_id', questionId)
+        .eq('attempt_number', 1)
+        .single()
+
+      if (selectError && selectError.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Error checking existing answer:', selectError)
+        return
+      }
+
+      if (existing) {
+        // Update existing submission
+        const { error: updateError } = await supabase
+          .from('quiz_submissions')
+          .update({
+            selected_option_id: submissionData.selected_option_id,
+            answer_text: submissionData.answer_text,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+
+        if (updateError) {
+          console.error('Error updating answer:', updateError)
+        }
+      } else {
+        // Insert new submission
+        const { error: insertError } = await supabase
+          .from('quiz_submissions')
+          .insert(submissionData)
+
+        if (insertError) {
+          console.error('Error inserting answer:', insertError)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving answer to database:', error)
+    }
   }
 
   function goToNextQuestion() {
@@ -106,35 +194,57 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
 
     setSubmitting(true)
     try {
-      // Submit answers to database
+      // Ensure all answers are saved to database (they should already be saved via handleAnswer)
+      // But we'll upsert them all one more time to make sure everything is persisted
       const submissions = Object.values(answers).map(answer => ({
         user_id: profile.id,
         content_id: contentId,
         question_id: answer.question_id,
         selected_option_id: answer.selected_option_id || null,
         answer_text: answer.answer_text || null,
-        attempt_number: 1 // TODO: Track attempt numbers
+        attempt_number: 1
       }))
 
-      console.log('Submitting quiz:', { submissions, profile: profile.id, contentId })
+      // Ensure all answers are saved (they should already be saved via handleAnswer)
+      // We'll verify by checking if all answers exist in the database
+      for (const submission of submissions) {
+        const { data: existing } = await supabase
+          .from('quiz_submissions')
+          .select('id')
+          .eq('user_id', submission.user_id)
+          .eq('content_id', submission.content_id)
+          .eq('question_id', submission.question_id)
+          .eq('attempt_number', submission.attempt_number)
+          .single()
 
-      const { data, error: submitError } = await (supabase as any)
-        .from('quiz_submissions')
-        .insert(submissions)
-        .select()
-
-      if (submitError) {
-        console.error('Quiz submission error details:', submitError)
-        throw new Error(`Gagal submit quiz: ${submitError.message || 'Unknown error'}`)
+        if (!existing) {
+          // Insert if not exists
+          await supabase
+            .from('quiz_submissions')
+            .insert(submission)
+        } else {
+          // Update if exists
+          await supabase
+            .from('quiz_submissions')
+            .update({
+              selected_option_id: submission.selected_option_id,
+              answer_text: submission.answer_text,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id)
+        }
       }
 
-      console.log('Quiz submitted successfully:', data)
-
-      // Calculate results
+      // Calculate and show results
       await calculateResults()
     } catch (error: any) {
       console.error('Error submitting quiz:', error)
-      alert(`Gagal submit quiz: ${error?.message || 'Terjadi kesalahan yang tidak diketahui. Pastikan RLS policies sudah dikonfigurasi dengan benar.'}`)
+      // Try to calculate results anyway
+      try {
+        await calculateResults()
+      } catch (calcError) {
+        alert(`Gagal submit quiz: ${error?.message || 'Terjadi kesalahan yang tidak diketahui.'}`)
+      }
     } finally {
       setSubmitting(false)
     }

@@ -55,6 +55,13 @@ interface CertificateData {
     name: string
     location?: string
   }
+  signatories?: Array<{
+    id: string
+    signatory_name: string
+    signatory_position: string
+    signatory_signature_url?: string
+    sign_order?: number
+  }>
 }
 
 export default function CertificateVerificationPage() {
@@ -150,8 +157,8 @@ export default function CertificateVerificationPage() {
       case 'valid':
         return {
           icon: <CheckCircle className="w-8 h-8 text-green-500" />,
-          title: 'Certificate Valid',
-          description: 'This certificate is authentic and valid',
+          title: 'Sertifikat Valid',
+          description: 'Sertifikat ini autentik dan masih berlaku',
           color: 'text-green-600',
           bgColor: 'bg-green-50',
           borderColor: 'border-green-200'
@@ -159,8 +166,8 @@ export default function CertificateVerificationPage() {
       case 'revoked':
         return {
           icon: <XCircle className="w-8 h-8 text-red-500" />,
-          title: 'Certificate Revoked',
-          description: 'This certificate has been revoked',
+          title: 'Sertifikat Dicabut',
+          description: 'Sertifikat ini telah dicabut',
           color: 'text-red-600',
           bgColor: 'bg-red-50',
           borderColor: 'border-red-200'
@@ -168,8 +175,8 @@ export default function CertificateVerificationPage() {
       case 'expired':
         return {
           icon: <XCircle className="w-8 h-8 text-yellow-500" />,
-          title: 'Certificate Expired',
-          description: 'This certificate has expired',
+          title: 'Sertifikat Kedaluwarsa',
+          description: 'Masa berlaku sertifikat ini telah berakhir',
           color: 'text-yellow-600',
           bgColor: 'bg-yellow-50',
           borderColor: 'border-yellow-200'
@@ -177,8 +184,8 @@ export default function CertificateVerificationPage() {
       default:
         return {
           icon: <XCircle className="w-8 h-8 text-gray-500" />,
-          title: 'Certificate Invalid',
-          description: 'This certificate is not valid',
+          title: 'Sertifikat Tidak Valid',
+          description: 'Sertifikat ini tidak valid',
           color: 'text-gray-600',
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-200'
@@ -191,7 +198,7 @@ export default function CertificateVerificationPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verifying certificate...</p>
+          <p className="text-gray-600">Memverifikasi sertifikat...</p>
         </div>
       </div>
     )
@@ -202,13 +209,13 @@ export default function CertificateVerificationPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Certificate Not Found</h1>
-          <p className="text-gray-600 mb-4">{error || 'The certificate you are looking for does not exist.'}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Sertifikat Tidak Ditemukan</h1>
+          <p className="text-gray-600 mb-4">{error || 'Sertifikat yang Anda cari tidak tersedia.'}</p>
           <button
             onClick={() => window.location.href = '/'}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Go Home
+            Kembali ke Beranda
           </button>
         </div>
       </div>
@@ -222,8 +229,8 @@ export default function CertificateVerificationPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Certificate Verification</h1>
-          <p className="text-gray-600">Verify the authenticity of this certificate</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Verifikasi Sertifikat</h1>
+          <p className="text-gray-600">Periksa keaslian sertifikat ini</p>
         </div>
 
         {/* Verification Status */}
@@ -246,8 +253,8 @@ export default function CertificateVerificationPage() {
               <div className="flex items-center">
                 <FileText className="w-6 h-6 text-blue-500 mr-3" />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Certificate Details</h3>
-                  <p className="text-sm text-gray-600">Certificate #{certificate.certificate_number}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Detail Sertifikat</h3>
+                  <p className="text-sm text-gray-600">Nomor Sertifikat #{certificate.certificate_number}</p>
                 </div>
               </div>
               <div className="flex space-x-2">
@@ -256,14 +263,14 @@ export default function CertificateVerificationPage() {
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <Copy className="w-4 h-4 mr-1" />
-                  Copy Link
+                  Salin Tautan
                 </button>
                 <button
                   onClick={handleShare}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <Share className="w-4 h-4 mr-1" />
-                  Share
+                  Bagikan
                 </button>
                 {certificate.certificate_pdf_url && (
                   <button
@@ -271,7 +278,7 @@ export default function CertificateVerificationPage() {
                     className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     <Download className="w-4 h-4 mr-1" />
-                    Download PDF
+                    Unduh PDF
                   </button>
                 )}
               </div>
@@ -284,27 +291,27 @@ export default function CertificateVerificationPage() {
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <User className="w-5 h-5 mr-2" />
-                  Recipient Information
+                  Informasi Penerima
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                    <label className="block text-sm font-medium text-gray-700">Nama</label>
                     <p className="text-sm text-gray-900">{certificate.recipient_name}</p>
                   </div>
                   {certificate.recipient_company && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Company</label>
+                      <label className="block text-sm font-medium text-gray-700">Instansi</label>
                       <p className="text-sm text-gray-900">{certificate.recipient_company}</p>
                     </div>
                   )}
                   {certificate.recipient_position && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Position</label>
+                      <label className="block text-sm font-medium text-gray-700">Jabatan</label>
                       <p className="text-sm text-gray-900">{certificate.recipient_position}</p>
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Type</label>
+                    <label className="block text-sm font-medium text-gray-700">Tipe</label>
                     <div className="flex items-center">
                       {certificate.recipient_type === 'participant' ? (
                         <User className="w-4 h-4 mr-1" />
@@ -321,20 +328,20 @@ export default function CertificateVerificationPage() {
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <FileText className="w-5 h-5 mr-2" />
-                  Program Information
+                  Informasi Program
                 </h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Program Title</label>
+                    <label className="block text-sm font-medium text-gray-700">Judul Program</label>
                     <p className="text-sm text-gray-900">{certificate.program_title}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Category</label>
+                    <label className="block text-sm font-medium text-gray-700">Kategori</label>
                     <p className="text-sm text-gray-900">{certificate.programs.category}</p>
                   </div>
                   {certificate.classes && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Class</label>
+                      <label className="block text-sm font-medium text-gray-700">Kelas</label>
                       <p className="text-sm text-gray-900">{certificate.classes.name}</p>
                       {certificate.classes.location && (
                         <p className="text-xs text-gray-500">{certificate.classes.location}</p>
@@ -342,9 +349,17 @@ export default function CertificateVerificationPage() {
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Program Duration</label>
+                    <label className="block text-sm font-medium text-gray-700">Durasi Program</label>
                     <p className="text-sm text-gray-900">
-                      {new Date(certificate.program_start_date).toLocaleDateString()} - {new Date(certificate.program_end_date).toLocaleDateString()}
+                      {(() => {
+                        const start = certificate.program_start_date ? new Date(certificate.program_start_date) : null
+                        const end = certificate.program_end_date ? new Date(certificate.program_end_date) : null
+                        const isInvalid = (d: Date | null) => !d || isNaN(d.getTime()) || d.getFullYear() === 1970
+                        if (isInvalid(start) || isInvalid(end)) {
+                          return 'Lifetime'
+                        }
+                        return `${start.toLocaleDateString('id-ID')} - ${end.toLocaleDateString('id-ID')}`
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -355,21 +370,21 @@ export default function CertificateVerificationPage() {
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
-                Completion Information
+                Informasi Penyelesaian
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Completion Date</label>
-                  <p className="text-sm text-gray-900">{new Date(certificate.completion_date).toLocaleDateString()}</p>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Selesai</label>
+                  <p className="text-sm text-gray-900">{new Date(certificate.completion_date).toLocaleDateString('id-ID')}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Issued Date</label>
-                  <p className="text-sm text-gray-900">{new Date(certificate.issued_at).toLocaleDateString()}</p>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Terbit</label>
+                <p className="text-sm text-gray-900">{new Date(certificate.issued_at).toLocaleDateString('id-ID')}</p>
                 </div>
                 {certificate.expires_at && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Expires Date</label>
-                    <p className="text-sm text-gray-900">{new Date(certificate.expires_at).toLocaleDateString()}</p>
+                    <label className="block text-sm font-medium text-gray-700">Tanggal Kedaluwarsa</label>
+                    <p className="text-sm text-gray-900">{new Date(certificate.expires_at).toLocaleDateString('id-ID')}</p>
                   </div>
                 )}
               </div>
@@ -377,65 +392,34 @@ export default function CertificateVerificationPage() {
 
             {/* Signatory Information */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Signatory Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Signatory Name</label>
-                  <p className="text-sm text-gray-900">{certificate.template.signatory_name}</p>
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Informasi Penandatangan</h4>
+              {certificate.signatories && certificate.signatories.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {certificate.signatories.map((s) => (
+                    <div key={s.id} className="border rounded-lg p-4">
+                      <p className="text-sm font-semibold text-gray-900">{s.signatory_name}</p>
+                      <p className="text-sm text-gray-600">{s.signatory_position}</p>
+                      {s.signatory_signature_url && (
+                        <img src={s.signatory_signature_url} alt={`Tanda tangan ${s.signatory_name}`} className="h-16 mt-3 object-contain" />
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Position</label>
-                  <p className="text-sm text-gray-900">{certificate.template.signatory_position}</p>
-                </div>
-              </div>
-              {certificate.template.signatory_signature_url && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Signature</label>
-                  <img
-                    src={certificate.template.signatory_signature_url}
-                    alt={`Signature of ${certificate.template.signatory_name}`}
-                    className="h-20 object-contain"
-                  />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nama Penandatangan</label>
+                    <p className="text-sm text-gray-900">{certificate.template.signatory_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Jabatan</label>
+                    <p className="text-sm text-gray-900">{certificate.template.signatory_position}</p>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Verification Information */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <QrCode className="w-5 h-5 mr-2" />
-                Verification Information
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Verified At</label>
-                  <p className="text-sm text-gray-900">{new Date(certificate.verified_at).toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Certificate Number</label>
-                  <p className="text-sm text-gray-900 font-mono">{certificate.certificate_number}</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-
-        {/* QR Code */}
-        {certificate.certificate_qr_code_url && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">QR Code Verification</h3>
-            <div className="flex justify-center">
-              <img
-                src={certificate.certificate_qr_code_url}
-                alt="Certificate QR Code"
-                className="w-32 h-32"
-              />
-            </div>
-            <p className="text-sm text-gray-600 mt-4">
-              Scan this QR code to verify this certificate
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )

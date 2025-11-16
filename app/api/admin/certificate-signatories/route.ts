@@ -12,25 +12,52 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Template ID is required' }, { status: 400 })
     }
 
-    // Get signatories for the template
-    const { data: signatories, error } = await supabaseAdmin
-      .from('certificate_signatories')
-      .select('*')
-      .eq('template_id', templateId)
-      .order('sign_order', { ascending: true })
+    // Try to get signatories from table
+    let signatories: any[] = []
+    let tableError: any = null
 
-    if (error) {
-      console.error('Error fetching signatories:', error)
-      return NextResponse.json({ error: 'Failed to fetch signatories' }, { status: 500 })
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('certificate_signatories')
+        .select('*')
+        .eq('template_id', templateId)
+        .order('sign_order', { ascending: true })
+
+      if (error) {
+        tableError = error
+      } else {
+        signatories = data || []
+      }
+    } catch (e: any) {
+      tableError = e
+    }
+
+    // Fallback: if table missing or empty, try reading from template.template_fields.signatories
+    if (tableError || signatories.length === 0) {
+      const { data: templateData, error: tplError } = await supabaseAdmin
+        .from('certificate_templates')
+        .select('id, template_fields')
+        .eq('id', templateId)
+        .single()
+
+      if (!tplError && templateData?.template_fields?.signatories && Array.isArray(templateData.template_fields.signatories)) {
+        signatories = (templateData.template_fields.signatories as any[]).map((s: any, idx: number) => ({
+          id: `${templateId}-${idx + 1}`,
+          signatory_name: s.name || s.signatory_name || '',
+          signatory_position: s.position || s.signatory_position || '',
+          signatory_signature_url: s.signature_url || s.signatory_signature_url || null,
+          sign_order: s.sign_order || idx + 1,
+          is_active: true
+        }))
+      }
     }
 
     return NextResponse.json({
       success: true,
-      data: signatories || []
+      data: signatories
     })
   } catch (error: any) {
     console.error('Error in GET /api/admin/certificate-signatories:', error)
-    console.error('Error message:', error?.message)
     const errorMessage = error?.message || 'Internal server error'
     return NextResponse.json({ 
       error: errorMessage,
@@ -39,29 +66,70 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new signatory
+// POST - Create new signatory (supports multipart form-data with optional signature file)
 export async function POST(request: NextRequest) {
   try {
     const supabaseAdmin = getSupabaseAdmin()
-    const body = await request.json()
-    const { template_id, signatory_name, signatory_position, signatory_signature_url, sign_order } = body
 
-    if (!template_id || !signatory_name || !signatory_position) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    const contentType = request.headers.get('content-type') || ''
+    let template_id: string | null = null
+    let signatory_name: string | null = null
+    let signatory_position: string | null = null
+    let sign_order: number | null = null
+    let signatureUrl: string | null = null
+
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData()
+      template_id = (form.get('template_id') as string) || null
+      signatory_name = (form.get('signatory_name') as string) || null
+      signatory_position = (form.get('signatory_position') as string) || null
+      const orderStr = form.get('sign_order') as string | null
+      sign_order = orderStr ? parseInt(orderStr, 10) : null
+
+      const signatureFile = form.get('signature_file') as File | null
+      if (signatureFile && signatureFile.size > 0) {
+        const fileName = `signature-${Date.now()}-${Math.random().toString(36).slice(2)}.png`
+        const buffer = await signatureFile.arrayBuffer()
+        const { error: upErr } = await supabaseAdmin.storage
+          .from('signatures')
+          .upload(fileName, buffer, {
+            contentType: signatureFile.type || 'image/png',
+            upsert: false
+          })
+        if (upErr) {
+          console.error('Signature upload error:', upErr)
+          return NextResponse.json({ error: 'Gagal mengunggah tanda tangan' }, { status: 500 })
+        }
+        const { data: urlData } = supabaseAdmin.storage
+          .from('signatures')
+          .getPublicUrl(fileName)
+        signatureUrl = urlData.publicUrl
+      }
+    } else {
+      const body = await request.json()
+      template_id = body.template_id || null
+      signatory_name = body.signatory_name || null
+      signatory_position = body.signatory_position || null
+      sign_order = body.sign_order || null
+      signatureUrl = body.signatory_signature_url || null
     }
 
-    // Get current max order for the template
+    if (!template_id || !signatory_name || !signatory_position) {
+      return NextResponse.json({ error: 'Field wajib: template_id, signatory_name, signatory_position' }, { status: 400 })
+    }
+
+    // Get current max order for the template jika sign_order tidak diberikan
     let order = sign_order || 1
     if (!sign_order) {
-      const { data: existingSignatories } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin
         .from('certificate_signatories')
         .select('sign_order')
         .eq('template_id', template_id)
         .order('sign_order', { ascending: false })
         .limit(1)
 
-      if (existingSignatories && existingSignatories.length > 0) {
-        order = existingSignatories[0].sign_order + 1
+      if (existing && existing.length > 0) {
+        order = (existing[0] as any).sign_order + 1
       }
     }
 
@@ -72,7 +140,7 @@ export async function POST(request: NextRequest) {
         template_id,
         signatory_name,
         signatory_position,
-        signatory_signature_url: signatory_signature_url || null,
+        signatory_signature_url: signatureUrl,
         sign_order: order
       })
       .select()
@@ -83,10 +151,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create signatory' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data
-    }, { status: 201 })
+    return NextResponse.json({ success: true, data }, { status: 201 })
   } catch (error) {
     console.error('Error in POST /api/admin/certificate-signatories:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -126,10 +191,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update signatory' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      data
-    })
+    return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error('Error in PUT /api/admin/certificate-signatories:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -158,10 +220,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete signatory' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Signatory deleted successfully'
-    })
+    return NextResponse.json({ success: true, message: 'Signatory deleted successfully' })
   } catch (error) {
     console.error('Error in DELETE /api/admin/certificate-signatories:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
