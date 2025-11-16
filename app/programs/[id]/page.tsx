@@ -187,7 +187,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
           >
             https://academy.garuda-21.com/gemini2025
           </a>
-          {' '}sebelum 21 November 2025.
+          {' '}dan ikuti langkah selanjutnya. Jika ada kendala gunakan halaman kontak untuk mendapat panduan dari admin.
         </div>
       )
     }
