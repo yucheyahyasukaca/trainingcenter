@@ -116,7 +116,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       console.log('🔄 Fetching program with ID:', params.id)
 
       // Before anything else, ensure user's profile/participant data is completed.
-      // If not complete, redirect to the step-based enrollment that collects data first.
+      // If not complete, redirect to edit profile page.
       try {
         const { data: authUser } = await supabase.auth.getUser()
         const userId = authUser?.user?.id
@@ -124,24 +124,34 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           // Read user profile
           const { data: userProfile } = await supabase
             .from('user_profiles')
-            .select('full_name, email, phone, gender, address')
+            .select('full_name, email, phone, gender, address, provinsi')
             .eq('id', userId)
             .maybeSingle()
 
           // Read participant if exists
           const { data: participant } = await supabase
             .from('participants')
-            .select('id, phone, address')
+            .select('id, phone, address, gender, date_of_birth, education, education_status, employment_status, it_background, disability, program_source, provinsi')
             .eq('user_id', userId)
             .maybeSingle()
 
           const nameOk = !!(userProfile as any)?.full_name
           const emailOk = !!(userProfile as any)?.email
           const phoneOk = !!((userProfile as any)?.phone || (participant as any)?.phone)
-          const genderOk = !!(userProfile as any)?.gender
+          const genderOk = !!((userProfile as any)?.gender || (participant as any)?.gender)
           const addressOk = !!((userProfile as any)?.address || (participant as any)?.address)
+          const provinsiOk = !!((userProfile as any)?.provinsi || (participant as any)?.provinsi)
+          const dateOfBirthOk = !!(participant as any)?.date_of_birth
+          const educationOk = !!(participant as any)?.education
+          const educationStatusOk = !!(participant as any)?.education_status
+          const employmentStatusOk = !!(participant as any)?.employment_status
+          const itBackgroundOk = !!(participant as any)?.it_background
+          const disabilityOk = !!(participant as any)?.disability
+          const programSourceOk = !!(participant as any)?.program_source
 
-          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk
+          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk && 
+                            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk && 
+                            itBackgroundOk && disabilityOk && programSourceOk
 
           if (!isComplete) {
             // Build list of missing fields
@@ -151,41 +161,45 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
             if (!phoneOk) missing.push('Nomor Telepon')
             if (!genderOk) missing.push('Jenis Kelamin')
             if (!addressOk) missing.push('Alamat')
+            if (!provinsiOk) missing.push('Provinsi')
+            if (!dateOfBirthOk) missing.push('Tanggal Lahir')
+            if (!educationOk) missing.push('Pendidikan')
+            if (!educationStatusOk) missing.push('Status Pendidikan')
+            if (!employmentStatusOk) missing.push('Status Pekerjaan')
+            if (!itBackgroundOk) missing.push('Latar Belakang IT')
+            if (!disabilityOk) missing.push('Status Disabilitas')
+            if (!programSourceOk) missing.push('Sumber Informasi Program')
 
             // Show notification about incomplete profile
             addNotification({
               type: 'warning',
               title: 'Data Profil Belum Lengkap',
-              message: `Untuk mendaftar program, Anda harus melengkapi data profil terlebih dahulu. Data yang belum lengkap: ${missing.join(', ')}. Anda akan diarahkan ke halaman pengisian data.`,
-              duration: 8000
+              message: `Untuk mendaftar program, Anda harus melengkapi data profil terlebih dahulu. Silakan lengkapi data di halaman edit profil.`,
+              duration: 5000
             })
 
-            // Prefer the step-based referral-like flow that forces data completion
-            const currentReferral = searchParams.get('referral')
-            const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
-            console.log('➡️ Redirecting to step-based enrollment to complete data first')
+            console.log('➡️ Redirecting to edit profile page to complete data first')
+            console.log('📋 Missing fields:', missing.join(', '))
             
             setTimeout(() => {
-              router.push(`/enroll-program/${params.id}${referralQuery}`)
-            }, 1000)
+              router.push(`/profile/edit?return=${encodeURIComponent(`/programs/${params.id}/enroll`)}`)
+            }, 1500)
             return
           }
         }
       } catch (e) {
-        // If profile check fails, still fallback to step-based flow to be safe
+        // If profile check fails, redirect to edit profile page to be safe
+        console.error('Error checking profile completeness:', e)
         addNotification({
-          type: 'info',
+          type: 'warning',
           title: 'Lengkapi Data Profil',
           message: 'Untuk mendaftar program, silakan lengkapi data profil Anda terlebih dahulu.',
-          duration: 6000
+          duration: 5000
         })
         
-        const currentReferral = searchParams.get('referral')
-        const referralQuery = currentReferral ? `?referral=${currentReferral}` : ''
-        
         setTimeout(() => {
-          router.push(`/enroll-program/${params.id}${referralQuery}`)
-        }, 1000)
+          router.push(`/profile/edit?return=${encodeURIComponent(`/programs/${params.id}/enroll`)}`)
+        }, 1500)
         return
       }
       

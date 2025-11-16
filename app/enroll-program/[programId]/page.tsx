@@ -63,6 +63,76 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
     try {
       setLoading(true)
 
+      // Check profile completeness before fetching program
+      try {
+        const { data: authUser } = await supabase.auth.getUser()
+        const userId = authUser?.user?.id
+        if (userId) {
+          // Read user profile
+          const { data: userProfile } = await supabase
+            .from('user_profiles')
+            .select('full_name, email, phone, gender, address, provinsi')
+            .eq('id', userId)
+            .maybeSingle()
+
+          // Read participant if exists
+          const { data: participant } = await supabase
+            .from('participants')
+            .select('id, phone, address, gender, date_of_birth, education, education_status, employment_status, it_background, disability, program_source, provinsi')
+            .eq('user_id', userId)
+            .maybeSingle()
+
+          const nameOk = !!(userProfile as any)?.full_name
+          const emailOk = !!(userProfile as any)?.email
+          const phoneOk = !!((userProfile as any)?.phone || (participant as any)?.phone)
+          const genderOk = !!((userProfile as any)?.gender || (participant as any)?.gender)
+          const addressOk = !!((userProfile as any)?.address || (participant as any)?.address)
+          const provinsiOk = !!((userProfile as any)?.provinsi || (participant as any)?.provinsi)
+          const dateOfBirthOk = !!(participant as any)?.date_of_birth
+          const educationOk = !!(participant as any)?.education
+          const educationStatusOk = !!(participant as any)?.education_status
+          const employmentStatusOk = !!(participant as any)?.employment_status
+          const itBackgroundOk = !!(participant as any)?.it_background
+          const disabilityOk = !!(participant as any)?.disability
+          const programSourceOk = !!(participant as any)?.program_source
+
+          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk && 
+                            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk && 
+                            itBackgroundOk && disabilityOk && programSourceOk
+
+          if (!isComplete) {
+            // Show notification about incomplete profile
+            addNotification({
+              type: 'warning',
+              title: 'Data Profil Belum Lengkap',
+              message: `Untuk mendaftar program, Anda harus melengkapi data profil terlebih dahulu. Silakan lengkapi data di halaman edit profil.`,
+              duration: 5000
+            })
+
+            console.log('➡️ Redirecting to edit profile page to complete data first')
+            
+            setTimeout(() => {
+              router.push(`/profile/edit?return=${encodeURIComponent(`/enroll-program/${programId}${referralCode ? `?referral=${referralCode}` : ''}`)}`)
+            }, 1500)
+            return
+          }
+        }
+      } catch (e) {
+        // If profile check fails, redirect to edit profile page to be safe
+        console.error('Error checking profile completeness:', e)
+        addNotification({
+          type: 'warning',
+          title: 'Lengkapi Data Profil',
+          message: 'Untuk mendaftar program, silakan lengkapi data profil Anda terlebih dahulu.',
+          duration: 5000
+        })
+        
+        setTimeout(() => {
+          router.push(`/profile/edit?return=${encodeURIComponent(`/enroll-program/${programId}${referralCode ? `?referral=${referralCode}` : ''}`)}`)
+        }, 1500)
+        return
+      }
+
       // Fetch program data
       const { data: programData, error: programError } = await supabase
         .from('programs')
