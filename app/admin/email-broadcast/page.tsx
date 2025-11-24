@@ -32,12 +32,22 @@ export default function EmailBroadcastDashboard() {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch('/api/admin/email-logs')
+            console.log('🔄 Fetching email logs...')
+            const res = await fetch('/api/admin/email-logs', {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            })
             if (!res.ok) throw new Error('Failed to fetch logs')
             const data = await res.json()
-            setLogs(data)
+            console.log('✅ Fetched', data.length, 'email logs')
+            console.log('📋 Log IDs:', data.map((log: EmailLog) => log.id))
+            setLogs(data || [])
+            console.log('🔄 State updated with', data.length, 'logs')
         } catch (error) {
-            console.error('Error fetching logs:', error)
+            console.error('❌ Error fetching logs:', error)
+            toast.error('Gagal memuat riwayat email')
         } finally {
             setLoading(false)
         }
@@ -64,21 +74,45 @@ export default function EmailBroadcastDashboard() {
 
         if (!confirm('Apakah Anda yakin ingin menghapus riwayat ini?')) return
 
+        // Optimistic update: remove from UI immediately
+        const previousLogs = [...logs]
+        console.log('📋 Current logs before delete:', logs.length)
+        setLogs(prevLogs => {
+            const filtered = prevLogs.filter(log => log.id !== id)
+            console.log('📋 Logs after filter:', filtered.length, '(removed:', prevLogs.length - filtered.length, ')')
+            return filtered
+        })
+
         try {
+            console.log('🗑️ Attempting to delete email log:', id)
             const res = await fetch(`/api/admin/email-logs/${id}`, {
                 method: 'DELETE'
             })
-            if (!res.ok) throw new Error('Failed to delete')
+            
+            const data = await res.json()
+            
+            if (!res.ok) {
+                console.error('❌ Delete failed:', data)
+                // Revert optimistic update on error
+                setLogs(previousLogs)
+                throw new Error(data.error || 'Failed to delete')
+            }
 
+            console.log('✅ Delete successful:', data)
             toast.success('Riwayat berhasil dihapus')
-            fetchLogs()
+            
+            // Refresh logs to ensure consistency
+            await fetchLogs()
+            
             if (showModal && selectedLog?.id === id) {
                 setShowModal(false)
                 setSelectedLog(null)
             }
-        } catch (error) {
-            console.error('Error deleting log:', error)
-            toast.error('Gagal menghapus riwayat')
+        } catch (error: any) {
+            console.error('❌ Error deleting log:', error)
+            // Revert optimistic update on error
+            setLogs(previousLogs)
+            toast.error(error.message || 'Gagal menghapus riwayat')
         }
     }
 

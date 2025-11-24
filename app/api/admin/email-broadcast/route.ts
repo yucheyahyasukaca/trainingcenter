@@ -136,18 +136,42 @@ export async function POST(req: NextRequest) {
         await Promise.all(emailPromises)
 
         // 4. Log the broadcast
-        await supabase.from('email_logs').insert({
+        const { data: logData, error: logError } = await supabase.from('email_logs').insert({
             template_id: templateId,
             recipient_count: successCount,
             status: 'queued',
             sent_by: senderId, // Optional if we have it
             details: { target, failCount }
-        })
+        }).select().single()
+
+        if (logError) {
+            console.error('Error logging broadcast:', logError)
+        }
+
+        // 5. Update status to "sent" after a delay (assuming emails are processed)
+        // In production, you might want to use a webhook or polling mechanism
+        if (logData && successCount > 0) {
+            // Wait a bit for queue to process (adjust based on queue size)
+            const delay = Math.min(successCount * 100, 10000) // Max 10 seconds
+            
+            setTimeout(async () => {
+                try {
+                    await supabase
+                        .from('email_logs')
+                        .update({ status: 'sent' })
+                        .eq('id', logData.id)
+                    console.log('✅ Updated email log status to "sent":', logData.id)
+                } catch (err) {
+                    console.error('Error updating email log status:', err)
+                }
+            }, delay)
+        }
 
         return NextResponse.json({
             success: true,
             queued: successCount,
-            failed: failCount
+            failed: failCount,
+            logId: logData?.id
         })
 
     } catch (error: any) {

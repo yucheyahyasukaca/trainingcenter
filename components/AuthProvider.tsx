@@ -87,12 +87,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadUser()
 
     // Add timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.log('⚠️ Loading timeout, forcing loading to false')
-        setLoading(false)
-      }
-    }, 10000) // 10 seconds timeout
+    let timeoutId: NodeJS.Timeout
+    const checkLoading = () => {
+      timeoutId = setTimeout(() => {
+        setLoading(prev => {
+          if (prev) {
+            console.log('⚠️ Loading timeout, forcing loading to false')
+            return false
+          }
+          return prev
+        })
+      }, 5000) // 5 seconds timeout (reduced from 10)
+    }
+    checkLoading()
 
     // Listen to auth changes
     const { data: { subscription } } = onAuthStateChange((user) => {
@@ -108,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
-      clearTimeout(timeout)
+      clearTimeout(timeoutId)
       subscription?.unsubscribe()
     }
   }, [])

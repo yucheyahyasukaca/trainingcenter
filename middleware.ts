@@ -12,47 +12,45 @@ const protectedRoutes = [
   '/programs',
   '/enrollments',
   '/statistics',
+  '/admin', // Admin routes harus protected
+  '/profile',
+  '/settings',
+  '/my-enrollments',
+  '/my-certificates',
+  '/my-webinars',
+  '/my-referral',
+  '/trainer',
 ]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Check if it's a protected route
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname === route || pathname.startsWith(route + '/')
-  )
-
-  // Check if it's a public route
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-
-  // Get auth token from cookies
-  const authToken = request.cookies.get('sb-access-token')?.value ||
-                    request.cookies.get('sb-refresh-token')?.value
-
-  // Redirect to login if accessing protected route without auth
-  if (isProtectedRoute && !authToken) {
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  // Redirect /dashboard to /dashboard (same route, but ensure it uses the layout)
-  if (pathname === '/dashboard') {
+  // Skip middleware for API routes, static files, etc
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
     return NextResponse.next()
   }
 
-  // Redirect to home if accessing public route with auth
-  if (isPublicRoute && authToken && pathname !== '/register') {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
+  // IMPORTANT: Supabase uses localStorage (client-side), not cookies
+  // So middleware cannot detect auth state. Let client-side handle all auth checks.
+  // This prevents redirect loops and allows proper session detection.
+  
+  // For now, disable middleware redirects and let client-side handle auth
+  // Admin layout and other protected pages will handle their own auth checks
+  
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    // Temporarily disable middleware for testing
-    // '/((?!_next/static|_next/image|favicon.ico).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public folder)
+     * - api routes that handle their own auth
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|api/).*)',
   ],
 }
 

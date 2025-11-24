@@ -24,7 +24,14 @@ export async function GET(req: NextRequest) {
 
         if (error) throw error
 
-        return NextResponse.json(data)
+        // Prevent caching to ensure fresh data
+        return NextResponse.json(data, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        })
     } catch (error: any) {
         console.error('Error fetching email logs:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })

@@ -67,24 +67,50 @@ export default function LoginPage() {
       const result = await signIn(formData.email, formData.password)
       console.log('✅ Login successful!', result)
       
-      // Wait a bit for auth state to update
-      setTimeout(() => {
-        console.log('🔄 Redirecting...')
-        const next = sessionStorage.getItem('nextAfterAuth')
-        if (next) {
-          sessionStorage.removeItem('nextAfterAuth')
-          router.push(next)
-          router.refresh()
-          return
+      // Wait for session to be properly set in localStorage
+      const supabase = (await import('@/lib/supabase')).supabase
+      let sessionSet = false
+      let attempts = 0
+      const maxAttempts = 10
+      
+      while (attempts < maxAttempts && !sessionSet) {
+        const { data } = await supabase.auth.getSession()
+        if (data?.session) {
+          console.log('✅ Session confirmed in localStorage')
+          sessionSet = true
+          break
         }
-        // Redirect based on referral code
-        if (referralCode) {
-          router.push(`/register-referral/${referralCode}`)
+        attempts++
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+      
+      if (!sessionSet) {
+        console.warn('⚠️ Session not set after login, but proceeding with redirect...')
+      }
+      
+      // Determine redirect destination
+      const next = sessionStorage.getItem('nextAfterAuth')
+      let redirectUrl = '/dashboard'
+      
+      if (next) {
+        sessionStorage.removeItem('nextAfterAuth')
+        redirectUrl = next
+        console.log('🎯 Redirecting to (nextAfterAuth):', redirectUrl)
+      } else {
+        const redirectTo = searchParams.get('redirect')
+        if (redirectTo) {
+          redirectUrl = redirectTo
+          console.log('🎯 Redirecting to (redirect param):', redirectUrl)
+        } else if (referralCode) {
+          redirectUrl = `/register-referral/${referralCode}`
+          console.log('🎯 Redirecting to referral:', redirectUrl)
         } else {
-          router.push('/dashboard')
+          console.log('🎯 Redirecting to dashboard')
         }
-        router.refresh()
-      }, 1000)
+      }
+      
+      // Use window.location for reliable redirect
+      window.location.href = redirectUrl
     } catch (err: any) {
       console.error('❌ Login error:', err)
       setError(err.message || 'Login gagal. Periksa email dan password Anda.')

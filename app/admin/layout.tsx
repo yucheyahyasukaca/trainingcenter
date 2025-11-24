@@ -2,7 +2,9 @@
 
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function AdminLayout({
   children,
@@ -10,6 +12,100 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  async function checkAuth() {
+    try {
+      setIsLoading(true)
+      
+      // Wait a bit for session to be available after redirect/login
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
+      // Check if user is logged in - try multiple times
+      let session = null
+      let attempts = 0
+      const maxAttempts = 10 // Increased attempts
+      
+      while (attempts < maxAttempts && !session) {
+        try {
+          const { data, error: sessionError } = await supabase.auth.getSession()
+          
+          if (sessionError) {
+            console.error('❌ Session error (attempt', attempts + 1, '):', sessionError)
+          }
+          
+          if (data?.session) {
+            session = data.session
+            console.log('✅ Session found on attempt', attempts + 1, ':', session.user.email)
+            break
+          }
+        } catch (err) {
+          console.error('❌ Error getting session:', err)
+        }
+        
+        attempts++
+        if (attempts < maxAttempts) {
+          console.log('⏳ Waiting for session... (attempt', attempts + 1, '/', maxAttempts, ')')
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
+      }
+      
+      if (!session) {
+        console.log('❌ No session found after', maxAttempts, 'attempts, redirecting to login')
+        // Use window.location to force full page reload
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        return
+      }
+
+      // Check if user is admin
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profileError || !profile) {
+        console.error('❌ Error fetching profile:', profileError)
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        return
+      }
+
+      if (profile.role !== 'admin') {
+        console.log('❌ User is not admin, redirecting to unauthorized')
+        window.location.href = '/unauthorized'
+        return
+      }
+
+      console.log('✅ Admin access granted for:', profile.role)
+      setIsAuthorized(true)
+    } catch (error) {
+      console.error('❌ Auth check error:', error)
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+          <p className="text-gray-600">Memverifikasi akses admin...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return null // Will redirect
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
