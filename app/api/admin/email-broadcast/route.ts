@@ -112,6 +112,34 @@ export async function POST(req: NextRequest) {
                 const personalizedSubject = replaceTemplateVariables(template.subject, userData)
                 let personalizedContent = replaceTemplateVariables(template.content, userData)
 
+                // Add header image if configured (at the top of email)
+                if (template.header_image_url) {
+                    const headerImageHTML = `
+<div style="margin: 0 0 30px 0; text-align: center;">
+    <img src="${template.header_image_url}" alt="Header" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
+</div>
+                    `.trim()
+                    personalizedContent = headerImageHTML + personalizedContent
+                }
+
+                // Add CTA button if configured
+                if (template.cta_button_text && template.cta_button_url) {
+                    const buttonColor = template.cta_button_color || '#3B82F6'
+                    const buttonText = replaceTemplateVariables(template.cta_button_text, userData)
+                    const buttonUrl = replaceTemplateVariables(template.cta_button_url, userData)
+                    
+                    // Generate email-friendly CTA button HTML
+                    const ctaButtonHTML = `
+<div style="margin: 30px 0; text-align: center;">
+    <a href="${buttonUrl}" style="display: inline-block; padding: 14px 28px; background-color: ${buttonColor}; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px; font-family: Arial, sans-serif; line-height: 1.5;">
+        ${buttonText}
+    </a>
+</div>
+                    `.trim()
+                    
+                    personalizedContent = personalizedContent + ctaButtonHTML
+                }
+
                 // Clean up HTML to remove excessive spacing
                 personalizedContent = cleanEmailHTML(personalizedContent)
 

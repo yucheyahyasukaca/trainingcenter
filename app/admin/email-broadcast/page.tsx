@@ -33,21 +33,48 @@ export default function EmailBroadcastDashboard() {
     const fetchLogs = async () => {
         try {
             console.log('🔄 Fetching email logs...')
+            console.log('🌐 API URL:', '/api/admin/email-logs')
+            console.log('📍 Environment:', typeof window !== 'undefined' ? window.location.origin : 'SSR')
+            
             const res = await fetch('/api/admin/email-logs', {
                 cache: 'no-store',
                 headers: {
-                    'Cache-Control': 'no-cache'
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
             })
-            if (!res.ok) throw new Error('Failed to fetch logs')
+            
+            console.log('📡 Response status:', res.status, res.statusText)
+            
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+                console.error('❌ API Error:', errorData)
+                throw new Error(errorData.error || `Failed to fetch logs: ${res.status}`)
+            }
+            
             const data = await res.json()
+            console.log('✅ API Response:', data)
+            console.log('📊 Data type:', Array.isArray(data) ? 'Array' : typeof data)
+            console.log('📊 Data length:', Array.isArray(data) ? data.length : 'N/A')
+            
+            if (!Array.isArray(data)) {
+                console.warn('⚠️ Response is not an array:', data)
+                setLogs([])
+                return
+            }
+            
             console.log('✅ Fetched', data.length, 'email logs')
             console.log('📋 Log IDs:', data.map((log: EmailLog) => log.id))
-            setLogs(data || [])
+            setLogs(data)
             console.log('🔄 State updated with', data.length, 'logs')
-        } catch (error) {
+        } catch (error: any) {
             console.error('❌ Error fetching logs:', error)
-            toast.error('Gagal memuat riwayat email')
+            console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack
+            })
+            toast.error(error.message || 'Gagal memuat riwayat email')
+            setLogs([]) // Set empty array on error
         } finally {
             setLoading(false)
         }

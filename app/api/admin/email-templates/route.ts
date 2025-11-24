@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, subject, content, type } = body
+    const { name, subject, content, type, header_image_url, cta_button_text, cta_button_url, cta_button_color } = body
 
     if (!name || !subject || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -48,16 +48,60 @@ export async function POST(req: NextRequest) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
     const supabase = createClient(supabaseUrl, serviceKey)
 
+    // Build insert object - only include CTA fields if they exist in request
+    const insertData: any = {
+      name,
+      subject,
+      content,
+      type
+    }
+
+    // Add header image if provided
+    if (header_image_url !== undefined) {
+      insertData.header_image_url = header_image_url || null
+    }
+
+    // Only add CTA fields if they are provided (graceful handling if columns don't exist yet)
+    if (cta_button_text !== undefined || cta_button_url !== undefined || cta_button_color !== undefined) {
+      insertData.cta_button_text = cta_button_text || null
+      insertData.cta_button_url = cta_button_url || null
+      insertData.cta_button_color = cta_button_color || null
+    }
+
     const { data, error } = await supabase
       .from('email_templates')
-      .insert([{ name, subject, content, type }])
+      .insert([insertData])
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error creating template:', error)
+      // If error is about missing columns, try without optional fields
+      if (error.message?.includes('cta_button') || error.message?.includes('header_image') || error.code === '42703') {
+        console.log('Some columns not found, creating without optional fields...')
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('email_templates')
+          .insert([{
+            name,
+            subject,
+            content,
+            type
+          }])
+          .select()
+          .single()
+        
+        if (fallbackError) throw fallbackError
+        return NextResponse.json(fallbackData)
+      }
+      throw error
+    }
 
     return NextResponse.json(data)
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('POST error:', error)
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create template',
+      details: error.details || null
+    }, { status: 500 })
   }
 }
