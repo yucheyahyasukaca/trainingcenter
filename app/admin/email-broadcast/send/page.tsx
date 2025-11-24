@@ -139,7 +139,13 @@ export default function SendBroadcastPage() {
 
             const result = await res.json()
 
-            toast.success(`Broadcast berhasil dijadwalkan! (${result.queued} email)`)
+            if (result.warning) {
+                toast.success(`Broadcast berhasil dijadwalkan! (${result.queued} email)`, { duration: 5000 })
+                toast.error(result.warning, { duration: 10000 })
+            } else {
+                toast.success(`Broadcast berhasil dijadwalkan! (${result.queued} email)`)
+            }
+            
             router.push('/admin/email-broadcast')
         } catch (error) {
             console.error(error)

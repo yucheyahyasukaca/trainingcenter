@@ -598,9 +598,23 @@ export async function POST(req: NextRequest) {
             }, delay)
         }
 
+        // Check if email count exceeds Gmail daily limit
+        const emailCount = recipients.length
+        const GMAIL_DAILY_LIMIT = 500
+        const SAFE_DAILY_LIMIT = 450
+        
+        let warning = null
+        if (emailCount > SAFE_DAILY_LIMIT) {
+            warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Gmail (${SAFE_DAILY_LIMIT}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim. Disarankan menggunakan Google Workspace atau email service provider untuk volume besar.`
+            console.warn(warning)
+        } else if (emailCount > 300) {
+            warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Pastikan daily limit Gmail belum tercapai (${SAFE_DAILY_LIMIT}/hari).`
+        }
+
         return NextResponse.json({
             success: true,
             queued: successCount,
+            warning: warning,
             failed: failCount,
             logId: logData?.id
         })

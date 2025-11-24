@@ -79,45 +79,79 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
   }
 }
 
-// Process queue dengan batch processing
+// Daily email counter (reset setiap hari)
+let dailyEmailCount = 0
+let lastResetDate = new Date().toDateString()
+
+// Reset daily counter jika sudah hari baru
+function resetDailyCounterIfNeeded() {
+  const today = new Date().toDateString()
+  if (today !== lastResetDate) {
+    dailyEmailCount = 0
+    lastResetDate = today
+    console.log('📅 Daily email counter reset')
+  }
+}
+
+// Gmail limits
+const GMAIL_DAILY_LIMIT = 500 // Gmail free account limit
+const GMAIL_HOURLY_LIMIT = 100 // Gmail rate limit per hour
+const SAFE_DAILY_LIMIT = 450 // Safe limit (90% of max) untuk menghindari ban
+
+// Process queue dengan batch processing dan rate limiting yang lebih ketat
 async function processQueue() {
   if (isProcessingQueue || emailQueue.length === 0) return
   
   isProcessingQueue = true
   
   try {
-    // Batch size untuk menghindari rate limit Gmail (max 100 emails per session)
-    const BATCH_SIZE = 50
-    const DELAY_BETWEEN_BATCHES = 5000 // 5 seconds delay antara batch
+    resetDailyCounterIfNeeded()
+    
+    // Check daily limit
+    if (dailyEmailCount >= SAFE_DAILY_LIMIT) {
+      console.warn(`⚠️ Daily email limit reached (${dailyEmailCount}/${SAFE_DAILY_LIMIT}). Queue processing paused.`)
+      console.warn('💡 Recommendation: Use Google Workspace or email service provider for higher limits')
+      isProcessingQueue = false
+      return
+    }
+    
+    // Batch size lebih kecil untuk menghindari rate limit Gmail
+    const BATCH_SIZE = 20 // Reduced from 50 untuk lebih aman
+    const DELAY_BETWEEN_BATCHES = 60000 // 60 seconds delay antara batch (lebih konservatif)
+    const DELAY_BETWEEN_EMAILS = 2000 // 2 seconds delay antara email (untuk menghindari rate limit)
     
     while (emailQueue.length > 0) {
-      const batch = emailQueue.splice(0, BATCH_SIZE)
+      // Check daily limit again before each batch
+      resetDailyCounterIfNeeded()
+      if (dailyEmailCount >= SAFE_DAILY_LIMIT) {
+        console.warn(`⚠️ Daily limit reached. Remaining ${emailQueue.length} emails will be processed tomorrow.`)
+        break
+      }
       
-      // Send emails in parallel (dengan concurrency limit)
-      const CONCURRENCY_LIMIT = 10
-      for (let i = 0; i < batch.length; i += CONCURRENCY_LIMIT) {
-        const chunk = batch.slice(i, i + CONCURRENCY_LIMIT)
-        
-        await Promise.allSettled(
-          chunk.map(item => 
-            sendEmail(item.to, item.subject, item.html).catch(err => {
-              console.error(`Failed to send email to ${item.to}:`, err)
-              // Re-queue jika lain kali masih bisa dicoba
-              if (emailQueue.length < 1000) { // Prevent infinite queue growth
-                emailQueue.push(item)
-              }
-            })
-          )
-        )
-        
-        // Small delay untuk menghindari rate limit
-        if (i + CONCURRENCY_LIMIT < batch.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
+      const batch = emailQueue.splice(0, Math.min(BATCH_SIZE, SAFE_DAILY_LIMIT - dailyEmailCount))
+      
+      // Send emails sequentially dengan delay untuk menghindari rate limit
+      for (const item of batch) {
+        try {
+          await sendEmail(item.to, item.subject, item.html)
+          dailyEmailCount++
+          
+          // Delay antara email untuk menghindari rate limit
+          if (batch.indexOf(item) < batch.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_EMAILS))
+          }
+        } catch (err) {
+          console.error(`Failed to send email to ${item.to}:`, err)
+          // Re-queue jika masih ada slot dan belum melebihi limit
+          if (emailQueue.length < 1000 && dailyEmailCount < SAFE_DAILY_LIMIT) {
+            emailQueue.push(item)
+          }
         }
       }
       
-      // Delay antara batch
-      if (emailQueue.length > 0) {
+      // Delay antara batch (lebih lama untuk menghindari rate limit)
+      if (emailQueue.length > 0 && dailyEmailCount < SAFE_DAILY_LIMIT) {
+        console.log(`📧 Sent ${batch.length} emails. Queue remaining: ${emailQueue.length}. Daily count: ${dailyEmailCount}/${SAFE_DAILY_LIMIT}`)
         await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES))
       }
     }
