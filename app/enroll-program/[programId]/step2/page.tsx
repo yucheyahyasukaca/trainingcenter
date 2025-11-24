@@ -399,283 +399,279 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
       sessionStorage.removeItem('enrollmentFormData')
 
       addNotification({
-        ty    pe: 'success',
-        ti      tle: 'Berhasil',
-        me        ssage: 'Pendaftaran berhasil! Detail lebih lanjut telah dikirim ke email Anda.'
-      })    
+        type: 'success',
+        title: 'Berhasil',
+        message: 'Pendaftaran berhasil! Detail lebih lanjut telah dikirim ke email Anda.'
+      })
 
-   Redirect to success page or dashboard
-      tTimeout(() => {
-        uter.push(`/enroll-program/${programId}/success`)
-        1000)
+      // Redirect to success page or dashboard
+      setTimeout(() => {
+        router.push(`/enroll-program/${programId}/success`)
+      }, 1000)
 
-catch (error: any) {
-        nsole.error('Error completing enrollment:', error)
-        dNotification({
-          pe: 'error',
-          tle: 'Error',
-          ssage: error.message || 'Gagal menyelesaikan pendaftaran'
-  
-finally {
-            tProcessing(false)
-
-          }
-
-            (loading) {
-              turn(
-                iv className = "min-h-screen bg-gray-50 flex items-center justify-center" >
-                  iv className = "text-center" >
-                    iv className = "animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" ></div>
-        className="mt-4 text-gray-600" > Memuat data program...</p >
-        div >
-        div >
-
-
-
-        (!program || !enrollmentData) {
-          turn(
-            iv className = "min-h-screen bg-gray-50 flex items-center justify-center" >
-              iv className = "text-center" >
-                2 className = "text-2xl font-bold text-gray-900 mb-4" > Data Tidak Ditemukan</h2>
-        ink href = "/programs" className = "text-blue-600 hover:text-blue-700" >
-        mbali ke Daftar Program
-        Link >
-          div >
-          div >
-
-
-
-          turn(
-            iv className = "min-h-screen bg-gray-50" >
-            iv className = "max-w-4xl mx-auto px-4 py-8" >
-      * Header */}
-      iv className = "mb-8" >
-        ink
-      ef = "/programs"
-      assName = "inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
-        
-          rrowLeft className = "h-4 w-4 mr-2" />
-        mbali ke Daftar Program
-      Link >
-        1 className = "text-3xl font-bold text-gray-900" > Pendaftaran Program</h1 >
-          div >
-
-          iv className = "grid grid-cols-1 lg:grid-cols-4 gap-8" >
-        * Progress Sidebar */
+    } catch (error: any) {
+      console.error('Error completing enrollment:', error)
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Gagal menyelesaikan pendaftaran'
+      })
+    } finally {
+      setProcessing(false)
     }
-        iv className = "lg:col-span-1" >
-      iv className = "bg-white rounded-lg shadow-sm border p-6 sticky top-8" >
-        3 className = "text-lg font-semibold text-gray-900 mb-4" > Progress Pendaftaran</h3 >
-
-          iv className = "space-y-4" >
-              * Step 1 - Completed */
   }
-              iv className = "flex items-center gap-3" >
-    iv className = "w-8 h-8 rounded-full bg-green-600 flex items-center justify-center" >
-      heckCircle className = "h-5 w-5 text-white" />
-        div >
-        iv >
-        className="font-medium text-gray-900" > Isi Formulir Registrasi</p >
-          className="text-sm text-gray-600" > Formulirmu sudah lengkap</p >
-            div >
-            div >
 
-              * Step 2 - Current */
-}
-              iv className = "flex items-center gap-3" >
-  iv className = "w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center" >
-    pan className = "text-white text-sm font-semibold" > 2</span >
-      div >
-      iv >
-      className="font-medium text-gray-900" > Konfirmasi & Link Referral</p >
-        className="text-sm text-gray-600" >
-          nrollmentData.referral_code
-'Kamu sudah terdaftar dengan kode referral. Bagikan link referral ke teman untuk membuka kelas-kelas berikutnya.'
-'Kamu sudah terdaftar. Bagikan link referral ke teman untuk membuka kelas-kelas berikutnya.'
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Memuat data program...</p>
+        </div>
+      </div>
+    )
+  }
 
-p >
-  div >
-  div >
-  div >
+  if (!program || !enrollmentData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Data Tidak Ditemukan</h2>
+          <Link href="/programs" className="text-blue-600 hover:text-blue-700">
+            Kembali ke Daftar Program
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
-            * Program Info */}
-            iv className = "mt-6 pt-6 border-t border-gray-200" >
-  4 className = "font-semibold text-gray-900 mb-2" > { program.title }</h4 >
-    className="text-sm text-gray-600 mb-3" > { program.description }</p >
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link
+            href="/programs"
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Kembali ke Daftar Program
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Pendaftaran Program</h1>
+        </div>
 
-      iv className = "space-y-2" >
-        iv className = "flex justify-between text-sm" >
-          pan className = "text-gray-600" > Harga Normal:</span >
-            pan className = "text-gray-900" > Rp { program.price.toLocaleString('id-ID') }</span >
-              div >
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Progress Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress Pendaftaran</h3>
 
-              nrollmentData.referral_code && (
-                iv className = "flex justify-between text-sm text-green-600" >
-                  pan > Diskon Referral:</span >
-                    pan > - Rp { (program.price - enrollmentData.final_price).toLocaleString('id-ID') }</span >
-                      div >
+              <div className="space-y-4">
+                {/* Step 1 - Completed */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Isi Formulir Registrasi</p>
+                    <p className="text-sm text-gray-600">Formulirmu sudah lengkap</p>
+                  </div>
+                </div>
 
+                {/* Step 2 - Current */}
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+                    <span className="text-white text-sm font-semibold">2</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Konfirmasi & Link Referral</p>
+                    <p className="text-sm text-gray-600">
+                      {enrollmentData.referral_code
+                        ? 'Kamu sudah terdaftar dengan kode referral. Bagikan link referral ke teman untuk membuka kelas-kelas berikutnya.'
+                        : 'Kamu sudah terdaftar. Bagikan link referral ke teman untuk membuka kelas-kelas berikutnya.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-                      iv className = "flex justify-between font-semibold pt-2 border-t border-gray-200" >
-                        pan > Total:</span >
-                          pan className = "text-lg text-blue-600" > Rp { enrollmentData.final_price.toLocaleString('id-ID') }</span >
-                            div >
-                            div >
+              {/* Program Info */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-2">{program.title}</h4>
+                <p className="text-sm text-gray-600 mb-3">{program.description}</p>
 
-                            nrollmentData.referral_code && (
-                              iv className = "mt-3 p-2 bg-green-50 border border-green-200 rounded" >
-                                className="text-xs text-green-700" >
-                                  de Referral: <span className="font-mono font-bold">{enrollmentData.referral_code}</span>
-p >
-  div >
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Harga Normal:</span>
+                    <span className="text-gray-900">Rp {program.price.toLocaleString('id-ID')}</span>
+                  </div>
 
-  div >
-  div >
-  div >
+                  {enrollmentData.referral_code && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Diskon Referral:</span>
+                      <span>- Rp {(program.price - enrollmentData.final_price).toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
 
-        * Main Content */}
-        iv className = "lg:col-span-3" >
-  iv className = "bg-white rounded-lg shadow-sm border p-6" >
-    iv className = "mb-6" >
-      iv className = "flex items-center gap-2 mb-2" >
-        pan className = "text-blue-600 font-semibold" > Langkah 2</span >
-          heckCircle className = "h-5 w-5 text-blue-600" />
-            div >
-            2 className = "text-2xl font-bold text-gray-900" > Pengumuman</h2 >
-              div >
+                  <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
+                    <span>Total:</span>
+                    <span className="text-lg text-blue-600">Rp {enrollmentData.final_price.toLocaleString('id-ID')}</span>
+                  </div>
 
-            * Success Message */}
-            iv className = "mb-6" >
-  className="text-gray-700 mb-4" >
-    ndaftaran berhasil dilakukan.Detail lebih lanjut telah dikirim ke email kamu({ enrollmentData.email }).
-      p >
-      div >
+                  {enrollmentData.referral_code && (
+                    <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded">
+                      <p className="text-xs text-green-700">
+                        Kode Referral: <span className="font-mono font-bold">{enrollmentData.referral_code}</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
 
-            * Success Card */}
-            iv className = "bg-green-50 border border-green-200 rounded-lg p-6 mb-6" >
-  3 className = "text-lg font-semibold text-green-900 mb-3" >
-    lamat, kamu telah berhasil terdaftar sebagai peserta program pelatihan eksklusif dari GARUDA - 21 Training Center!
-h3 >
+          {/* Main Content */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600 font-semibold">Langkah 2</span>
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Pengumuman</h2>
+              </div>
 
-  className="text-green-800 mb-4" >
-    rjalananmu akan dimulai dengan mengakses kurikulum level awal.Kelas - kelas ini wajib diselesaikan secara berurutan sebagai pondasi utama sebelum melangkah ke materi yang lebih dalam.
-      p >
+              {/* Success Message */}
+              <div className="mb-6">
+                <p className="text-gray-700 mb-4">
+                  Pendaftaran berhasil dilakukan. Detail lebih lanjut telah dikirim ke email kamu ({enrollmentData.email}).
+                </p>
+              </div>
 
-      iv className = "bg-white rounded-lg p-4 mb-4" >
-        4 className = "font-semibold text-gray-900 mb-3" >
-          rikut adalah daftar materi pelatihan yang perlu kamu selesaikan:
-h4 >
-  iv className = "space-y-2" >
-    penMaterials.map((material, index) => (
-      iv key = { index } className = "flex items-center gap-2" >
-      heckCircle className = "h-4 w-4 text-green-600" />
-      pan className = "text-sm text-gray-700" > { material }</span >
-      div >
-                  }
-      ockedMaterials.map((material, index) => (
-        iv key = { index } className = "flex items-center gap-2" >
-        iv className = "h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center" >
-        pan className = "text-xs text-gray-600" >🔒</span >
-        div >
-      pan className = "text-sm text-gray-500" > { material }</span >
-      div >
-                  }
-        div >
-        div >
+              {/* Success Card */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-green-900 mb-3">
+                  Selamat, kamu telah berhasil terdaftar sebagai peserta program pelatihan eksklusif dari GARUDA-21 Training Center!
+                </h3>
 
-        iv className = "bg-blue-50 border border-blue-200 rounded-lg p-4" >
-        className="text-blue-800 text-sm" >
-        trong > Untuk mengakses kelas, silakan menuju halaman </strong >
-      ink href = "/dashboard" className = "text-blue-600 hover:text-blue-700 underline" > dashboard</Link >
-      trong >.</strong >
-      p >
-      div >
+                <p className="text-green-800 mb-4">
+                  Perjalananmu akan dimulai dengan mengakses kurikulum level awal. Kelas-kelas ini wajib diselesaikan secara berurutan sebagai pondasi utama sebelum melangkah ke materi yang lebih dalam.
+                </p>
 
-      iv className = "mt-4" >
-        asReferralUsed ? (
-        iv className = "bg-green-50 border border-green-200 rounded-lg p-4" >
-        className="text-green-800 text-sm font-semibold mb-2" >
-      Selamat! Akses ke 3 materi terakhir telah terbuka!
-                    p >
-        className="text-green-700 text-sm" >
-      mu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral - mu.Kamu sekarang dapat mengakses semua materi pelatihan.
-        p >
-      div >
-                : (
-          iv className = "bg-yellow-50 border border-yellow-200 rounded-lg p-4" >
-          className="text-yellow-800 text-sm font-semibold mb-2" >
-      Materi Terakhir Masih Terkunci
-                    p >
-        className="text-yellow-700 text-sm mb-2" >
-      tuk membuka akses ke 3 materi terakhir, kamu < strong > harus membagikan kode referral</strong > ke rekan yang lain.Materi terakhir hanya akan terbuka setelah kode referral kamu < strong > berhasil digunakan oleh minimal 1 teman atau rekan</strong > yang bergabung dalam program ini.
-        p >
-      className="text-yellow-700 text-sm font-medium mt-2" >
-      Cara membuka materi terakhir:
-        p >
-        l className = "text-yellow-700 text-sm list-decimal list-inside mt-2 space-y-1" >
-        i > Salin link referral yang tersedia di bawah</li >
-        i > Bagikan link tersebut ke teman atau rekan kamu</li >
-        i > Tunggu teman / rekan kamu menggunakan link tersebut untuk mendaftar</li >
-        i > Setelah mereka terdaftar, 3 materi terakhir akan otomatis terbuka</li >
-        ol >
-        div >
+                <div className="bg-white rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">
+                    Berikut adalah daftar materi pelatihan yang perlu kamu selesaikan:
+                  </h4>
+                  <div className="space-y-2">
+                    {openMaterials.map((material, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-gray-700">{material}</span>
+                      </div>
+                    ))}
+                    {lockedMaterials.map((material, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-xs text-gray-600">🔒</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{material}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-        div >
-        div >
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Untuk mengakses kelas, silakan menuju halaman </strong>
+                    <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 underline">dashboard</Link>
+                    <strong>.</strong>
+                  </p>
+                </div>
 
-            * Referral Link Section */}
-        iv className = "bg-white border border-gray-200 rounded-lg p-6" >
-        3 className = "text-lg font-semibold text-gray-900 mb-4" > Link Referral</h3 >
+                <div className="mt-4">
+                  {hasReferralUsed ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-green-800 text-sm font-semibold mb-2">
+                        Selamat! Akses ke 3 materi terakhir telah terbuka!
+                      </p>
+                      <p className="text-green-700 text-sm">
+                        Kamu berhasil mengajak minimal 1 teman atau rekan untuk bergabung melalui tautan referral-mu. Kamu sekarang dapat mengakses semua materi pelatihan.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-yellow-800 text-sm font-semibold mb-2">
+                        Materi Terakhir Masih Terkunci
+                      </p>
+                      <p className="text-yellow-700 text-sm mb-2">
+                        Untuk membuka akses ke 3 materi terakhir, kamu <strong>harus membagikan kode referral</strong> ke rekan yang lain. Materi terakhir hanya akan terbuka setelah kode referral kamu <strong>berhasil digunakan oleh minimal 1 teman atau rekan</strong> yang bergabung dalam program ini.
+                      </p>
+                      <p className="text-yellow-700 text-sm font-medium mt-2">
+                        Cara membuka materi terakhir:
+                      </p>
+                      <ol className="text-yellow-700 text-sm list-decimal list-inside mt-2 space-y-1">
+                        <li>Salin link referral yang tersedia di bawah</li>
+                        <li>Bagikan link tersebut ke teman atau rekan kamu</li>
+                        <li>Tunggu teman/rekan kamu menggunakan link tersebut untuk mendaftar</li>
+                        <li>Setelah mereka terdaftar, 3 materi terakhir akan otomatis terbuka</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-      className="text-gray-700 mb-4" >
-      dilah bagian penting dari program ini dengan mengajak lebih banyak teman atau kerabat! Semakin banyak yang bergabung melalui referral - mu, semakin besar peluangmu memenangkan hadiah menarik seperti laptop, gadget, dan voucher eksklusif.
-        p >
+              {/* Referral Link Section */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Link Referral</h3>
 
-        serReferralCode ? (
-        iv className = "flex gap-3" >
-        iv className = "flex-1" >
-        nput
-                      pe = "text"
-                      lue = { generateReferralLink() }
-                      adOnly
-                      assName = "w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
-                    
-                  div >
-        utton
-                    Click = { copyReferralLink }
-                    assName = "flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  
-                    opy className = "h-4 w-4" />
-      lin Link
-                  button >
-        div >
-              : (
-          iv className = "p-3 bg-yellow-50 border border-yellow-200 rounded-lg" >
-          className="text-sm text-yellow-800" > Sedang memuat kode referral Anda...</p >
-          div >
+                <p className="text-gray-700 mb-4">
+                  Jadilah bagian penting dari program ini dengan mengajak lebih banyak teman atau kerabat! Semakin banyak yang bergabung melalui referral-mu, semakin besar peluangmu memenangkan hadiah menarik seperti laptop, gadget, dan voucher eksklusif.
+                </p>
 
-          div >
+                {userReferralCode ? (
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={generateReferralLink()}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                      />
+                    </div>
+                    <button
+                      onClick={copyReferralLink}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Salin Link
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">Sedang memuat kode referral Anda...</p>
+                  </div>
+                )}
+              </div>
 
-            * Action Buttons */}
-        iv className = "flex justify-between mt-6" >
-        ink
-                ef = "/programs"
-                assName = "px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-              
-                mbali ke Program
-              Link >
-        utton
-                Click = { completeEnrollment }
-                sabled = { processing }
-                assName = "px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              
-                rocessing ? 'Memproses...' : 'Selesaikan Pendaftaran'}
-        button >
-        div >
-        div >
-        div >
-        div >
-        div >
-        div >
-
+              {/* Action Buttons */}
+              <div className="flex justify-between mt-6">
+                <Link
+                  href="/programs"
+                  className="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Kembali ke Program
+                </Link>
+                <button
+                  onClick={completeEnrollment}
+                  disabled={processing}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {processing ? 'Memproses...' : 'Selesaikan Pendaftaran'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
