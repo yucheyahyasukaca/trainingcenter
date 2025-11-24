@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCog, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCog,
+  Calendar,
   BarChart3,
   X,
   Settings,
@@ -45,6 +45,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Settings, label: 'Atur Sertifikat', href: '/admin/certificate-management', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Program Referral', href: '/admin/referral-management', roles: ['admin'] },
+      { icon: FileText, label: 'Broadcast Email', href: '/admin/email-broadcast', roles: ['admin'] },
       { icon: Link2, label: 'URL Shortener', href: '/admin/url-shortener', roles: ['admin'] },
       { icon: Ticket, label: 'Tiket', href: '/admin/tickets', roles: ['admin'] },
       { icon: Settings, label: 'Pengaturan', href: '/settings', roles: ['admin'] },
@@ -68,11 +69,11 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       ...baseItems,
       { icon: BarChart3, label: 'Program', href: '/dashboard/programs', roles: ['user'] },
       { icon: Calendar, label: 'Webinar Saya', href: '/my-webinars', roles: ['user'] },
-    { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
-    { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['user'] },
-    { icon: Gift, label: 'Referral Saya', href: '/my-referral', roles: ['user'] },
-    { icon: User, label: 'Profil Saya', href: '/profile', roles: ['user'] },
-  ]
+      { icon: Calendar, label: 'Kelas Terdaftar', href: '/my-enrollments', roles: ['user'] },
+      { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['user'] },
+      { icon: Gift, label: 'Referral Saya', href: '/my-referral', roles: ['user'] },
+      { icon: User, label: 'Profil Saya', href: '/profile', roles: ['user'] },
+    ]
 
     // Add trainer-specific items if user is a trainer
     if (trainerLevel && trainerLevel !== 'user') {
@@ -107,7 +108,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const { profile } = useAuth()
   const [showSupportDialog, setShowSupportDialog] = useState(false)
-  
+
   const menuItems = getMenuItems(profile?.role || 'user', (profile as any)?.trainer_level)
 
   return (
@@ -126,7 +127,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               />
             </div>
           </div>
-          
+
           {/* Close button for mobile */}
           <button
             onClick={onClose}
@@ -141,22 +142,21 @@ export function Sidebar({ onClose }: SidebarProps) {
       {profile && (
         <div className="px-4 sm:px-6 py-2 sm:py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-2">
-            <div className={`w-2 h-2 rounded-full ${
-              (profile as any).role === 'admin' ? 'bg-red-500' :
-              (profile as any).role === 'manager' ? 'bg-blue-500' : 
-              (profile as any).role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
-            }`}></div>
+            <div className={`w-2 h-2 rounded-full ${(profile as any).role === 'admin' ? 'bg-red-500' :
+                (profile as any).role === 'manager' ? 'bg-blue-500' :
+                  (profile as any).role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
+              }`}></div>
             <span className="text-xs sm:text-sm font-medium text-gray-700 capitalize">
               {(profile as any).role === 'admin' ? 'Administrator' :
-               (profile as any).role === 'manager' ? 'Manager' : 
-               (profile as any).role === 'trainer' ? 'Trainer' : 'User Level 0'}
+                (profile as any).role === 'manager' ? 'Manager' :
+                  (profile as any).role === 'trainer' ? 'Trainer' : 'User Level 0'}
             </span>
-                   {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
+            {(profile as any).trainer_level && (profile as any).trainer_level !== 'user' && (
               <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full">
                 {(profile as any).trainer_level === 'master' ? 'Master' :
-                 (profile as any).trainer_level === 'expert' ? 'Expert' :
-                 (profile as any).trainer_level === 'senior' ? 'Senior' :
-                 (profile as any).trainer_level === 'junior' ? 'Junior' : 'Trainer'}
+                  (profile as any).trainer_level === 'expert' ? 'Expert' :
+                    (profile as any).trainer_level === 'senior' ? 'Senior' :
+                      (profile as any).trainer_level === 'junior' ? 'Junior' : 'Trainer'}
               </span>
             )}
           </div>
@@ -168,7 +168,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
-          
+
           return (
             <Link
               key={item.href}
@@ -176,8 +176,8 @@ export function Sidebar({ onClose }: SidebarProps) {
               onClick={onClose}
               className={`
                 group flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-200
-                ${isActive 
-                  ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 font-semibold shadow-sm border border-primary-200' 
+                ${isActive
+                  ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 font-semibold shadow-sm border border-primary-200'
                   : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }
               `}
@@ -194,7 +194,7 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Footer - Support Section */}
       <div className="p-3 sm:p-4 border-t border-gray-200 space-y-3 flex-shrink-0 bg-white sticky bottom-0">
-        <div 
+        <div
           onClick={() => setShowSupportDialog(true)}
           className="bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200 rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all"
         >
@@ -213,9 +213,9 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Support Dialog */}
-      <SupportDialog 
-        isOpen={showSupportDialog} 
-        onClose={() => setShowSupportDialog(false)} 
+      <SupportDialog
+        isOpen={showSupportDialog}
+        onClose={() => setShowSupportDialog(false)}
       />
     </aside>
   )
