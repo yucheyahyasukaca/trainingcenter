@@ -16,7 +16,9 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     const [loading, setLoading] = useState(!isNew)
     const [saving, setSaving] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [uploadingSignature, setUploadingSignature] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const signatureFileInputRef = useRef<HTMLInputElement>(null)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -26,7 +28,15 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
         header_image_url: '',
         cta_button_text: '',
         cta_button_url: '',
-        cta_button_color: '#3B82F6'
+        cta_button_color: '#3B82F6',
+        signature_enabled: false,
+        signature_logo_url: '',
+        signature_name: '',
+        signature_title: '',
+        signature_email: '',
+        signature_phone: '',
+        signature_website: '',
+        signature_address: ''
     })
 
     useEffect(() => {
@@ -48,7 +58,15 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
                 header_image_url: data.header_image_url || '',
                 cta_button_text: data.cta_button_text || '',
                 cta_button_url: data.cta_button_url || '',
-                cta_button_color: data.cta_button_color || '#3B82F6'
+                cta_button_color: data.cta_button_color || '#3B82F6',
+                signature_enabled: data.signature_enabled || false,
+                signature_logo_url: data.signature_logo_url || '',
+                signature_name: data.signature_name || '',
+                signature_title: data.signature_title || '',
+                signature_email: data.signature_email || '',
+                signature_phone: data.signature_phone || '',
+                signature_website: data.signature_website || '',
+                signature_address: data.signature_address || ''
             })
         } catch (error) {
             console.error(error)
@@ -59,6 +77,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     }
 
     // Compress image function (client-side compression)
+    // Preserves transparency for PNG images
     const compressImage = async (
         inputFile: File,
         opts?: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string }
@@ -66,7 +85,10 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
         const maxWidth = opts?.maxWidth ?? 1920 // Email header width
         const maxHeight = opts?.maxHeight ?? 600 // Email header height
         const quality = opts?.quality ?? 0.85 // Higher quality for email headers
-        const mimeType = opts?.mimeType ?? 'image/jpeg'
+        
+        // Detect if input is PNG to preserve transparency
+        const isPNG = inputFile.type === 'image/png' || inputFile.name.toLowerCase().endsWith('.png')
+        const mimeType = opts?.mimeType || (isPNG ? 'image/png' : 'image/jpeg')
 
         const imageBitmap = await createImageBitmap(inputFile)
         let targetWidth = imageBitmap.width
@@ -82,12 +104,29 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
         const canvas = document.createElement('canvas')
         canvas.width = targetWidth
         canvas.height = targetHeight
-        const ctx = canvas.getContext('2d')!
+        
+        // Get 2D context - for PNG transparency, we need to clear canvas first
+        const ctx = canvas.getContext('2d', { alpha: true })!
+        
+        // Clear canvas to ensure transparency is preserved
+        if (isPNG) {
+            ctx.clearRect(0, 0, targetWidth, targetHeight)
+        }
+        
+        // Draw image
         ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight)
         
-        const blob: Blob = await new Promise((resolve) => 
-            canvas.toBlob((b) => resolve(b as Blob), mimeType, quality)
-        )
+        // For PNG, use PNG format to preserve transparency
+        // For JPEG, use JPEG format with quality
+        const blob: Blob = await new Promise((resolve) => {
+            if (isPNG) {
+                // PNG preserves transparency automatically
+                canvas.toBlob((b) => resolve(b as Blob), 'image/png', 1.0)
+            } else {
+                // JPEG with quality setting
+                canvas.toBlob((b) => resolve(b as Blob), 'image/jpeg', quality)
+            }
+        })
         return blob
     }
 
@@ -188,6 +227,108 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
             // Reset file input
             if (fileInputRef.current) {
                 fileInputRef.current.value = ''
+            }
+        }
+    }
+
+    const handleSignatureFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error('File harus berupa gambar')
+            return
+        }
+
+        const originalSize = file.size
+        setUploadingSignature(true)
+        toast.loading('Mengompres gambar logo signature...', { id: 'signature-upload' })
+
+        try {
+            // Always compress image before upload for signature logo
+            let fileToUpload: File | Blob
+            let wasCompressed = false
+            let compressedSize = originalSize
+
+            try {
+                // Preserve PNG transparency for signature logos
+                const isPNG = file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')
+                const compressed = await compressImage(file, {
+                    maxWidth: 300, // Signature logo optimal width (smaller than header)
+                    maxHeight: 100, // Signature logo optimal height
+                    quality: 0.85, // Good quality for logo
+                    mimeType: isPNG ? 'image/png' : 'image/jpeg' // Preserve PNG transparency
+                })
+                fileToUpload = compressed
+                wasCompressed = true
+                compressedSize = compressed.size
+                
+                // Show compression result
+                const sizeReduction = ((1 - compressedSize / originalSize) * 100).toFixed(0)
+                toast.loading(
+                    `Logo dikompres: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB (${sizeReduction}% lebih kecil)`, 
+                    { id: 'signature-upload' }
+                )
+            } catch (compressionError) {
+                console.error('❌ Compression failed:', compressionError)
+                // If compression fails, still try to upload original but warn user
+                fileToUpload = file
+                toast.loading('Kompresi gagal, menggunakan file asli...', { id: 'signature-upload' })
+            }
+
+            // Validate file size after compression (max 2MB)
+            const maxSize = 2 * 1024 * 1024
+            if (compressedSize > maxSize) {
+                toast.error(`Ukuran file masih terlalu besar: ${(compressedSize / 1024 / 1024).toFixed(2)}MB. Maksimal 2MB.`, { id: 'signature-upload' })
+                return
+            }
+
+            toast.loading('Mengupload gambar...', { id: 'signature-upload' })
+
+            const formData = new FormData()
+            formData.append('file', fileToUpload)
+
+            const res = await fetch('/api/admin/email-templates/upload-signature', {
+                method: 'POST',
+                body: formData
+            })
+
+            const contentType = res.headers.get('content-type')
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await res.text()
+                throw new Error('Server error: ' + (text.substring(0, 100) || 'Unknown error'))
+            }
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || data.message || 'Upload gagal')
+            }
+
+            // Update formData with uploaded signature logo URL
+            setFormData(prev => ({
+                ...prev,
+                signature_logo_url: data.url
+            }))
+
+            if (wasCompressed) {
+                const sizeReduction = ((1 - compressedSize / originalSize) * 100).toFixed(0)
+                toast.success(
+                    `✅ Logo signature berhasil diupload! ${(originalSize / 1024).toFixed(0)}KB → ${(compressedSize / 1024).toFixed(0)}KB (hemat ${sizeReduction}%)`, 
+                    { id: 'signature-upload', duration: 4000 }
+                )
+            } else {
+                toast.success(`Logo signature berhasil diupload (${(compressedSize / 1024).toFixed(0)}KB)`, { id: 'signature-upload' })
+            }
+        } catch (error: any) {
+            console.error('Signature upload error:', error)
+            toast.error(error.message || 'Gagal mengupload logo signature', { id: 'signature-upload' })
+        } finally {
+            setUploadingSignature(false)
+            // Reset file input
+            if (signatureFileInputRef.current) {
+                signatureFileInputRef.current.value = ''
             }
         }
     }
@@ -445,6 +586,159 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Email Signature Section */}
+                <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="block text-sm font-medium text-gray-700">
+                            Email Signature - Opsional
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={formData.signature_enabled}
+                                onChange={(e) => setFormData({ ...formData, signature_enabled: e.target.checked })}
+                                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-700">Aktifkan Signature</span>
+                        </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-4">
+                        Signature akan ditampilkan di bawah konten email. Anda bisa menambahkan logo, nama, jabatan, dan informasi kontak.
+                    </p>
+                    
+                    {formData.signature_enabled && (
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                            {/* Signature Logo */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-2">
+                                    Logo Signature
+                                </label>
+                                <input
+                                    ref={signatureFileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleSignatureFileSelect}
+                                    className="hidden"
+                                    id="signature-logo-upload"
+                                    disabled={uploadingSignature}
+                                />
+                                <div className="flex items-center space-x-3">
+                                    <label
+                                        htmlFor="signature-logo-upload"
+                                        className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${
+                                            uploadingSignature ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                    >
+                                        {uploadingSignature ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-700 mr-2"></div>
+                                                Mengupload...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="h-4 w-4 mr-2" />
+                                                Upload Logo
+                                            </>
+                                        )}
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={formData.signature_logo_url}
+                                        onChange={(e) => setFormData({ ...formData, signature_logo_url: e.target.value })}
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Atau masukkan URL logo"
+                                    />
+                                    {formData.signature_logo_url && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, signature_logo_url: '' })}
+                                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                                {formData.signature_logo_url && (
+                                    <div className="mt-2">
+                                        <img
+                                            src={formData.signature_logo_url}
+                                            alt="Signature logo preview"
+                                            className="max-h-20 h-auto rounded"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none'
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Signature Information */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nama</label>
+                                    <input
+                                        type="text"
+                                        value={formData.signature_name}
+                                        onChange={(e) => setFormData({ ...formData, signature_name: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Nama lengkap"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Jabatan</label>
+                                    <input
+                                        type="text"
+                                        value={formData.signature_title}
+                                        onChange={(e) => setFormData({ ...formData, signature_title: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Jabatan/Posisi"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={formData.signature_email}
+                                        onChange={(e) => setFormData({ ...formData, signature_email: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="email@example.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Telepon</label>
+                                    <input
+                                        type="tel"
+                                        value={formData.signature_phone}
+                                        onChange={(e) => setFormData({ ...formData, signature_phone: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="+62 812-3456-7890"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Website</label>
+                                    <input
+                                        type="url"
+                                        value={formData.signature_website}
+                                        onChange={(e) => setFormData({ ...formData, signature_website: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="https://example.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Alamat</label>
+                                    <input
+                                        type="text"
+                                        value={formData.signature_address}
+                                        onChange={(e) => setFormData({ ...formData, signature_address: e.target.value })}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                        placeholder="Alamat lengkap"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-0 pt-4 sm:pt-6 border-t border-gray-200">

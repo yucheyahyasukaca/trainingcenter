@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Send, Users, User, CheckCircle, Mail } from 'lucide-react'
+import { ArrowLeft, Send, Users, User, CheckCircle, Mail, Upload, Download, FileSpreadsheet, X } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 interface Template {
@@ -20,9 +20,12 @@ export default function SendBroadcastPage() {
 
     const [formData, setFormData] = useState({
         templateId: '',
-        target: 'all', // all, trainers, admins, specific
-        specificEmails: ''
+        target: 'all', // all, trainers, admins, specific, excel
+        specificEmails: '',
+        excelRecipients: [] as Array<{ email: string; name?: string }>
     })
+    const [uploadingExcel, setUploadingExcel] = useState(false)
+    const excelFileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         fetchTemplates()
@@ -42,6 +45,58 @@ export default function SendBroadcastPage() {
         }
     }
 
+    const handleDownloadTemplate = () => {
+        window.open('/api/admin/email-broadcast/download-template', '_blank')
+    }
+
+    const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploadingExcel(true)
+        toast.loading('Membaca file Excel...', { id: 'excel-upload' })
+
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+
+            const res = await fetch('/api/admin/email-broadcast/upload-excel', {
+                method: 'POST',
+                body: formData
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Gagal membaca file Excel')
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                target: 'excel',
+                excelRecipients: data.recipients
+            }))
+
+            if (data.warnings) {
+                toast.success(`✅ ${data.total} email berhasil dibaca. ${data.warnings}`, { id: 'excel-upload', duration: 5000 })
+            } else {
+                toast.success(`✅ ${data.total} email berhasil dibaca`, { id: 'excel-upload' })
+            }
+
+            if (data.errors && data.errors.length > 0) {
+                console.warn('Excel parsing errors:', data.errors)
+            }
+        } catch (error: any) {
+            console.error('Excel upload error:', error)
+            toast.error(error.message || 'Gagal membaca file Excel', { id: 'excel-upload' })
+        } finally {
+            setUploadingExcel(false)
+            if (excelFileInputRef.current) {
+                excelFileInputRef.current.value = ''
+            }
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
@@ -52,6 +107,11 @@ export default function SendBroadcastPage() {
 
         if (formData.target === 'specific' && !formData.specificEmails) {
             toast.error('Masukkan email tujuan')
+            return
+        }
+
+        if (formData.target === 'excel' && formData.excelRecipients.length === 0) {
+            toast.error('Upload file Excel terlebih dahulu')
             return
         }
 
@@ -70,7 +130,8 @@ export default function SendBroadcastPage() {
                 body: JSON.stringify({
                     templateId: formData.templateId,
                     target: formData.target,
-                    specificEmails: specificEmailsList
+                    specificEmails: specificEmailsList,
+                    excelRecipients: formData.target === 'excel' ? formData.excelRecipients : undefined
                 })
             })
 
@@ -233,6 +294,91 @@ export default function SendBroadcastPage() {
                                         className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
                                         rows={3}
                                     />
+                                )}
+                            </div>
+                        </label>
+
+                        <label className={`
+              flex items-start p-3 sm:p-4 border rounded-lg cursor-pointer transition-colors
+              ${formData.target === 'excel' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
+            `}>
+                            <div className="flex items-center h-5 flex-shrink-0">
+                                <input
+                                    type="radio"
+                                    name="target"
+                                    value="excel"
+                                    checked={formData.target === 'excel'}
+                                    onChange={(e) => setFormData({ ...formData, target: e.target.value })}
+                                    className="w-4 h-4 text-blue-600"
+                                />
+                            </div>
+                            <div className="ml-3 w-full min-w-0">
+                                <div className="flex items-center mb-2">
+                                    <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mr-2 flex-shrink-0" />
+                                    <span className="font-medium text-gray-900 text-sm sm:text-base">Upload Excel</span>
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-500 mb-2">
+                                    Upload file Excel berisi nama dan email penerima (untuk pengguna baru)
+                                </p>
+                                {formData.target === 'excel' && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center space-x-2 flex-wrap">
+                                            <input
+                                                ref={excelFileInputRef}
+                                                type="file"
+                                                accept=".xlsx,.xls,.xlsm"
+                                                onChange={handleExcelUpload}
+                                                className="hidden"
+                                                id="excel-upload-input"
+                                                disabled={uploadingExcel}
+                                            />
+                                            <label
+                                                htmlFor="excel-upload-input"
+                                                className={`flex items-center px-3 py-2 text-sm border rounded-lg cursor-pointer transition-colors ${
+                                                    uploadingExcel
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                        : 'bg-white border-gray-300 hover:bg-gray-50 text-gray-700'
+                                                }`}
+                                            >
+                                                {uploadingExcel ? (
+                                                    <>
+                                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                                                        Membaca...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="w-4 h-4 mr-2" />
+                                                        Upload Excel
+                                                    </>
+                                                )}
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={handleDownloadTemplate}
+                                                className="flex items-center px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+                                            >
+                                                <Download className="w-4 h-4 mr-2" />
+                                                Download Template
+                                            </button>
+                                        </div>
+                                        {formData.excelRecipients.length > 0 && (
+                                            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-green-800">
+                                                        ✅ {formData.excelRecipients.length} penerima siap dikirim
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, excelRecipients: [], target: 'all' }))}
+                                                        className="text-green-600 hover:text-green-800"
+                                                        title="Hapus daftar"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         </label>

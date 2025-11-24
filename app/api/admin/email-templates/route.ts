@@ -38,7 +38,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, subject, content, type, header_image_url, cta_button_text, cta_button_url, cta_button_color } = body
+    const { 
+        name, subject, content, type, 
+        header_image_url, 
+        cta_button_text, cta_button_url, cta_button_color,
+        signature_enabled, signature_logo_url, signature_name, signature_title,
+        signature_email, signature_phone, signature_website, signature_address
+    } = body
 
     if (!name || !subject || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -68,6 +74,32 @@ export async function POST(req: NextRequest) {
       insertData.cta_button_color = cta_button_color || null
     }
 
+    // Add signature fields if provided
+    if (signature_enabled !== undefined) {
+      insertData.signature_enabled = signature_enabled || false
+    }
+    if (signature_logo_url !== undefined) {
+      insertData.signature_logo_url = signature_logo_url || null
+    }
+    if (signature_name !== undefined) {
+      insertData.signature_name = signature_name || null
+    }
+    if (signature_title !== undefined) {
+      insertData.signature_title = signature_title || null
+    }
+    if (signature_email !== undefined) {
+      insertData.signature_email = signature_email || null
+    }
+    if (signature_phone !== undefined) {
+      insertData.signature_phone = signature_phone || null
+    }
+    if (signature_website !== undefined) {
+      insertData.signature_website = signature_website || null
+    }
+    if (signature_address !== undefined) {
+      insertData.signature_address = signature_address || null
+    }
+
     const { data, error } = await supabase
       .from('email_templates')
       .insert([insertData])
@@ -76,8 +108,12 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error('Error creating template:', error)
-      // If error is about missing columns, try without optional fields
-      if (error.message?.includes('cta_button') || error.message?.includes('header_image') || error.code === '42703') {
+      // If error is about missing columns (signature, CTA, or header), try without optional fields
+      if (error.message?.includes('signature') || 
+          error.message?.includes('cta_button') || 
+          error.message?.includes('header_image') || 
+          error.code === '42703' || 
+          error.code === 'PGRST204') {
         console.log('Some columns not found, creating without optional fields...')
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('email_templates')
@@ -91,7 +127,13 @@ export async function POST(req: NextRequest) {
           .single()
         
         if (fallbackError) throw fallbackError
-        return NextResponse.json(fallbackData)
+        
+        // Return with warning message
+        return NextResponse.json({
+          ...fallbackData,
+          warning: 'Template created but signature/CTA/header fields were skipped. Please run the migration to enable these features.',
+          migration: 'supabase/migrations/20240106_add_signature_to_email_templates.sql'
+        })
       }
       throw error
     }

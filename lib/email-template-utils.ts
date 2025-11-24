@@ -43,8 +43,19 @@ export function replaceTemplateVariables(
     Object.keys(TEMPLATE_VARIABLES).forEach((key) => {
         const variableKey = key as TemplateVariableKey
         const regex = new RegExp(`{{\\s*${variableKey}\\s*}}`, 'g')
-        const value = userData[variableKey] || `{{${variableKey}}}`
-        result = result.replace(regex, value)
+        const value = userData[variableKey] || ''
+        
+        // Log replacement for debugging
+        if (variableKey === 'nama') {
+            console.log(`🔄 Replacing {{${variableKey}}} dengan: "${value}"`)
+        }
+        
+        // Only replace if value exists, otherwise leave the variable as-is
+        if (value) {
+            result = result.replace(regex, value)
+        } else {
+            console.warn(`⚠️ Variable {{${variableKey}}} tidak memiliki value, akan tetap sebagai {{${variableKey}}}`)
+        }
     })
 
     return result

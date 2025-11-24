@@ -28,7 +28,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
         const { id } = await params
         const body = await req.json()
-        const { name, subject, content, type, header_image_url, cta_button_text, cta_button_url, cta_button_color } = body
+        const { 
+            name, subject, content, type, 
+            header_image_url, 
+            cta_button_text, cta_button_url, cta_button_color,
+            signature_enabled, signature_logo_url, signature_name, signature_title,
+            signature_email, signature_phone, signature_website, signature_address
+        } = body
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
@@ -55,6 +61,32 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             updateData.cta_button_color = cta_button_color || null
         }
 
+        // Add signature fields if provided
+        if (signature_enabled !== undefined) {
+            updateData.signature_enabled = signature_enabled || false
+        }
+        if (signature_logo_url !== undefined) {
+            updateData.signature_logo_url = signature_logo_url || null
+        }
+        if (signature_name !== undefined) {
+            updateData.signature_name = signature_name || null
+        }
+        if (signature_title !== undefined) {
+            updateData.signature_title = signature_title || null
+        }
+        if (signature_email !== undefined) {
+            updateData.signature_email = signature_email || null
+        }
+        if (signature_phone !== undefined) {
+            updateData.signature_phone = signature_phone || null
+        }
+        if (signature_website !== undefined) {
+            updateData.signature_website = signature_website || null
+        }
+        if (signature_address !== undefined) {
+            updateData.signature_address = signature_address || null
+        }
+
         const { data, error } = await supabase
             .from('email_templates')
             .update(updateData)
@@ -64,8 +96,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         if (error) {
             console.error('Error updating template:', error)
-            // If error is about missing columns, try without CTA fields
-            if (error.message?.includes('cta_button') || error.message?.includes('header_image') || error.code === '42703') {
+            // If error is about missing columns (signature, CTA, or header), try without optional fields
+            if (error.message?.includes('signature') || 
+                error.message?.includes('cta_button') || 
+                error.message?.includes('header_image') || 
+                error.code === '42703' || 
+                error.code === 'PGRST204') {
                 console.log('Some columns not found, updating without optional fields...')
                 const { data: fallbackData, error: fallbackError } = await supabase
                     .from('email_templates')
@@ -81,7 +117,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                     .single()
                 
                 if (fallbackError) throw fallbackError
-                return NextResponse.json(fallbackData)
+                
+                // Return with warning message
+                return NextResponse.json({
+                    ...fallbackData,
+                    warning: 'Template saved but signature/CTA/header fields were skipped. Please run the migration to enable these features.',
+                    migration: 'supabase/migrations/20240106_add_signature_to_email_templates.sql'
+                })
             }
             throw error
         }
