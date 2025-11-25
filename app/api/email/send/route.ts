@@ -245,22 +245,33 @@ function getEmailLimits() {
   if (useAmazonSES) {
     // Amazon SES limits (can be increased by requesting production access)
     // Sandbox: 200 emails/day, 1 email/second
-    // Production: Can send up to 50,000 emails/day (or more with request)
+    // Production: No strict daily limit (can send millions with proper setup)
     const isProduction = process.env.AWS_SES_PRODUCTION === 'true'
-    return {
-      dailyLimit: isProduction 
-        ? parseInt(process.env.AWS_SES_DAILY_LIMIT || '50000')
-        : 200, // Sandbox limit
-      hourlyLimit: isProduction 
-        ? parseInt(process.env.AWS_SES_HOURLY_LIMIT || '2000')
-        : 200, // Sandbox limit
-      safeDailyLimit: isProduction
-        ? parseInt(process.env.AWS_SES_DAILY_LIMIT || '50000') * 0.95 // 95% of max
-        : 190, // Safe limit for sandbox
-      rateLimit: isProduction ? 14 : 1, // emails per second
-      batchSize: isProduction ? 50 : 10,
-      delayBetweenEmails: isProduction ? 100 : 1000, // ms
-      delayBetweenBatches: isProduction ? 5000 : 10000, // ms
+    
+    if (isProduction) {
+      // Production mode: No strict limits, only rate limiting
+      return {
+        dailyLimit: Infinity, // No daily limit for production
+        hourlyLimit: Infinity, // No hourly limit
+        safeDailyLimit: Infinity, // No daily limit restriction
+        rateLimit: parseInt(process.env.AWS_SES_RATE_LIMIT || '14'), // emails per second (default 14)
+        batchSize: parseInt(process.env.AWS_SES_BATCH_SIZE || '100'), // Larger batch for production
+        delayBetweenEmails: parseInt(process.env.AWS_SES_DELAY_EMAILS || '50'), // Minimal delay (50ms)
+        delayBetweenBatches: parseInt(process.env.AWS_SES_DELAY_BATCHES || '1000'), // Minimal delay (1s)
+        hasDailyLimit: false, // Flag to disable daily limit checks
+      }
+    } else {
+      // Sandbox mode: Strict limits
+      return {
+        dailyLimit: 200, // Sandbox limit
+        hourlyLimit: 200,
+        safeDailyLimit: 190, // Safe limit for sandbox
+        rateLimit: 1, // emails per second
+        batchSize: 10,
+        delayBetweenEmails: 1000, // ms
+        delayBetweenBatches: 10000, // ms
+        hasDailyLimit: true, // Flag to enable daily limit checks
+      }
     }
   } else {
     // Gmail limits
@@ -272,6 +283,7 @@ function getEmailLimits() {
       batchSize: 20,
       delayBetweenEmails: 2000, // ms
       delayBetweenBatches: 60000, // ms
+      hasDailyLimit: true, // Flag to enable daily limit checks
     }
   }
 }
@@ -285,25 +297,32 @@ async function processQueue() {
   try {
     resetDailyCounterIfNeeded()
     const limits = getEmailLimits()
+    const provider = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'Amazon SES' : 'Gmail'
+    const isSESProduction = (process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST) && process.env.AWS_SES_PRODUCTION === 'true'
     
-    // Check daily limit
-    if (dailyEmailCount >= limits.safeDailyLimit) {
+    // Check daily limit only if provider has daily limit restriction
+    if (limits.hasDailyLimit && dailyEmailCount >= limits.safeDailyLimit) {
       console.warn(`⚠️ Daily email limit reached (${dailyEmailCount}/${limits.safeDailyLimit}). Queue processing paused.`)
-      const provider = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'Amazon SES' : 'Gmail'
       console.warn(`💡 Current provider: ${provider}. Consider requesting production access for higher limits.`)
       isProcessingQueue = false
       return
     }
     
     while (emailQueue.length > 0) {
-      // Check daily limit again before each batch
-      resetDailyCounterIfNeeded()
-      if (dailyEmailCount >= limits.safeDailyLimit) {
-        console.warn(`⚠️ Daily limit reached. Remaining ${emailQueue.length} emails will be processed tomorrow.`)
-        break
+      // Check daily limit only if provider has daily limit restriction
+      if (limits.hasDailyLimit) {
+        resetDailyCounterIfNeeded()
+        if (dailyEmailCount >= limits.safeDailyLimit) {
+          console.warn(`⚠️ Daily limit reached. Remaining ${emailQueue.length} emails will be processed tomorrow.`)
+          break
+        }
       }
       
-      const batch = emailQueue.splice(0, Math.min(limits.batchSize, limits.safeDailyLimit - dailyEmailCount))
+      // For SES production, no daily limit restriction, send all available
+      const batchSize = limits.hasDailyLimit 
+        ? Math.min(limits.batchSize, limits.safeDailyLimit - dailyEmailCount)
+        : limits.batchSize
+      const batch = emailQueue.splice(0, batchSize)
       
       // Send emails sequentially dengan delay untuk menghindari rate limit
       for (const item of batch) {
@@ -319,17 +338,20 @@ async function processQueue() {
           }
         } catch (err) {
           console.error(`Failed to send email to ${item.to}:`, err)
-          // Re-queue jika masih ada slot dan belum melebihi limit
-          if (emailQueue.length < 1000 && dailyEmailCount < limits.safeDailyLimit) {
+          // Re-queue jika masih ada slot dan belum melebihi limit (only if has daily limit)
+          if (!limits.hasDailyLimit || (emailQueue.length < 1000 && dailyEmailCount < limits.safeDailyLimit)) {
             emailQueue.push(item)
           }
         }
       }
       
       // Delay antara batch
-      if (emailQueue.length > 0 && dailyEmailCount < limits.safeDailyLimit) {
-        const provider = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'Amazon SES' : 'Gmail'
-        console.log(`📧 [${provider}] Sent ${batch.length} emails. Queue remaining: ${emailQueue.length}. Daily count: ${dailyEmailCount}/${limits.safeDailyLimit}`)
+      const canContinue = !limits.hasDailyLimit || dailyEmailCount < limits.safeDailyLimit
+      if (emailQueue.length > 0 && canContinue) {
+        const countMessage = limits.hasDailyLimit 
+          ? `Daily count: ${dailyEmailCount}/${limits.safeDailyLimit}`
+          : `Daily count: ${dailyEmailCount} (unlimited)`
+        console.log(`📧 [${provider}] Sent ${batch.length} emails. Queue remaining: ${emailQueue.length}. ${countMessage}`)
         await new Promise(resolve => setTimeout(resolve, limits.delayBetweenBatches))
       }
     }

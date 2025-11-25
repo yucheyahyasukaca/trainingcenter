@@ -627,19 +627,22 @@ export async function POST(req: NextRequest) {
         
         let warning = null
         if (useAmazonSES) {
-            const sesDailyLimit = isProduction 
-                ? parseInt(process.env.AWS_SES_DAILY_LIMIT || '50000')
-                : 200
-            const sesSafeLimit = isProduction ? sesDailyLimit * 0.95 : 190
-            
-            if (emailCount > sesSafeLimit) {
-                warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Amazon SES (${sesSafeLimit}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim.`
-                if (!isProduction) {
-                    warning += ` Mode sandbox aktif - request production access untuk limit lebih tinggi.`
+            if (isProduction) {
+                // Production mode: No daily limit warning, only info for very large batches
+                if (emailCount > 10000) {
+                    warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Amazon SES production mode aktif - tidak ada daily limit. Email akan diproses dengan rate limit ${process.env.AWS_SES_RATE_LIMIT || '14'} email/detik.`
                 }
-                console.warn(warning)
-            } else if (emailCount > sesDailyLimit * 0.8) {
-                warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Pastikan daily limit Amazon SES belum tercapai (${sesDailyLimit}/hari).`
+            } else {
+                // Sandbox mode: Show warnings for limits
+                const sesDailyLimit = 200
+                const sesSafeLimit = 190
+                
+                if (emailCount > sesSafeLimit) {
+                    warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas sandbox Amazon SES (${sesSafeLimit}/hari). Mode sandbox aktif - request production access untuk limit lebih tinggi.`
+                    console.warn(warning)
+                } else if (emailCount > sesDailyLimit * 0.8) {
+                    warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Mode sandbox - limit 200 email/hari. Request production access untuk limit lebih tinggi.`
+                }
             }
         } else {
             // Gmail limits
