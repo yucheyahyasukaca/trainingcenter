@@ -13,13 +13,35 @@ interface EmailQueueItem {
 let emailQueue: EmailQueueItem[] = []
 let isProcessingQueue = false
 let transporter: nodemailer.Transporter | null = null
+let currentProvider: string | null = null // Track current provider
+
+// Reset transporter (useful when switching providers)
+function resetTransporter() {
+  if (transporter) {
+    transporter.close()
+    transporter = null
+  }
+  currentProvider = null
+}
 
 // Initialize Email Transporter (Amazon SES or Gmail SMTP)
 function getTransporter() {
-  if (transporter) return transporter
-
   // Check if using Amazon SES or Gmail SMTP
   const useAmazonSES = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST
+  const provider = useAmazonSES ? 'ses' : 'gmail'
+  
+  // Reset transporter if provider changed
+  if (transporter && currentProvider !== provider) {
+    console.log(`🔄 Provider changed from ${currentProvider} to ${provider}, resetting transporter...`)
+    resetTransporter()
+  }
+  
+  // Return cached transporter if exists and provider matches
+  if (transporter && currentProvider === provider) {
+    return transporter
+  }
+
+  console.log(`📧 Initializing email transporter for provider: ${provider.toUpperCase()}`)
 
   if (useAmazonSES) {
     // Amazon SES SMTP Configuration
@@ -45,7 +67,14 @@ function getTransporter() {
       throw new Error('Amazon SES SMTP credentials not configured. Please set AWS_SES_SMTP_USER and AWS_SES_SMTP_PASS environment variables.')
     }
 
+    console.log(`✅ Amazon SES Configuration:`)
+    console.log(`   Host: ${smtpConfig.host}`)
+    console.log(`   Port: ${smtpConfig.port}`)
+    console.log(`   User: ${smtpConfig.auth.user.substring(0, 10)}...`)
+    console.log(`   From: ${process.env.AWS_SES_FROM_EMAIL || 'not set'}`)
+
     transporter = nodemailer.createTransport(smtpConfig)
+    currentProvider = 'ses'
     return transporter
   } else {
     // Gmail SMTP Configuration (fallback)
@@ -64,7 +93,13 @@ function getTransporter() {
       throw new Error('SMTP credentials not configured. Please set GMAIL_SMTP_USER and GMAIL_SMTP_PASS (for Gmail) or AWS_SES_SMTP_USER and AWS_SES_SMTP_PASS (for Amazon SES) environment variables.')
     }
 
+    console.log(`✅ Gmail SMTP Configuration:`)
+    console.log(`   Host: ${smtpConfig.host}`)
+    console.log(`   Port: ${smtpConfig.port}`)
+    console.log(`   User: ${smtpConfig.auth.user}`)
+
     transporter = nodemailer.createTransport(smtpConfig)
+    currentProvider = 'gmail'
     return transporter
   }
 }
@@ -73,10 +108,14 @@ function getTransporter() {
 async function verifyTransporter() {
   try {
     const trans = getTransporter()
+    const provider = currentProvider || (process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'ses' : 'gmail')
+    console.log(`🔍 Verifying ${provider.toUpperCase()} SMTP connection...`)
     await trans.verify()
+    console.log(`✅ ${provider.toUpperCase()} SMTP connection verified successfully`)
     return true
   } catch (error) {
-    console.error('SMTP verification failed:', error)
+    const provider = currentProvider || (process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'ses' : 'gmail')
+    console.error(`❌ ${provider.toUpperCase()} SMTP verification failed:`, error)
     return false
   }
 }
@@ -85,13 +124,19 @@ async function verifyTransporter() {
 async function sendEmail(to: string, subject: string, html: string, recipientId?: string): Promise<{ success: boolean; messageId?: string }> {
   try {
     const trans = getTransporter()
+    const provider = currentProvider || (process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST ? 'ses' : 'gmail')
     
     // Determine sender email and name based on provider
-    const useAmazonSES = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST
+    const useAmazonSES = provider === 'ses'
     const senderEmail = useAmazonSES 
       ? (process.env.AWS_SES_FROM_EMAIL || process.env.AWS_SES_SMTP_USER || '')
       : (process.env.GMAIL_SMTP_USER || '')
     const senderName = process.env.EMAIL_SENDER_NAME || process.env.GMAIL_SENDER_NAME || 'GARUDA-21 Training Center'
+
+    console.log(`📧 Sending email via ${provider.toUpperCase()}:`)
+    console.log(`   From: ${senderName} <${senderEmail}>`)
+    console.log(`   To: ${to}`)
+    console.log(`   Subject: ${subject.substring(0, 50)}...`)
 
     const mailOptions = {
       from: {
@@ -104,7 +149,7 @@ async function sendEmail(to: string, subject: string, html: string, recipientId?
     }
 
     const info = await trans.sendMail(mailOptions)
-    console.log('Email sent successfully:', info.messageId)
+    console.log(`✅ Email sent successfully via ${provider.toUpperCase()}:`, info.messageId)
     
     // Update recipient status if recipientId is provided
     if (recipientId) {
@@ -357,11 +402,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get queue status
+// Get queue status and current provider
 export async function GET() {
+  const useAmazonSES = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST
+  const provider = useAmazonSES ? 'ses' : 'gmail'
+  
+  // Check if credentials are configured
+  const sesConfigured = !!(process.env.AWS_SES_SMTP_USER && process.env.AWS_SES_SMTP_PASS)
+  const gmailConfigured = !!(process.env.GMAIL_SMTP_USER && process.env.GMAIL_SMTP_PASS)
+  
   return NextResponse.json({
     queueLength: emailQueue.length,
     isProcessing: isProcessingQueue,
+    currentProvider: currentProvider || provider,
+    configuredProvider: provider,
+    emailProvider: process.env.EMAIL_PROVIDER || 'gmail',
+    sesConfigured,
+    gmailConfigured,
+    sesHost: process.env.AWS_SES_SMTP_HOST || (process.env.AWS_SES_REGION ? `email-smtp.${process.env.AWS_SES_REGION}.amazonaws.com` : 'not set'),
+    sesFromEmail: process.env.AWS_SES_FROM_EMAIL || 'not set',
+    gmailUser: process.env.GMAIL_SMTP_USER || 'not set',
   })
 }
 
