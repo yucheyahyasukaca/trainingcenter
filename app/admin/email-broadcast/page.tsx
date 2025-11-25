@@ -5,6 +5,17 @@ import Link from 'next/link'
 import { Mail, Plus, History, FileText, Send, Clock, Users, CheckCircle, X, Trash2, Eye } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
+interface EmailRecipient {
+    id: string
+    recipient_email: string
+    recipient_name: string
+    status: string
+    message_id?: string
+    error_message?: string
+    sent_at?: string
+    delivered_at?: string
+}
+
 interface EmailLog {
     id: string
     template_id: string
@@ -12,11 +23,20 @@ interface EmailLog {
     status: string
     sent_at: string
     details: any
+    status_summary?: {
+        pending: number
+        queued: number
+        sent: number
+        delivered: number
+        failed: number
+        bounced: number
+    }
     email_templates?: {
         name: string
         subject: string
         content?: string
     }
+    email_recipients?: EmailRecipient[]
 }
 
 export default function EmailBroadcastDashboard() {
@@ -317,7 +337,14 @@ export default function EmailBroadcastDashboard() {
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-lg">
                                     <p className="text-sm text-gray-500">Status</p>
-                                    <p className="text-lg font-medium text-green-600 capitalize">{selectedLog.status}</p>
+                                    <p className={`text-lg font-medium capitalize ${
+                                        selectedLog.status === 'sent' ? 'text-green-600' :
+                                        selectedLog.status === 'failed' ? 'text-red-600' :
+                                        selectedLog.status === 'queued' ? 'text-yellow-600' :
+                                        'text-gray-600'
+                                    }`}>
+                                        {selectedLog.status}
+                                    </p>
                                 </div>
                                 <div className="bg-gray-50 p-4 rounded-lg col-span-2">
                                     <p className="text-sm text-gray-500">Target</p>
@@ -328,6 +355,102 @@ export default function EmailBroadcastDashboard() {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Status Summary */}
+                            {selectedLog.status_summary && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Status Breakdown</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {selectedLog.status_summary.sent > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Terkirim</span>
+                                                <span className="text-sm font-semibold text-green-600">{selectedLog.status_summary.sent}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.status_summary.queued > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Dalam Antrian</span>
+                                                <span className="text-sm font-semibold text-yellow-600">{selectedLog.status_summary.queued}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.status_summary.pending > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Menunggu</span>
+                                                <span className="text-sm font-semibold text-gray-600">{selectedLog.status_summary.pending}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.status_summary.failed > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Gagal</span>
+                                                <span className="text-sm font-semibold text-red-600">{selectedLog.status_summary.failed}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.status_summary.delivered > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Terkirim ke Inbox</span>
+                                                <span className="text-sm font-semibold text-green-700">{selectedLog.status_summary.delivered}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.status_summary.bounced > 0 && (
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-600">Bounced</span>
+                                                <span className="text-sm font-semibold text-orange-600">{selectedLog.status_summary.bounced}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recipients List */}
+                            {selectedLog.email_recipients && selectedLog.email_recipients.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Detail Penerima</h4>
+                                    <div className="bg-gray-50 rounded-lg border border-gray-200 max-h-64 overflow-y-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-100 sticky top-0">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Email</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Status</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Waktu</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {selectedLog.email_recipients.map((recipient) => (
+                                                    <tr key={recipient.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-2">
+                                                            <div className="font-medium text-gray-900">{recipient.recipient_email}</div>
+                                                            {recipient.recipient_name && (
+                                                                <div className="text-xs text-gray-500">{recipient.recipient_name}</div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                                recipient.status === 'sent' ? 'bg-green-100 text-green-800' :
+                                                                recipient.status === 'delivered' ? 'bg-blue-100 text-blue-800' :
+                                                                recipient.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                                                recipient.status === 'queued' ? 'bg-yellow-100 text-yellow-800' :
+                                                                recipient.status === 'bounced' ? 'bg-orange-100 text-orange-800' :
+                                                                'bg-gray-100 text-gray-800'
+                                                            }`}>
+                                                                {recipient.status}
+                                                            </span>
+                                                            {recipient.error_message && (
+                                                                <div className="text-xs text-red-600 mt-1">{recipient.error_message}</div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-xs text-gray-500">
+                                                            {recipient.sent_at ? formatDate(recipient.sent_at) : '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        💡 Status "sent" berarti email dikirim ke SMTP server, belum tentu sampai ke inbox. Lihat <a href="/EMAIL_TRACKING_GUIDE.md" className="text-blue-600 underline" target="_blank">panduan tracking</a> untuk detail lebih lanjut.
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Email Preview */}
                             <div className="space-y-4">

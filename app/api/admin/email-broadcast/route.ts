@@ -286,8 +286,41 @@ export async function POST(req: NextRequest) {
         // Since the /api/email/send endpoint handles queuing, we can just fire and forget or await.
         // For a large broadcast, we might want to just push to the queue.
 
+        // 3. Log the broadcast FIRST (before tracking recipients)
+        const { data: logData, error: logError } = await supabase.from('email_logs').insert({
+            template_id: templateId,
+            recipient_count: 0, // Will be updated by trigger
+            status: 'queued',
+            sent_by: senderId, // Optional if we have it
+            details: { target, failCount: 0 }
+        }).select().single()
+
+        if (logError) {
+            console.error('Error logging broadcast:', logError)
+            return NextResponse.json({ error: 'Failed to create email log' }, { status: 500 })
+        }
+
+        // 4. Create email_recipients records for tracking
+        const recipientRecords = recipients.map((recipient: any) => ({
+            email_log_id: logData.id,
+            recipient_email: recipient.email,
+            recipient_name: recipient.full_name || '',
+            status: 'queued'
+        }))
+
+        const { error: recipientsError } = await supabase
+            .from('email_recipients')
+            .insert(recipientRecords)
+
+        if (recipientsError) {
+            console.error('Error creating recipient records:', recipientsError)
+        } else {
+            console.log(`✅ Created ${recipientRecords.length} recipient tracking records`)
+        }
+
         console.log(`📧 Starting to process ${recipients.length} recipients for email broadcast`)
         
+        // 5. Process emails with tracking
         const emailPromises = recipients.map(async (recipient: any) => {
             if (!recipient.email) {
                 console.warn('⚠️ Skipping recipient without email')
@@ -546,6 +579,14 @@ export async function POST(req: NextRequest) {
 </html>
                 `.trim()
 
+                // Find the recipient record ID for tracking
+                const { data: recipientRecord } = await supabase
+                    .from('email_recipients')
+                    .select('id')
+                    .eq('email_log_id', logData.id)
+                    .eq('recipient_email', recipient.email)
+                    .single()
+
                 await fetch(emailApiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -553,62 +594,64 @@ export async function POST(req: NextRequest) {
                         to: recipient.email,
                         subject: personalizedSubject,
                         html: emailWrapper,
-                        useQueue: true
+                        useQueue: true,
+                        recipientId: recipientRecord?.id // Pass recipient ID for tracking
                     })
                 })
                 successCount++
             } catch (err) {
                 console.error(`Failed to queue email for ${recipient.email}`, err)
                 failCount++
+                
+                // Update recipient status to failed
+                if (logData) {
+                    await supabase
+                        .from('email_recipients')
+                        .update({ 
+                            status: 'failed',
+                            error_message: err instanceof Error ? err.message : 'Unknown error'
+                        })
+                        .eq('email_log_id', logData.id)
+                        .eq('recipient_email', recipient.email)
+                }
             }
         })
 
-        // Wait for all requests to be initiated (not necessarily sent if queued)
+        // 6. Wait for all requests to be initiated
         await Promise.all(emailPromises)
 
-        // 4. Log the broadcast
-        const { data: logData, error: logError } = await supabase.from('email_logs').insert({
-            template_id: templateId,
-            recipient_count: successCount,
-            status: 'queued',
-            sent_by: senderId, // Optional if we have it
-            details: { target, failCount }
-        }).select().single()
-
-        if (logError) {
-            console.error('Error logging broadcast:', logError)
-        }
-
-        // 5. Update status to "sent" after a delay (assuming emails are processed)
-        // In production, you might want to use a webhook or polling mechanism
-        if (logData && successCount > 0) {
-            // Wait a bit for queue to process (adjust based on queue size)
-            const delay = Math.min(successCount * 100, 10000) // Max 10 seconds
-            
-            setTimeout(async () => {
-                try {
-                    await supabase
-                        .from('email_logs')
-                        .update({ status: 'sent' })
-                        .eq('id', logData.id)
-                    console.log('✅ Updated email log status to "sent":', logData.id)
-                } catch (err) {
-                    console.error('Error updating email log status:', err)
-                }
-            }, delay)
-        }
-
-        // Check if email count exceeds Gmail daily limit
+        // Check if email count exceeds daily limit
         const emailCount = recipients.length
-        const GMAIL_DAILY_LIMIT = 500
-        const SAFE_DAILY_LIMIT = 450
+        const useAmazonSES = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST
+        const isProduction = process.env.AWS_SES_PRODUCTION === 'true'
         
         let warning = null
-        if (emailCount > SAFE_DAILY_LIMIT) {
-            warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Gmail (${SAFE_DAILY_LIMIT}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim. Disarankan menggunakan Google Workspace atau email service provider untuk volume besar.`
-            console.warn(warning)
-        } else if (emailCount > 300) {
-            warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Pastikan daily limit Gmail belum tercapai (${SAFE_DAILY_LIMIT}/hari).`
+        if (useAmazonSES) {
+            const sesDailyLimit = isProduction 
+                ? parseInt(process.env.AWS_SES_DAILY_LIMIT || '50000')
+                : 200
+            const sesSafeLimit = isProduction ? sesDailyLimit * 0.95 : 190
+            
+            if (emailCount > sesSafeLimit) {
+                warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Amazon SES (${sesSafeLimit}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim.`
+                if (!isProduction) {
+                    warning += ` Mode sandbox aktif - request production access untuk limit lebih tinggi.`
+                }
+                console.warn(warning)
+            } else if (emailCount > sesDailyLimit * 0.8) {
+                warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Pastikan daily limit Amazon SES belum tercapai (${sesDailyLimit}/hari).`
+            }
+        } else {
+            // Gmail limits
+            const GMAIL_DAILY_LIMIT = 500
+            const SAFE_DAILY_LIMIT = 450
+            
+            if (emailCount > SAFE_DAILY_LIMIT) {
+                warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Gmail (${SAFE_DAILY_LIMIT}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim. Disarankan menggunakan Amazon SES atau email service provider untuk volume besar.`
+                console.warn(warning)
+            } else if (emailCount > 300) {
+                warning = `ℹ️ Info: Anda akan mengirim ${emailCount} email. Pastikan daily limit Gmail belum tercapai (${SAFE_DAILY_LIMIT}/hari).`
+            }
         }
 
         return NextResponse.json({
