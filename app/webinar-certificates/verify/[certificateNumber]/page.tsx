@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
 import Image from 'next/image'
+import { cleanEmailHTML } from '@/lib/html-utils'
 
 interface Signatory {
   id: string
@@ -72,44 +73,72 @@ export default function WebinarCertificateVerificationPage() {
   }, [certificateNumber])
 
   const fetchCertificate = async () => {
+    if (!certificateNumber) {
+      setError('Certificate number is required')
+      setLoading(false)
+      return
+    }
+
     try {
       setLoading(true)
-      const response = await fetch(`/api/webinar-certificates/verify/${certificateNumber}`)
+      // Encode certificate number untuk URL
+      const encodedCertNumber = encodeURIComponent(certificateNumber)
+      const url = `/api/webinar-certificates/verify/${encodedCertNumber}`
+      
+      console.log('Fetching certificate from:', url)
+      
+      const response = await fetch(url)
       const result = await response.json()
 
       if (response.ok) {
         setCertificate(result.data)
       } else {
+        console.error('Certificate fetch error:', response.status, result)
         setError(result.error || 'Certificate not found')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching certificate:', error)
-      setError('Failed to load certificate')
+      setError(error?.message || 'Failed to load certificate')
     } finally {
       setLoading(false)
     }
   }
 
   const handleDownloadPDF = async () => {
+    if (!certificate?.certificate_number) {
+      toast.error('Error', 'Nomor sertifikat tidak ditemukan')
+      return
+    }
+
     try {
-      const response = await fetch(`/api/webinar-certificates/${certificateNumber}/pdf`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `sertifikat-webinar-${certificate.certificate_number}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        toast.success('Berhasil', 'Sertifikat berhasil diunduh')
-      } else {
-        toast.error('Error', 'Gagal mengunduh sertifikat')
+      // Encode certificate number untuk URL
+      const encodedCertNumber = encodeURIComponent(certificate.certificate_number)
+      const url = `/api/webinar-certificates/${encodedCertNumber}/pdf`
+      
+      console.log('Downloading PDF from:', url)
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('PDF download error:', response.status, errorData)
+        toast.error('Error', errorData.error || `Gagal mengunduh sertifikat (${response.status})`)
+        return
       }
-    } catch (error) {
+
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `sertifikat-webinar-${certificate.certificate_number}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(blobUrl)
+      document.body.removeChild(a)
+      toast.success('Berhasil', 'Sertifikat berhasil diunduh')
+    } catch (error: any) {
       console.error('Error downloading certificate:', error)
-      toast.error('Error', 'Terjadi kesalahan saat mengunduh sertifikat')
+      toast.error('Error', error?.message || 'Terjadi kesalahan saat mengunduh sertifikat')
     }
   }
 
@@ -190,10 +219,10 @@ export default function WebinarCertificateVerificationPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-semibold text-green-700">Sertifikat Terverifikasi</span>
+        <div className="text-center mb-8 pt-8">
+          <div className="inline-flex items-center space-x-2 px-5 py-3 bg-green-100 rounded-full mb-6 shadow-sm">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <span className="text-base font-semibold text-green-700">Sertifikat Terverifikasi</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2">
             Verifikasi Sertifikat Webinar
@@ -295,7 +324,16 @@ export default function WebinarCertificateVerificationPage() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <p className="text-gray-700">{certificate.webinars.description}</p>
+                  {certificate.webinars.description && (
+                    <div 
+                      className="text-gray-700 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: cleanEmailHTML(certificate.webinars.description) }}
+                      style={{
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    />
+                  )}
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Calendar className="w-4 h-4" />
                     <span>

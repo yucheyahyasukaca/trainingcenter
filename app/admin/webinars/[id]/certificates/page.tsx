@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { Loader2 } from 'lucide-react'
 
 // Prevent unhandled errors from causing redirects
 if (typeof window !== 'undefined') {
@@ -36,6 +37,53 @@ export default function WebinarCertificatesAdminPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
   const [certs, setCerts] = useState<Array<{ user_id: string | null; participant_id: string | null; certificate_number: string }>>([])
   const hasIssuedRef = useRef(false)
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [progress, setProgress] = useState(0)
+  const [progressMessage, setProgressMessage] = useState('')
+
+  const clearProgressTimer = () => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current)
+      progressTimerRef.current = null
+    }
+  }
+
+  const resetProgress = () => {
+    setProgress(0)
+    setProgressMessage('')
+  }
+
+  const startProgress = (message: string) => {
+    clearProgressTimer()
+    setProgress(5)
+    setProgressMessage(message)
+    progressTimerRef.current = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev
+        const increment = Math.random() * 6 + 2
+        return Math.min(prev + increment, 90)
+      })
+    }, 600)
+  }
+
+  const advanceProgress = (value: number, message?: string) => {
+    setProgress((prev) => Math.max(prev, value))
+    if (message) setProgressMessage(message)
+  }
+
+  const finalizeProgress = (message: string, isSuccess = true) => {
+    clearProgressTimer()
+    setProgress(100)
+    setProgressMessage(message)
+    setTimeout(() => {
+      resetProgress()
+    }, isSuccess ? 1200 : 2000)
+  }
+
+  const abortProgress = () => {
+    clearProgressTimer()
+    resetProgress()
+  }
 
   useEffect(() => {
     async function load() {
@@ -88,6 +136,12 @@ export default function WebinarCertificatesAdminPage() {
     load()
   }, [params.id])
 
+  useEffect(() => {
+    return () => {
+      clearProgressTimer()
+    }
+  }, [])
+
   async function refreshCertificates(webinarId?: string) {
     const id = webinarId || webinar?.id
     if (!id) return
@@ -115,10 +169,9 @@ export default function WebinarCertificatesAdminPage() {
       hasIssuedRef.current = false
       const hasEnded = new Date(webinar.end_time) <= new Date()
       if (hasEnded && selectedTemplate) {
-        setResult('Template tersimpan. Menyiapkan sertifikat otomatis...')
-        await handleIssue()
+        setResult('Template tersimpan. Klik "Sinkronkan Sertifikat" untuk membuat nomor sertifikat peserta.')
       } else {
-        setResult('Template tersimpan. Sertifikat akan aktif otomatis setelah webinar selesai.')
+        setResult('Template tersimpan. Setelah webinar selesai, klik "Sinkronkan Sertifikat" untuk membuat nomor sertifikat peserta.')
       }
       await refreshCertificates(webinar.id)
     } catch (e: any) {
@@ -164,9 +217,11 @@ export default function WebinarCertificatesAdminPage() {
     try {
       setIssuing(true)
       setResult('') // Clear previous result
+      startProgress('Menyiapkan sinkronisasi peserta...')
       
       // Validate template is selected
       if (!selectedTemplate) {
+        abortProgress()
         setResult('Error: Pilih template sertifikat terlebih dahulu!')
         setIssuing(false)
         return
@@ -174,6 +229,7 @@ export default function WebinarCertificatesAdminPage() {
       
       // Validate webinar data
       if (!webinar) {
+        abortProgress()
         setResult('Error: Data webinar tidak ditemukan. Silakan refresh halaman.')
         setIssuing(false)
         return
@@ -183,6 +239,7 @@ export default function WebinarCertificatesAdminPage() {
       const now = new Date()
       const endTime = new Date(webinar.end_time)
       if (endTime > now) {
+        abortProgress()
         setResult(`Error: Webinar belum selesai. Webinar akan berakhir pada ${endTime.toLocaleString('id-ID')}`)
         setIssuing(false)
         return
@@ -196,6 +253,7 @@ export default function WebinarCertificatesAdminPage() {
         .maybeSingle()
       
       if (wError || !w) {
+        abortProgress()
         setResult(`Error: ${wError?.message || 'Webinar tidak ditemukan'}`)
         setIssuing(false)
         return
@@ -203,10 +261,12 @@ export default function WebinarCertificatesAdminPage() {
       
       const slug = (w as any)?.slug
       if (!slug) {
+        abortProgress()
         setResult('Error: Slug webinar tidak ditemukan')
         setIssuing(false)
         return
       }
+      advanceProgress(20, 'Memvalidasi data webinar dan template...')
 
       // Ensure template has been saved before issuing (auto-save if needed)
       if (!w.certificate_template_id || w.certificate_template_id !== selectedTemplate) {
@@ -226,6 +286,7 @@ export default function WebinarCertificatesAdminPage() {
         } catch (autoSaveError: any) {
           console.error('Failed to auto-save template before issuing:', autoSaveError)
           const detail = autoSaveError?.message ? ` ${autoSaveError.message}` : ''
+          abortProgress()
           setResult(`Error: Gagal menyimpan template sebelum menerbitkan.${detail}`)
           setIssuing(false)
           return
@@ -234,6 +295,7 @@ export default function WebinarCertificatesAdminPage() {
 
       // Double check template
       if (!w.certificate_template_id) {
+        abortProgress()
         setResult('Error: Template sertifikat belum diatur. Simpan template terlebih dahulu.')
         setIssuing(false)
         return
@@ -247,6 +309,7 @@ export default function WebinarCertificatesAdminPage() {
       try {
         const apiUrl = `/api/webinars/${slug}/issue-certificates`
         console.log('API URL:', apiUrl)
+        advanceProgress(40, 'Menghubungkan ke server sertifikat...')
         
         res = await fetch(apiUrl, { 
           method: 'POST',
@@ -283,6 +346,7 @@ export default function WebinarCertificatesAdminPage() {
       } catch (fetchError: any) {
         // Network error or fetch failed
         console.error('Fetch error:', fetchError)
+        finalizeProgress('Sinkronisasi gagal: tidak dapat terhubung ke server.', false)
         setResult(`Error: Gagal menghubungi server. ${fetchError?.message || 'Silakan coba lagi.'}`)
         setIssuing(false)
         return
@@ -290,6 +354,7 @@ export default function WebinarCertificatesAdminPage() {
       
       if (res.ok) {
         hasIssuedRef.current = true
+        advanceProgress(80, 'Menyelesaikan sinkronisasi...')
         const issuedCount = json.issued || 0
         const failedCount = json.failed || 0
         
@@ -315,6 +380,7 @@ export default function WebinarCertificatesAdminPage() {
         }
         
         setResult(resultMsg)
+        finalizeProgress('Sinkronisasi selesai!', true)
         
         // Reload certificates list
         if (webinar) {
@@ -326,6 +392,7 @@ export default function WebinarCertificatesAdminPage() {
         }
       } else {
         hasIssuedRef.current = false
+        finalizeProgress('Sinkronisasi gagal. Cek detail error di bawah.', false)
         // Show error message but stay on the same page
         let errorMsg = json?.error || `Gagal menerbitkan sertifikat (${res.status})`
         
@@ -368,6 +435,7 @@ export default function WebinarCertificatesAdminPage() {
       // Catch any unexpected errors and display them
       const errorMsg = error?.message || 'Terjadi kesalahan saat menerbitkan sertifikat'
       setResult(`Error: ${errorMsg}`)
+      finalizeProgress('Sinkronisasi gagal. Cek detail error di bawah.', false)
       console.error('Unexpected error in handleIssue:', error)
       
       // Prevent any navigation
@@ -386,18 +454,24 @@ export default function WebinarCertificatesAdminPage() {
       if (typeof window !== 'undefined') {
         window.history.pushState(null, '', window.location.href)
       }
+      if (progressTimerRef.current) {
+        clearProgressTimer()
+        resetProgress()
+      }
     }
   }
 
-  useEffect(() => {
-    if (!webinar || !webinar.certificate_template_id || issuing) return
-    const hasEnded = new Date(webinar.end_time) <= new Date()
-    if (hasEnded && !hasIssuedRef.current) {
-      handleIssue().catch(() => {
-        hasIssuedRef.current = false
-      })
-    }
-  }, [webinar, issuing])
+  // Auto-sync disabled to prevent server overload
+  // Users must manually click "Sinkronkan Sertifikat" button
+  // useEffect(() => {
+  //   if (!webinar || !webinar.certificate_template_id || issuing) return
+  //   const hasEnded = new Date(webinar.end_time) <= new Date()
+  //   if (hasEnded && !hasIssuedRef.current) {
+  //     handleIssue().catch(() => {
+  //       hasIssuedRef.current = false
+  //     })
+  //   }
+  // }, [webinar, issuing])
 
   return (
     <div className="p-6 space-y-6">
@@ -423,9 +497,11 @@ export default function WebinarCertificatesAdminPage() {
 
       <div className="bg-white border rounded-xl p-4">
         <h2 className="font-semibold mb-2">Status Sertifikat</h2>
-        <div className="p-4 rounded-lg border border-green-200 bg-green-50 text-sm text-green-800">
-          Sertifikat webinar kini dibuat saat peserta mengunduhnya melalui halaman publik.
-          Setelah template disimpan dan webinar selesai, daftar peserta otomatis mendapatkan nomor sertifikat.
+        <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 text-sm text-blue-800">
+          <strong>Sertifikat dibuat otomatis saat peserta mengakses:</strong> Saat peserta mencari nama mereka di halaman publik dan klik "Lihat Sertifikat", sistem akan otomatis membuat nomor sertifikat dan generate PDF on-the-fly (tanpa menyimpan file di server).
+        </div>
+        <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-800 mt-3">
+          <strong>Sinkronisasi Manual (Opsional):</strong> Tombol "Sinkronkan Sertifikat" hanya diperlukan jika Anda ingin batch generate semua sertifikat sekaligus untuk keperluan laporan atau tracking. Jika tidak, biarkan peserta generate sendiri saat mereka akses.
         </div>
         <p className="text-xs text-gray-500 mt-3">
           Gunakan daftar di bawah untuk memantau peserta yang sudah memiliki nomor sertifikat. Anda dapat mengunduh versi terbaru kapan saja.
@@ -435,8 +511,9 @@ export default function WebinarCertificatesAdminPage() {
             onClick={() => handleIssue()}
             disabled={issuing || !selectedTemplate}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            title="Batch generate semua sertifikat sekaligus (opsional)"
           >
-            {issuing ? 'Sinkronisasi...' : 'Sinkronkan Sertifikat'}
+            {issuing ? 'Sinkronisasi...' : 'Sinkronkan Sertifikat (Opsional)'}
           </button>
           <button
             onClick={() => refreshCertificates()}
@@ -452,6 +529,20 @@ export default function WebinarCertificatesAdminPage() {
             Buka Halaman Publik
           </a>
         </div>
+        {(issuing || progress > 0) && (
+          <div className="mt-4">
+            <div className="flex items-center text-sm font-medium text-gray-600 mb-2">
+              <Loader2 className={`w-4 h-4 mr-2 ${issuing ? 'animate-spin' : ''}`} />
+              <span>{progressMessage || 'Menjalankan sinkronisasi...'}</span>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'} transition-all duration-300`}
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
         {result && (
           <div className={`mt-3 text-sm p-3 rounded-lg ${
             result.startsWith('Error:') 

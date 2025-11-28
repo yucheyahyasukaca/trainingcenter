@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
-// POST /api/webinar-certificates/search - Search webinar certificates by webinar and participant name
+// POST /api/webinar-certificates/search - Search webinar participants (with or without certificates)
 export async function POST(request: NextRequest) {
   try {
     const supabaseAdmin = getSupabaseAdmin()
@@ -16,85 +16,139 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Participant name is required' }, { status: 400 })
     }
 
-    // Search for webinar certificates
-    const { data: certificates, error } = await supabaseAdmin
-      .from('webinar_certificates')
+    const searchName = participant_name.trim().toLowerCase()
+
+    // 1. Search registered participants (from webinar_registrations)
+    const { data: registrations, error: regError } = await supabaseAdmin
+      .from('webinar_registrations')
       .select(`
-        id,
-        certificate_number,
-        issued_at,
-        webinar_id,
         user_id,
-        participant_id,
+        registered_at,
         webinars:webinar_id (
           id,
           title,
           slug,
           start_time,
           end_time
-        ),
-        webinar_participants:participant_id (
-          id,
-          full_name,
-          unit_kerja,
-          email
         )
       `)
       .eq('webinar_id', webinar_id)
 
-    if (error) {
-      console.error('Error searching certificates:', error)
-      return NextResponse.json({ error: 'Failed to search certificates' }, { status: 500 })
+    if (regError) {
+      console.error('Error searching registrations:', regError)
     }
 
-    // Map user profiles for certificates that have user_id
-    const userIds = Array.from(new Set((certificates || [])
-      .map((cert: any) => cert.user_id)
-      .filter(Boolean)))
-
-    const userProfilesMap = new Map<string, any>()
-    if (userIds.length > 0) {
-      const { data: userProfiles, error: profileError } = await supabaseAdmin
+    // Get user profiles for registered participants
+    const registeredUserIds = (registrations || []).map((r: any) => r.user_id).filter(Boolean)
+    const registeredProfilesMap = new Map<string, any>()
+    if (registeredUserIds.length > 0) {
+      const { data: userProfiles } = await supabaseAdmin
         .from('user_profiles')
         .select('id, full_name, email')
-        .in('id', userIds)
+        .in('id', registeredUserIds)
 
-      if (profileError) {
-        console.error('Error fetching user profiles:', profileError)
-      } else {
-        for (const profile of userProfiles || []) {
-          userProfilesMap.set(profile.id, profile)
+      if (userProfiles) {
+        for (const profile of userProfiles) {
+          registeredProfilesMap.set(profile.id, profile)
         }
       }
     }
 
-    // Filter results to ensure name matches (case-insensitive)
-    const searchName = participant_name.trim().toLowerCase()
-    const filteredCertificates = (certificates || []).filter((cert: any) => {
-      const profile = cert.user_id ? userProfilesMap.get(cert.user_id) : null
-      const userName = profile?.full_name || ''
-      const participantName = cert.webinar_participants?.full_name || ''
-      const fullName = userName || participantName
-      return fullName.toLowerCase().includes(searchName)
-    })
+    // 2. Search uploaded participants (from webinar_participants)
+    const { data: uploadedParticipants, error: partError } = await supabaseAdmin
+      .from('webinar_participants')
+      .select(`
+        id,
+        full_name,
+        unit_kerja,
+        email,
+        created_at
+      `)
+      .eq('webinar_id', webinar_id)
 
-    // Map results to include participant data
-    const mappedCertificates = filteredCertificates.map((cert: any) => ({
-      ...cert,
-      user_profiles: cert.user_id
-        ? userProfilesMap.get(cert.user_id) || null
-        : cert.webinar_participants
-          ? {
-              id: cert.webinar_participants.id,
-              full_name: cert.webinar_participants.full_name,
-              email: cert.webinar_participants.email
-            }
-          : null
-    }))
+    if (partError) {
+      console.error('Error searching participants:', partError)
+    }
+
+    // 3. Get existing certificates to check which participants already have certificates
+    const { data: existingCertificates } = await supabaseAdmin
+      .from('webinar_certificates')
+      .select('user_id, participant_id, certificate_number, issued_at')
+      .eq('webinar_id', webinar_id)
+
+    const certificatesByUserId = new Map<string, any>()
+    const certificatesByParticipantId = new Map<string, any>()
+    if (existingCertificates) {
+      for (const cert of existingCertificates) {
+        if (cert.user_id) {
+          certificatesByUserId.set(cert.user_id, cert)
+        }
+        if (cert.participant_id) {
+          certificatesByParticipantId.set(cert.participant_id, cert)
+        }
+      }
+    }
+
+    // 4. Combine and filter results
+    const results: any[] = []
+
+    // Add registered participants
+    for (const reg of registrations || []) {
+      const profile = registeredProfilesMap.get(reg.user_id)
+      if (profile && profile.full_name?.toLowerCase().includes(searchName)) {
+        const existingCert = certificatesByUserId.get(reg.user_id)
+        results.push({
+          id: existingCert?.id || `user-${reg.user_id}`,
+          certificate_number: existingCert?.certificate_number || null,
+          issued_at: existingCert?.issued_at || null,
+          webinar_id: webinar_id,
+          user_id: reg.user_id,
+          participant_id: null,
+          webinars: reg.webinars,
+          user_profiles: profile,
+          webinar_participants: null,
+          has_certificate: !!existingCert
+        })
+      }
+    }
+
+    // Add uploaded participants
+    for (const participant of uploadedParticipants || []) {
+      if (participant.full_name?.toLowerCase().includes(searchName)) {
+        const existingCert = certificatesByParticipantId.get(participant.id)
+        results.push({
+          id: existingCert?.id || `participant-${participant.id}`,
+          certificate_number: existingCert?.certificate_number || null,
+          issued_at: existingCert?.issued_at || null,
+          webinar_id: webinar_id,
+          user_id: null,
+          participant_id: participant.id,
+          webinars: registrations?.[0]?.webinars || null, // Get webinar info from first registration
+          user_profiles: null,
+          webinar_participants: participant,
+          has_certificate: !!existingCert
+        })
+      }
+    }
+
+    // Get webinar info if not already included
+    if (results.length > 0 && !results[0].webinars) {
+      const { data: webinarData } = await supabaseAdmin
+        .from('webinars')
+        .select('id, title, slug, start_time, end_time')
+        .eq('id', webinar_id)
+        .single()
+
+      if (webinarData) {
+        results.forEach(r => {
+          r.webinars = webinarData
+        })
+      }
+    }
 
     return NextResponse.json({
-      data: mappedCertificates,
-      count: mappedCertificates.length
+      data: results,
+      count: results.length
     })
   } catch (error: any) {
     console.error('Error in POST /api/webinar-certificates/search:', error)

@@ -157,6 +157,58 @@ async function downloadSignatureImage(signatureUrl: string): Promise<Uint8Array>
 }
 
 /**
+ * Wrap text to fit within a maximum width
+ */
+function wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+  if (!text || text.trim().length === 0) {
+    return ['']
+  }
+
+  // Add small margin to prevent edge cases (95% of maxWidth)
+  const safeMaxWidth = maxWidth * 0.95
+
+  const words = text.split(/\s+/).filter(w => w.length > 0)
+  if (words.length === 0) {
+    return [text]
+  }
+
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize)
+
+    if (testWidth > safeMaxWidth && currentLine) {
+      // Current line is full, start new line
+      lines.push(currentLine)
+      currentLine = word
+      
+      // If single word is too long, truncate it
+      const wordWidth = font.widthOfTextAtSize(word, fontSize)
+      if (wordWidth > safeMaxWidth) {
+        let truncatedWord = word
+        while (font.widthOfTextAtSize(truncatedWord, fontSize) > safeMaxWidth && truncatedWord.length > 0) {
+          truncatedWord = truncatedWord.slice(0, -1)
+        }
+        if (truncatedWord.length < word.length && truncatedWord.length > 3) {
+          truncatedWord = truncatedWord.slice(0, -3) + '...'
+        }
+        currentLine = truncatedWord
+      }
+    } else {
+      currentLine = testLine
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines.length > 0 ? lines : [text]
+}
+
+/**
  * Generate certificate PDF with filled data
  */
 async function renderCertificatePdfBytes(
@@ -214,24 +266,70 @@ async function renderCertificatePdfBytes(
           const additionalOffset = fontSize * 0.3
           const pdfY = height - position.y - fontAscent - additionalOffset
           
-          let finalX = position.x
           const align = fieldConfig.align || 'left'
-          const fieldWidth = fieldConfig.width || 200
+          // Use field width from config, or calculate reasonable default based on page width
+          const fieldWidth = fieldConfig.width || Math.min(400, width - position.x - 20)
+          const lineHeight = fontSize * 1.2 // Line height with spacing
+          const maxLines = fieldConfig.maxLines || 3 // Maximum number of lines
           
-          if (align === 'center' || align === 'centre') {
-            const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
-            finalX = position.x + (fieldWidth / 2) - (textWidth / 2)
-          } else if (align === 'right') {
-            const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
-            finalX = position.x + fieldWidth - textWidth
-          }
+          // Ensure fieldWidth doesn't exceed page boundaries
+          const maxAllowedWidth = width - position.x - 10 // Leave 10px margin
+          const safeFieldWidth = Math.min(fieldWidth, maxAllowedWidth)
           
-          firstPage.drawText(textValue, {
-            x: finalX,
-            y: pdfY,
-            size: fontSize,
-            font: fontToUse,
-            color: rgb(r, g, b)
+          // Wrap text to fit within field width
+          const wrappedLines = wrapText(textValue, fontToUse, fontSize, safeFieldWidth)
+          const linesToRender = wrappedLines.slice(0, maxLines) // Limit to maxLines
+          
+          // Render each line
+          linesToRender.forEach((line, lineIndex) => {
+            const lineY = pdfY - (lineIndex * lineHeight)
+            const maxX = position.x + safeFieldWidth
+            const minX = position.x
+            
+            // First, ensure the line itself fits within fieldWidth
+            let textToRender = line
+            let textWidth = fontToUse.widthOfTextAtSize(line, fontSize)
+            
+            // If text exceeds field width, truncate it
+            if (textWidth > fieldWidth) {
+              let truncatedLine = line
+              while (fontToUse.widthOfTextAtSize(truncatedLine, fontSize) > fieldWidth && truncatedLine.length > 0) {
+                truncatedLine = truncatedLine.slice(0, -1)
+              }
+              if (truncatedLine.length < line.length && truncatedLine.length > 3) {
+                truncatedLine = truncatedLine.slice(0, -3) + '...'
+              }
+              textToRender = truncatedLine
+              textWidth = fontToUse.widthOfTextAtSize(textToRender, fontSize)
+            }
+            
+            // Calculate X position based on alignment
+            let finalX = minX
+            if (align === 'center' || align === 'centre') {
+              finalX = minX + (safeFieldWidth / 2) - (textWidth / 2)
+            } else if (align === 'right') {
+              finalX = minX + safeFieldWidth - textWidth
+            }
+            
+            // Ensure X position is within boundaries
+            finalX = Math.max(minX, Math.min(finalX, maxX - textWidth))
+            
+            // Final safety check: ensure text doesn't exceed boundaries
+            if (finalX + textWidth > maxX) {
+              // If still exceeds, adjust to fit
+              finalX = maxX - textWidth
+            }
+            if (finalX < minX) {
+              finalX = minX
+            }
+            
+            firstPage.drawText(textToRender, {
+              x: finalX,
+              y: lineY,
+              size: fontSize,
+              font: fontToUse,
+              color: rgb(r, g, b)
+            })
           })
         }
       }

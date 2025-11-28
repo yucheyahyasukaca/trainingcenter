@@ -6,6 +6,7 @@ import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
 import { Plus, Edit, Trash2, Video, X, Calendar, Users, Award } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 interface WebinarForm {
   title: string
@@ -18,6 +19,7 @@ interface WebinarForm {
   recording_url?: string
   meeting_url?: string
   platform?: string
+  location?: string
 }
 
 export default function AdminWebinarsPage() {
@@ -29,7 +31,7 @@ export default function AdminWebinarsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<WebinarForm>({
-    title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams'
+    title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams', location: ''
   })
   const [speakers, setSpeakers] = useState<Array<{ name: string; title: string; avatar?: File | null; avatar_url?: string }>>([
     { name: '', title: '', avatar: null, avatar_url: undefined }
@@ -98,6 +100,7 @@ export default function AdminWebinarsPage() {
           hero_image_url: heroUrl,
           meeting_url: form.meeting_url || null,
           platform: form.platform || 'microsoft-teams',
+          location: form.location || null,
           created_by: profile?.id || null
         }).select('id').single()
         if (insErr) throw insErr
@@ -112,7 +115,8 @@ export default function AdminWebinarsPage() {
           is_published: form.is_published,
           hero_image_url: heroUrl ?? undefined,
           meeting_url: form.meeting_url || null,
-          platform: form.platform || 'microsoft-teams'
+          platform: form.platform || 'microsoft-teams',
+          location: form.location || null
         }).eq('id', editingId)
         if (updErr) throw updErr
       }
@@ -163,7 +167,7 @@ export default function AdminWebinarsPage() {
       }
       const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
       setItems(data || [])
-      setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+      setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams', location: '' })
       setSpeakers([{ name: '', title: '', avatar: null }])
       setEditingId(null)
       setShowForm(false)
@@ -192,7 +196,8 @@ export default function AdminWebinarsPage() {
       is_published: !!data.is_published,
       recording_url: '',
       meeting_url: data.meeting_url || '',
-      platform: data.platform || 'microsoft-teams'
+      platform: data.platform || 'microsoft-teams',
+      location: data.location || ''
     })
     // Load existing recording
     const { data: recs } = await supabase.from('webinar_recordings').select('recording_url').eq('webinar_id', id).order('created_at', { ascending: false }).limit(1)
@@ -211,7 +216,7 @@ export default function AdminWebinarsPage() {
   function handleCancelEdit() {
     setEditingId(null)
     setShowForm(false)
-    setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+    setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams', location: '' })
     setSpeakers([{ name: '', title: '', avatar: null }])
     setSlugAvailable(null)
   }
@@ -250,7 +255,7 @@ export default function AdminWebinarsPage() {
             onClick={() => {
               setShowForm(true)
               setEditingId(null)
-              setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+              setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams', location: '' })
               setSpeakers([{ name: '', title: '', avatar: null }])
               setSlugAvailable(null)
             }}
@@ -305,10 +310,10 @@ export default function AdminWebinarsPage() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
-              <textarea 
-                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm h-28 resize-none" 
-                value={form.description} 
-                onChange={e=>setForm(f=>({...f,description:e.target.value}))} 
+              <RichTextEditor
+                value={form.description}
+                onChange={(value) => setForm(f => ({ ...f, description: value }))}
+                placeholder="Tuliskan deskripsi webinar di sini... Gunakan toolbar untuk formatting, insert gambar, dan lainnya"
               />
             </div>
             <div>
@@ -371,6 +376,17 @@ export default function AdminWebinarsPage() {
                 <option value="luring">Luring (Offline)</option>
               </select>
             </div>
+            {form.platform === 'luring' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+                <input
+                  className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                  placeholder="Contoh: Ruang Rapat A, Gedung X, Jl. ABC No. 123"
+                  value={form.location || ''}
+                  onChange={e=>setForm(f=>({...f,location:e.target.value}))}
+                />
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <input 
                 id="pub" 

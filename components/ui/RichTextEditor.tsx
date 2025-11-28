@@ -8,6 +8,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void
   placeholder?: string
   variant?: 'default' | 'email' // Add variant prop to distinguish email templates
+  height?: number // Height in pixels for the editor
 }
 
 export interface RichTextEditorRef {
@@ -16,7 +17,7 @@ export interface RichTextEditorRef {
 }
 
 export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>(
-  function RichTextEditor({ value, onChange, placeholder, variant = 'default' }, ref) {
+  function RichTextEditor({ value, onChange, placeholder, variant = 'default', height = 256 }, ref) {
     const quillRef = useRef<any>(null)
     const [ReactQuill, setReactQuill] = useState<any>(null)
 
@@ -101,7 +102,7 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
     ]
 
     if (!ReactQuill) {
-      return <div className="bg-gray-100 h-64 mb-12 rounded flex items-center justify-center text-gray-500">Loading editor...</div>
+      return <div className="bg-gray-100 mb-12 rounded flex items-center justify-center text-gray-500" style={{ height: `${height}px` }}>Loading editor...</div>
     }
 
     return (
@@ -154,7 +155,8 @@ export const RichTextEditor = forwardRef<RichTextEditorRef, RichTextEditorProps>
           modules={modules}
           formats={formats}
           placeholder={placeholder}
-          className="h-64 mb-12"
+          className="mb-12"
+          style={{ height: `${height}px` }}
         />
       </div>
     )

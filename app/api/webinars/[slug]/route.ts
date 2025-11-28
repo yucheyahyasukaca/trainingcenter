@@ -12,7 +12,7 @@ export async function GET(_req: Request, { params }: Params) {
     const supabase = createServerClient()
     const { data: webinar, error } = await supabase
       .from('webinars')
-      .select(`id, slug, title, description, hero_image_url, start_time, end_time, is_published, meeting_url, platform`)
+      .select(`id, slug, title, description, hero_image_url, start_time, end_time, is_published, meeting_url, platform, location`)
       .eq('slug', params.slug)
       .single()
 
@@ -32,7 +32,25 @@ export async function GET(_req: Request, { params }: Params) {
       .eq('webinar_id', webinar.id)
       .order('created_at', { ascending: false })
 
-    return NextResponse.json({ webinar, speakers: speakers || [], recordings: recordings || [] })
+    // Get participant count (registered + uploaded)
+    const [registeredCount, uploadedCount] = await Promise.all([
+      supabase
+        .from('webinar_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('webinar_id', webinar.id),
+      supabase
+        .from('webinar_participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('webinar_id', webinar.id)
+    ])
+    const participantCount = (registeredCount.count || 0) + (uploadedCount.count || 0)
+
+    return NextResponse.json({ 
+      webinar, 
+      speakers: speakers || [], 
+      recordings: recordings || [],
+      participantCount 
+    })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to fetch webinar' }, { status: 500 })
   }

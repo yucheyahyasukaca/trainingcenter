@@ -107,24 +107,37 @@ export async function POST(request: Request, { params }: Params) {
       }, { status: 400 })
     }
 
-    async function generateCertificateNumberValue() {
-      try {
-        const { data: certNumData } = await supabaseAdmin.rpc('generate_certificate_number')
-        if (certNumData) return certNumData as string
-      } catch {
-        console.log('RPC generate_certificate_number not available, using fallback')
-      }
-      return `WB-${randomUUID()}`
+    async function generateCertificateNumberValue(attempt: number = 0) {
+      // Use timestamp + random UUID to ensure uniqueness
+      const timestamp = Date.now()
+      const randomPart = randomUUID().toUpperCase().replace(/-/g, '').substring(0, 12)
+      const attemptSuffix = attempt > 0 ? `-${attempt}` : ''
+      return `WB-${timestamp}-${randomPart}${attemptSuffix}`
     }
 
     async function insertCertificateWithRetry(payload: any) {
-      const maxAttempts = 5
+      const maxAttempts = 10 // Increase retry attempts
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const certificateNumber = await generateCertificateNumberValue()
+        const certificateNumber = await generateCertificateNumberValue(attempt)
         const finalPayload = {
           ...payload,
           certificate_number: certificateNumber
         }
+        
+        // Check if certificate number already exists before inserting
+        const { data: existingCert } = await supabaseAdmin
+          .from('webinar_certificates')
+          .select('id')
+          .eq('certificate_number', certificateNumber)
+          .maybeSingle()
+
+        if (existingCert) {
+          console.warn(`Certificate number ${certificateNumber} already exists, generating new one...`)
+          // Add small delay to ensure timestamp changes
+          await new Promise(resolve => setTimeout(resolve, 10))
+          continue
+        }
+
         const { error: insertError } = await supabaseAdmin
           .from('webinar_certificates')
           .insert(finalPayload)
@@ -134,22 +147,12 @@ export async function POST(request: Request, { params }: Params) {
         }
 
         if (insertError?.code === '23505') {
-          const match = insertError.message.match(/Key \\(([^)]+)\\)=\\(([^)]+)\\)/)
-          const existingNumber = match?.[2]
-          if (existingNumber) {
-            const { data: existingCertificate } = await supabaseAdmin
-              .from('webinar_certificates')
-              .select('id')
-              .eq('certificate_number', existingNumber)
-              .single()
-
-            if (!existingCertificate) {
-              console.warn('Duplicate number not found in table, resetting cache and retrying...')
-              await supabaseAdmin.rpc('invalidate_schema_cache')
-            }
-          }
-
-          console.warn('Duplicate certificate number, retrying...', { attempt: attempt + 1 })
+          console.warn('Duplicate certificate number detected, retrying...', { 
+            attempt: attempt + 1,
+            certificateNumber 
+          })
+          // Add delay before retry to avoid race condition
+          await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)))
           continue
         }
 

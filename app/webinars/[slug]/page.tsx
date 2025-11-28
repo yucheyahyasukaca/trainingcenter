@@ -6,7 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/components/AuthProvider'
 import { PublicNav } from '@/components/layout/PublicNav'
 import { supabase } from '@/lib/supabase'
-import { Calendar, Clock, CheckCircle, Download, Video, MessageCircle, ChevronDown, Sparkles, Award, Users } from 'lucide-react'
+import { Calendar, Clock, CheckCircle, Download, Video, MessageCircle, ChevronDown, Sparkles, Award, Users, X } from 'lucide-react'
+import { cleanEmailHTML } from '@/lib/html-utils'
 
 interface Speaker {
   id: string
@@ -25,7 +26,8 @@ interface Webinar {
   start_time: string
   end_time: string
   meeting_url?: string
-  platform?: string // 'microsoft-teams' | 'google-meet' | 'zoom'
+  platform?: string // 'microsoft-teams' | 'google-meet' | 'zoom' | 'luring'
+  location?: string
 }
 
 interface Recording { id: string; recording_url: string; is_public: boolean }
@@ -45,6 +47,12 @@ export default function WebinarLandingPage() {
   const [participantCount, setParticipantCount] = useState<number>(0)
 
   const isEnded = useMemo(() => webinar ? new Date(webinar.end_time) < new Date() : false, [webinar])
+  const isRegistrationClosed = useMemo(() => {
+    if (!webinar) return false
+    const now = new Date()
+    const startTime = new Date(webinar.start_time)
+    return now > startTime
+  }, [webinar])
 
   // Platform helper
   const getPlatformInfo = (platform?: string) => {
@@ -98,6 +106,9 @@ export default function WebinarLandingPage() {
           setWebinar(json.webinar)
           setSpeakers(json.speakers)
           setRecordings(json.recordings || [])
+          if (json.participantCount !== undefined) {
+            setParticipantCount(json.participantCount)
+          }
         }
         // Load certificate for current user
         if (user && json?.webinar?.id) {
@@ -128,14 +139,6 @@ export default function WebinarLandingPage() {
               setRegistered(true)
             } catch {}
           }
-        }
-        // Load participant count
-        if (json?.webinar?.id) {
-          const { count } = await supabase
-            .from('webinar_registrations')
-            .select('*', { count: 'exact', head: true })
-            .eq('webinar_id', json.webinar.id)
-          setParticipantCount(count || 0)
         }
       } finally {
         setLoading(false)
@@ -261,11 +264,105 @@ export default function WebinarLandingPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Content */}
                     <div className="lg:col-span-2 space-y-6">
-                      {webinar.description && (
-                        <div className="prose prose-lg max-w-none">
-                          <p className="text-gray-700 leading-relaxed whitespace-pre-line text-base sm:text-lg">{webinar.description}</p>
-                        </div>
-                      )}
+                      {webinar.description && (() => {
+                        // Clean HTML to remove double spaces and normalize formatting
+                        const cleanedDescription = cleanEmailHTML(webinar.description)
+                        return (
+                          <div className="rich-text-content">
+                            <style jsx>{`
+                              .rich-text-content :global(h1) {
+                                font-size: 2em;
+                                font-weight: bold;
+                                margin-top: 0.67em;
+                                margin-bottom: 0.67em;
+                                color: #1f2937;
+                              }
+                              .rich-text-content :global(h2) {
+                                font-size: 1.5em;
+                                font-weight: bold;
+                                margin-top: 0.83em;
+                                margin-bottom: 0.83em;
+                                color: #1f2937;
+                              }
+                              .rich-text-content :global(h3) {
+                                font-size: 1.17em;
+                                font-weight: bold;
+                                margin-top: 1em;
+                                margin-bottom: 1em;
+                                color: #1f2937;
+                              }
+                            .rich-text-content :global(p) {
+                              margin-top: 0;
+                              margin-bottom: 0.75em;
+                              line-height: 1.7;
+                              color: #374151;
+                            }
+                            .rich-text-content :global(p:first-child) {
+                              margin-top: 0;
+                            }
+                            .rich-text-content :global(p:last-child) {
+                              margin-bottom: 0;
+                            }
+                            .rich-text-content :global(p + p) {
+                              margin-top: 0;
+                            }
+                              .rich-text-content :global(ul) {
+                                list-style-type: disc;
+                                padding-left: 1.5em;
+                                margin: 0.5em 0;
+                              }
+                              .rich-text-content :global(ol) {
+                                list-style-type: decimal;
+                                padding-left: 1.5em;
+                                margin: 0.5em 0;
+                              }
+                              .rich-text-content :global(li) {
+                                margin-bottom: 0.5em;
+                              }
+                              .rich-text-content :global(img) {
+                                max-width: 100%;
+                                height: auto;
+                                border-radius: 0.5rem;
+                                margin: 0.5rem 0;
+                              }
+                              .rich-text-content :global(a) {
+                                color: #2563eb;
+                                text-decoration: underline;
+                              }
+                              .rich-text-content :global(a:hover) {
+                                color: #1d4ed8;
+                              }
+                              .rich-text-content :global(strong) {
+                                font-weight: bold;
+                              }
+                              .rich-text-content :global(em) {
+                                font-style: italic;
+                              }
+                              .rich-text-content :global(blockquote) {
+                                border-left: 4px solid #e5e7eb;
+                                padding-left: 1em;
+                                margin: 1em 0;
+                                color: #6b7280;
+                                font-style: italic;
+                              }
+                              .rich-text-content :global(u) {
+                                text-decoration: underline;
+                              }
+                              .rich-text-content :global(s) {
+                                text-decoration: line-through;
+                              }
+                            `}</style>
+                            <div 
+                              className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: cleanedDescription }}
+                              style={{
+                                wordWrap: 'break-word',
+                                overflowWrap: 'break-word'
+                              }}
+                            />
+                          </div>
+                        )
+                      })()}
                       
                       {/* Info Cards - Modern Design */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -280,7 +377,7 @@ export default function WebinarLandingPage() {
                               <div className="flex-1">
                                 <div className={`text-xs ${platformInfo.textColor} font-semibold uppercase tracking-wide mb-1`}>Lokasi</div>
                                 <div className="text-base font-bold text-gray-900">
-                                  {webinar.meeting_url || 'Lokasi akan diinformasikan kemudian'}
+                                  {webinar.location || webinar.meeting_url || 'Lokasi akan diinformasikan kemudian'}
                                 </div>
                               </div>
                             </div>
@@ -330,47 +427,24 @@ export default function WebinarLandingPage() {
 
                       {/* Certificate Card */}
                       <div className="mt-4">
-                        {isEnded ? (
-                          certificateUrl ? (
-                            <a 
-                              href={certificateUrl} 
-                              target="_blank" 
-                              className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-green-300 border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex items-center gap-4"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              <div className="relative w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                                <Download className="w-6 h-6 text-white" />
-                              </div>
-                              <div className="flex-1">
-                                <div className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-1">Sertifikat</div>
-                                <div className="text-base font-bold text-gray-900">Unduh Sertifikat</div>
-                                <div className="text-xs text-gray-500 mt-1">Sertifikat siap diunduh</div>
-                              </div>
-                            </a>
-                          ) : (
-                            <div className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-gray-200 border-2 rounded-2xl p-5 opacity-60 cursor-not-allowed flex items-center gap-4">
-                              <div className="relative w-14 h-14 bg-gray-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                                <Award className="w-6 h-6 text-gray-400" />
-                              </div>
-                              <div className="flex-1">
-                                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Sertifikat</div>
-                                <div className="text-base font-bold text-gray-400">Unduh Sertifikat</div>
-                                <div className="text-xs text-gray-400 mt-1">Sertifikat dapat diunduh setelah diterbitkan admin</div>
-                              </div>
-                            </div>
-                          )
-                        ) : (
-                          <div className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-gray-200 border-2 rounded-2xl p-5 opacity-60 cursor-not-allowed flex items-center gap-4">
-                            <div className="relative w-14 h-14 bg-gray-200 rounded-2xl flex items-center justify-center flex-shrink-0">
-                              <Award className="w-6 h-6 text-gray-400" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Sertifikat</div>
-                              <div className="text-base font-bold text-gray-400">Unduh Sertifikat</div>
-                              <div className="text-xs text-gray-400 mt-1">Sertifikat dapat diunduh setelah webinar selesai</div>
+                        <a 
+                          href="/webinar-certificates"
+                          className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-green-300 border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex items-center gap-4"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-50 transition-opacity duration-300"></div>
+                          <div className="relative w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <Download className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 relative z-10">
+                            <div className="text-xs text-green-600 group-hover:text-green-700 font-semibold uppercase tracking-wide mb-1">Sertifikat</div>
+                            <div className="text-base font-bold text-gray-900 group-hover:text-gray-950">Unduh Sertifikat</div>
+                            <div className="text-xs text-gray-500 group-hover:text-gray-700 mt-1">
+                              {isEnded 
+                                ? 'Klik untuk mencari dan mengunduh sertifikat Anda' 
+                                : 'Sertifikat dapat diunduh setelah webinar selesai'}
                             </div>
                           </div>
-                        )}
+                        </a>
                       </div>
                     </div>
 
@@ -379,7 +453,17 @@ export default function WebinarLandingPage() {
                       <div className="sticky top-24 space-y-4">
                         {/* Register Button */}
                         <div className="bg-gradient-to-br from-primary-600 to-red-600 rounded-2xl p-6 shadow-lg">
-                          {registered ? (
+                          {isRegistrationClosed ? (
+                            <div className="text-center">
+                              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <X className="w-6 h-6 text-white" />
+                              </div>
+                              <button disabled className="w-full py-3.5 rounded-xl bg-white/20 backdrop-blur-sm text-white font-bold text-lg opacity-90">
+                                Pendaftaran Ditutup
+                              </button>
+                              <p className="text-white/80 text-xs mt-2">Pendaftaran sudah ditutup</p>
+                            </div>
+                          ) : registered ? (
                             <div className="text-center">
                               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <CheckCircle className="w-6 h-6 text-white" />

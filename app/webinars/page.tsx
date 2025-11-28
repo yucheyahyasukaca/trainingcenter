@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { PublicNav } from '@/components/layout/PublicNav'
 import { Search, Calendar, TrendingUp, Award } from 'lucide-react'
+import { cleanEmailHTML } from '@/lib/html-utils'
 
 interface Webinar {
   id: string
@@ -127,7 +128,25 @@ export default function WebinarsListPage() {
                       <span className="inline-block px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">Webinar</span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 group-hover:text-primary-600 transition-colors">{w.title}</h3>
-                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">{w.description}</p>
+                    {w.description && (() => {
+                      // Strip HTML tags for preview and decode entities
+                      let text = cleanEmailHTML(w.description)
+                      // Remove all HTML tags but keep text content
+                      text = text.replace(/<[^>]+>/g, ' ')
+                      // Decode HTML entities
+                      text = text.replace(/&nbsp;/g, ' ')
+                      text = text.replace(/&amp;/g, '&')
+                      text = text.replace(/&lt;/g, '<')
+                      text = text.replace(/&gt;/g, '>')
+                      text = text.replace(/&quot;/g, '"')
+                      // Clean up multiple spaces
+                      text = text.replace(/\s+/g, ' ').trim()
+                      // Limit length
+                      const preview = text.length > 150 ? text.substring(0, 150) + '...' : text
+                      return (
+                        <p className="text-gray-600 text-xs mb-3 line-clamp-2">{preview}</p>
+                      )
+                    })()}
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-gray-700">
                         {new Date(w.start_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}

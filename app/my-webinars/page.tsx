@@ -324,11 +324,25 @@ export default function MyWebinarsPage() {
                     </h3>
 
                     {/* Description */}
-                    {webinar.description && (
-                      <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                        {webinar.description}
-                      </p>
-                    )}
+                    {webinar.description && (() => {
+                      // Strip HTML tags for preview and decode entities
+                      let text = webinar.description
+                      // Remove all HTML tags but keep text content
+                      text = text.replace(/<[^>]+>/g, ' ')
+                      // Decode HTML entities
+                      text = text.replace(/&nbsp;/g, ' ')
+                      text = text.replace(/&amp;/g, '&')
+                      text = text.replace(/&lt;/g, '<')
+                      text = text.replace(/&gt;/g, '>')
+                      text = text.replace(/&quot;/g, '"')
+                      // Clean up multiple spaces
+                      text = text.replace(/\s+/g, ' ').trim()
+                      // Limit length
+                      const preview = text.length > 150 ? text.substring(0, 150) + '...' : text
+                      return (
+                        <p className="text-gray-600 text-xs mb-3 line-clamp-2">{preview}</p>
+                      )
+                    })()}
 
                     {/* Details */}
                     <div className="space-y-2 mb-3">

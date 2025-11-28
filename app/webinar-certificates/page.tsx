@@ -16,20 +16,30 @@ interface Webinar {
 
 interface Certificate {
   id: string
-  certificate_number: string
-  issued_at: string
+  certificate_number: string | null
+  issued_at: string | null
+  webinar_id: string
+  user_id: string | null
+  participant_id: string | null
   webinars: {
     id: string
     title: string
     slug: string
     start_time: string
     end_time: string
-  }
+  } | null
   user_profiles?: {
     id: string
     full_name: string
     email: string
   } | null
+  webinar_participants?: {
+    id: string
+    full_name: string
+    unit_kerja: string
+    email: string
+  } | null
+  has_certificate: boolean
 }
 
 export default function WebinarCertificatesPage() {
@@ -40,6 +50,7 @@ export default function WebinarCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [generating, setGenerating] = useState<string | null>(null) // Track which certificate is being generated
 
   useEffect(() => {
     fetchWebinars()
@@ -109,26 +120,90 @@ export default function WebinarCertificatesPage() {
     }
   }
 
-  const handleDownloadPDF = async (certificateNumber: string) => {
+  const handleViewCertificate = async (cert: Certificate) => {
+    // If certificate already exists, just redirect to verify page
+    if (cert.has_certificate && cert.certificate_number) {
+      const encodedCertNumber = encodeURIComponent(cert.certificate_number)
+      window.open(`/webinar-certificates/verify/${encodedCertNumber}`, '_blank')
+      return
+    }
+
+    // Generate certificate on-demand
     try {
-      const response = await fetch(`/api/webinar-certificates/${certificateNumber}/pdf`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `sertifikat-${certificateNumber}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        toast.success('Berhasil', 'Sertifikat berhasil diunduh')
+      setGenerating(cert.id)
+      const response = await fetch('/api/webinar-certificates/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          webinar_id: cert.webinar_id,
+          user_id: cert.user_id,
+          participant_id: cert.participant_id
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.data?.certificate_number) {
+        // Update local state
+        const updatedCerts = certificates.map(c => 
+          c.id === cert.id 
+            ? { ...c, certificate_number: result.data.certificate_number, issued_at: result.data.issued_at, has_certificate: true }
+            : c
+        )
+        setCertificates(updatedCerts)
+        
+        // Redirect to verify page with encoded certificate number
+        const encodedCertNumber = encodeURIComponent(result.data.certificate_number)
+        window.open(`/webinar-certificates/verify/${encodedCertNumber}`, '_blank')
+        toast.success('Berhasil', 'Sertifikat berhasil dibuat')
       } else {
-        toast.error('Error', 'Gagal mengunduh sertifikat')
+        toast.error('Error', result.error || 'Gagal membuat sertifikat')
       }
     } catch (error) {
+      console.error('Error generating certificate:', error)
+      toast.error('Error', 'Terjadi kesalahan saat membuat sertifikat')
+    } finally {
+      setGenerating(null)
+    }
+  }
+
+  const handleDownloadPDF = async (certificateNumber: string) => {
+    if (!certificateNumber) {
+      toast.error('Error', 'Nomor sertifikat tidak ditemukan')
+      return
+    }
+
+    try {
+      // Encode certificate number untuk URL
+      const encodedCertNumber = encodeURIComponent(certificateNumber)
+      const url = `/api/webinar-certificates/${encodedCertNumber}/pdf`
+      
+      console.log('Downloading PDF from:', url)
+      
+      const response = await fetch(url)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('PDF download error:', response.status, errorData)
+        toast.error('Error', errorData.error || `Gagal mengunduh sertifikat (${response.status})`)
+        return
+      }
+
+      const blob = await response.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `sertifikat-${certificateNumber}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(blobUrl)
+      document.body.removeChild(a)
+      toast.success('Berhasil', 'Sertifikat berhasil diunduh')
+    } catch (error: any) {
       console.error('Error downloading certificate:', error)
-      toast.error('Error', 'Terjadi kesalahan saat mengunduh sertifikat')
+      toast.error('Error', error?.message || 'Terjadi kesalahan saat mengunduh sertifikat')
     }
   }
 
@@ -254,59 +329,97 @@ export default function WebinarCertificatesPage() {
             </div>
 
             <div className="space-y-4">
-              {certificates.map((cert) => (
-                <div
-                  key={cert.id}
-                  className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-start space-x-3 mb-3">
-                        <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Award className="w-6 h-6 text-primary-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 mb-1">
-                            {cert.webinars?.title || 'Webinar'}
-                          </h3>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <div className="flex items-center space-x-2">
-                              <User className="w-4 h-4" />
-                              <span>{cert.user_profiles?.full_name || 'Peserta'}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>Diterbitkan: {formatDate(cert.issued_at)}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <FileText className="w-4 h-4" />
-                              <span className="font-mono text-xs">#{cert.certificate_number}</span>
+              {certificates.map((cert) => {
+                const participantName = cert.user_profiles?.full_name || cert.webinar_participants?.full_name || 'Peserta'
+                const isGenerating = generating === cert.id
+                
+                return (
+                  <div
+                    key={cert.id}
+                    className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-start space-x-3 mb-3">
+                          <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Award className="w-6 h-6 text-primary-600" />
+                          </div>
+                          <div className="flex-1">
+                            {/* Nama peserta - besar dan prominent */}
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                              {participantName}
+                            </h3>
+                            <div className="space-y-1.5">
+                              {/* Judul webinar - kecil */}
+                              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                <Award className="w-3.5 h-3.5" />
+                                <span>{cert.webinars?.title || 'Webinar'}</span>
+                              </div>
+                              {cert.has_certificate && cert.issued_at && (
+                                <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  <span>Diterbitkan: {formatDate(cert.issued_at)}</span>
+                                </div>
+                              )}
+                              {cert.has_certificate && cert.certificate_number && (
+                                <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span className="font-mono">#{cert.certificate_number}</span>
+                                </div>
+                              )}
+                              {!cert.has_certificate && (
+                                <div className="flex items-center space-x-2 text-xs text-amber-600 mt-2">
+                                  <span>Sertifikat akan dibuat saat Anda klik "Lihat Sertifikat"</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Link
-                        href={`/webinar-certificates/verify/${cert.certificate_number}`}
-                        target="_blank"
-                        className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span>Lihat & Verifikasi</span>
-                      </Link>
-                      <button
-                        onClick={() => handleDownloadPDF(cert.certificate_number)}
-                        className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span>Unduh PDF</span>
-                      </button>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {cert.has_certificate && cert.certificate_number ? (
+                          <>
+                            <Link
+                              href={`/webinar-certificates/verify/${cert.certificate_number}`}
+                              target="_blank"
+                              className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>Lihat & Verifikasi</span>
+                            </Link>
+                            <button
+                              onClick={() => handleDownloadPDF(cert.certificate_number!)}
+                              className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Unduh PDF</span>
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleViewCertificate(cert)}
+                            disabled={isGenerating}
+                            className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isGenerating ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span>Membuat Sertifikat...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="w-4 h-4" />
+                                <span>Lihat Sertifikat</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </section>
