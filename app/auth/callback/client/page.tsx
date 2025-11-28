@@ -1,11 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function AuthCallbackSuccessPage() {
+/**
+ * Client-side OAuth callback handler
+ * This handles PKCE flow when server-side handler fails
+ * because it has access to localStorage where code verifier is stored
+ */
+export default function AuthCallbackClientPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -21,35 +27,55 @@ export default function AuthCallbackSuccessPage() {
         // Set flag menjadi true agar tidak jalan lagi
         effectRan.current = true
 
-        console.log('🔄 Processing OAuth callback...')
+        const code = searchParams.get('code')
+        const errorParam = searchParams.get('error')
+        const errorDescription = searchParams.get('error_description')
+
+        console.log('🔄 Processing OAuth callback (client-side)...')
+
+        // Handle OAuth errors
+        if (errorParam) {
+          console.error('❌ OAuth error:', errorParam, errorDescription)
+          setError(errorDescription || errorParam)
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        if (!code) {
+          console.error('❌ No OAuth code provided')
+          setError('No authorization code provided')
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        // Exchange code for session using client-side Supabase
+        // This has access to localStorage where PKCE code verifier is stored
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (exchangeError) {
+          console.error('❌ Error exchanging code for session:', exchangeError)
+          setError(exchangeError.message)
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        if (!data.session) {
+          console.error('❌ No session returned')
+          setError('No session returned')
+          setTimeout(() => router.push('/login'), 3000)
+          return
+        }
+
+        console.log('✅ OAuth callback successful for user:', data.user?.email)
 
         // Wait a bit for session to be set
         await new Promise(resolve => setTimeout(resolve, 500))
-
-        // Check if session exists
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError)
-          setError(sessionError.message)
-          setTimeout(() => router.push('/login'), 3000)
-          return
-        }
-
-        if (!session) {
-          console.error('❌ No session found')
-          setError('Session tidak ditemukan')
-          setTimeout(() => router.push('/login'), 3000)
-          return
-        }
-
-        console.log('✅ Session confirmed for user:', session.user?.email)
 
         // Check if user profile exists, if not wait a bit for trigger to create it
         const { data: profile, error: profileError } = await supabase
           .from('user_profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', data.user.id)
           .single()
 
         if (profileError && profileError.code !== 'PGRST116') {
@@ -67,7 +93,7 @@ export default function AuthCallbackSuccessPage() {
             const { data: retryProfile } = await supabase
               .from('user_profiles')
               .select('*')
-              .eq('id', session.user.id)
+              .eq('id', data.user.id)
               .single()
 
             if (retryProfile) {
@@ -121,7 +147,7 @@ export default function AuthCallbackSuccessPage() {
     return () => {
       effectRan.current = true
     }
-  }, [router])
+  }, [router, searchParams])
 
   if (error) {
     return (

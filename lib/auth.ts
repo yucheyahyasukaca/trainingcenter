@@ -204,10 +204,29 @@ export async function signInWithGoogle() {
   console.log('🚀 Starting Google sign in...')
   
   try {
+    if (typeof window === 'undefined') {
+      throw new Error('signInWithGoogle must be called from client-side')
+    }
+
+    // Force http:// for localhost (never use https:// for localhost)
+    let origin = window.location.origin
+    if (origin.includes('localhost') && origin.startsWith('https://')) {
+      origin = origin.replace('https://', 'http://')
+      console.warn('⚠️ Changed origin from https:// to http:// for localhost')
+    }
+    
+    const redirectUrl = `${origin}/auth/callback`
+    console.log('🔗 Redirect URL:', redirectUrl)
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+        // flowType is set in supabase client config, not here
       }
     })
 
@@ -216,7 +235,7 @@ export async function signInWithGoogle() {
       throw new Error(error.message)
     }
 
-    console.log('✅ Google sign in initiated')
+    console.log('✅ Google sign in initiated, redirecting to:', data.url)
     return data
   } catch (err: any) {
     console.error('❌ Exception in Google sign in:', err)
