@@ -368,6 +368,7 @@ export default function AdminWebinarsPage() {
                 <option value="microsoft-teams">Microsoft Teams</option>
                 <option value="google-meet">Google Meet</option>
                 <option value="zoom">Zoom</option>
+                <option value="luring">Luring (Offline)</option>
               </select>
             </div>
             <div className="flex items-center gap-2">

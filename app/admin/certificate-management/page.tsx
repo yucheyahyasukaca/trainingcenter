@@ -33,11 +33,11 @@ interface CertificateTemplate {
   signatory_signature_url?: string
   is_active: boolean
   created_at: string
-  programs: {
+  programs?: {
     id: string
     title: string
     category: string
-  }
+  } | null
   created_by_user: {
     id: string
     full_name: string
@@ -97,7 +97,9 @@ export default function CertificateManagementPage() {
   const fetchTemplates = async () => {
     try {
       console.log('📥 Fetching certificate templates...')
-      const response = await fetch('/api/admin/certificate-templates')
+      const response = await fetch('/api/admin/certificate-templates', {
+        credentials: 'include'
+      })
       console.log('📥 Response status:', response.status)
       console.log('📥 Response ok:', response.ok)
       
@@ -120,7 +122,9 @@ export default function CertificateManagementPage() {
   const fetchRequirements = async () => {
     try {
       console.log('📥 Fetching certificate requirements...')
-      const response = await fetch('/api/admin/certificate-requirements')
+      const response = await fetch('/api/admin/certificate-requirements', {
+        credentials: 'include'
+      })
       console.log('📥 Response status:', response.status)
       console.log('📥 Response ok:', response.ok)
       
@@ -144,7 +148,9 @@ export default function CertificateManagementPage() {
 
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('/api/programs')
+      const response = await fetch('/api/programs', {
+        credentials: 'include'
+      })
       const result = await response.json()
       
       if (response.ok) {
@@ -315,7 +321,9 @@ export default function CertificateManagementPage() {
                       <FileText className="w-8 h-8 text-blue-500 mr-3" />
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{template.template_name}</h3>
-                        <p className="text-sm text-gray-600">{template.programs.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {template.programs?.title || 'Template Webinar / Umum'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center">

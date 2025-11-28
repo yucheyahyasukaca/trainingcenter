@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Parse FormData since we're uploading files
     const formData = await request.formData()
     
-    const program_id = formData.get('program_id') as string
+    const program_id = (formData.get('program_id') as string) || ''
     const template_name = formData.get('template_name') as string
     const template_description = formData.get('template_description') as string
     const template_pdf_file = formData.get('template_pdf_file') as File
@@ -98,10 +98,20 @@ export async function POST(request: NextRequest) {
     const trainer_level_field = formData.get('trainer_level_field') as string
     const template_fields = formData.get('template_fields') as string
     const user_id = formData.get('user_id') as string
+    const targetType = ((formData.get('target_type') as string) || 'program').toLowerCase() as 'program' | 'webinar'
+    const webinarId = (formData.get('webinar_id') as string) || ''
 
     // Validate required fields
-    if (!program_id || !template_name || !template_pdf_file) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (!template_name || !template_pdf_file) {
+      return NextResponse.json({ error: 'Nama template dan file PDF wajib diisi' }, { status: 400 })
+    }
+
+    if (targetType !== 'webinar' && !program_id) {
+      return NextResponse.json({ error: 'Program harus dipilih untuk template program' }, { status: 400 })
+    }
+
+    if (targetType === 'webinar' && !webinarId) {
+      return NextResponse.json({ error: 'Pilih webinar yang akan menggunakan template ini' }, { status: 400 })
     }
 
     // Parse template_fields if provided
@@ -171,7 +181,7 @@ export async function POST(request: NextRequest) {
     const { data: templateData, error: templateError } = await supabaseAdmin
       .from('certificate_templates')
       .insert({
-        program_id,
+        program_id: program_id || null,
         template_name,
         template_description,
         template_pdf_url: pdfUrlData.publicUrl,
@@ -196,6 +206,18 @@ export async function POST(request: NextRequest) {
     if (templateError) {
       console.error('Error creating certificate template:', templateError)
       return NextResponse.json({ error: 'Failed to create certificate template' }, { status: 500 })
+    }
+
+    // Automatically attach to selected webinar if provided
+    if (targetType === 'webinar' && webinarId && templateData?.id) {
+      const { error: webinarUpdateError } = await supabaseAdmin
+        .from('webinars')
+        .update({ certificate_template_id: templateData.id })
+        .eq('id', webinarId)
+
+      if (webinarUpdateError) {
+        console.error('Failed to attach template to webinar:', webinarUpdateError)
+      }
     }
 
     return NextResponse.json({ data: templateData })

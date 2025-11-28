@@ -54,7 +54,9 @@ export default function CreateTemplatePage() {
 
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('/api/programs')
+      const response = await fetch('/api/programs', {
+        credentials: 'include'
+      })
       const result = await response.json()
       
       if (response.ok) {
@@ -69,7 +71,9 @@ export default function CreateTemplatePage() {
 
   const fetchWebinars = async () => {
     try {
-      const res = await fetch('/api/webinars')
+      const res = await fetch('/api/webinars', {
+        credentials: 'include'
+      })
       const json = await res.json()
       setWebinars((json.webinars || []).map((w: any) => ({ id: w.id, title: w.title, slug: w.slug })))
     } catch (e) {}
@@ -98,10 +102,20 @@ export default function CreateTemplatePage() {
       return
     }
 
+    if (targetType === 'program' && !formData.program_id) {
+      toast.error('Silakan pilih program terlebih dahulu')
+      return
+    }
+
+    if (targetType === 'webinar' && !selectedWebinarId) {
+      toast.error('Silakan pilih webinar yang akan menggunakan template ini')
+      return
+    }
+
     setSubmitting(true)
     try {
       const formDataToSend = new FormData()
-      formDataToSend.append('program_id', formData.program_id)
+      formDataToSend.append('program_id', targetType === 'program' ? formData.program_id : '')
       formDataToSend.append('template_name', formData.template_name)
       formDataToSend.append('template_description', formData.template_description)
       // Use first signatory for backward compatibility
@@ -117,6 +131,8 @@ export default function CreateTemplatePage() {
       formDataToSend.append('trainer_level_field', formData.trainer_level_field)
       formDataToSend.append('template_pdf_file', templateFile)
       formDataToSend.append('user_id', profile?.id || '')
+      formDataToSend.append('target_type', targetType)
+      formDataToSend.append('webinar_id', selectedWebinarId)
       
       // Add signature file from first signatory if exists
       if (signatories[0]?.signature) {
@@ -210,8 +226,30 @@ export default function CreateTemplatePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Target</label>
                 <div className="flex items-center gap-4">
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="targetType" checked={targetType==='program'} onChange={()=>setTargetType('program')} /> Program</label>
-                  <label className="inline-flex items-center gap-2 text-sm"><input type="radio" name="targetType" checked={targetType==='webinar'} onChange={()=>setTargetType('webinar')} /> Webinar</label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="targetType"
+                    checked={targetType === 'program'}
+                    onChange={() => {
+                      setTargetType('program')
+                      setSelectedWebinarId('')
+                    }}
+                  />
+                  <span>Program</span>
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="targetType"
+                    checked={targetType === 'webinar'}
+                    onChange={() => {
+                      setTargetType('webinar')
+                      setFormData({ ...formData, program_id: '' })
+                    }}
+                  />
+                  <span>Webinar</span>
+                </label>
                 </div>
               </div>
             </div>

@@ -56,6 +56,8 @@ export default function WebinarLandingPage() {
         return { name: 'Google Meet', imageUrl: '/googlemeet.png', color: 'from-blue-50 to-blue-100/50', borderColor: 'border-blue-200', textColor: 'text-blue-600' }
       case 'zoom':
         return { name: 'Zoom', imageUrl: '/zoom.png', color: 'from-indigo-50 to-indigo-100/50', borderColor: 'border-indigo-200', textColor: 'text-indigo-600' }
+      case 'luring':
+        return { name: 'Luring (Offline)', imageUrl: null, color: 'from-gray-50 to-gray-100/50', borderColor: 'border-gray-200', textColor: 'text-gray-600' }
       case 'microsoft-teams':
       default:
         return { name: 'Microsoft Teams', imageUrl: '/teams.png', color: 'from-purple-50 to-purple-100/50', borderColor: 'border-purple-200', textColor: 'text-purple-600' }
@@ -101,11 +103,15 @@ export default function WebinarLandingPage() {
         if (user && json?.webinar?.id) {
           const { data: cert } = await supabase
             .from('webinar_certificates')
-            .select('pdf_url')
+            .select('certificate_number')
             .eq('webinar_id', json.webinar.id)
             .eq('user_id', user.id)
             .maybeSingle()
-          setCertificateUrl(cert?.pdf_url || null)
+          setCertificateUrl(
+            cert?.certificate_number
+              ? `/api/webinar-certificates/${cert.certificate_number}/pdf`
+              : null
+          )
         }
         // Check registration if logged in (client-side with RLS)
         if (user && json?.webinar?.id) {
@@ -264,31 +270,48 @@ export default function WebinarLandingPage() {
                       {/* Info Cards - Modern Design */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Akses Webinar Card - Clickable */}
-                        <a
-                          href={webinar.meeting_url || '#'}
-                          target={webinar.meeting_url ? '_blank' : undefined}
-                          onClick={(e)=>{ if (!webinar.meeting_url) e.preventDefault() }}
-                          className={`group relative overflow-hidden bg-white/80 backdrop-blur-sm ${platformInfo.borderColor} border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer ${!webinar.meeting_url ? 'opacity-70 cursor-not-allowed' : ''}`}
-                        >
-                          <div className={`absolute inset-0 bg-gradient-to-br ${platformInfo.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
-                          <div className="relative flex items-center gap-4">
-                            {platformInfo.imageUrl && (
-                              <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                                <Image 
-                                  src={platformInfo.imageUrl} 
-                                  alt={platformInfo.name}
-                                  width={56}
-                                  height={56}
-                                  className="object-contain"
-                                />
+                        {webinar.platform === 'luring' ? (
+                          <div className={`group relative overflow-hidden bg-white/80 backdrop-blur-sm ${platformInfo.borderColor} border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${platformInfo.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
+                            <div className="relative flex items-center gap-4">
+                              <div className="relative w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform duration-300">
+                                <Calendar className="w-6 h-6 text-white" />
                               </div>
-                            )}
-                            <div className="flex-1">
-                              <div className={`text-xs ${platformInfo.textColor} font-semibold uppercase tracking-wide mb-1`}>Link Meeting</div>
-                              <div className="text-base font-bold text-gray-900">{webinar.meeting_url ? platformInfo.name : 'Link meeting belum tersedia'}</div>
+                              <div className="flex-1">
+                                <div className={`text-xs ${platformInfo.textColor} font-semibold uppercase tracking-wide mb-1`}>Lokasi</div>
+                                <div className="text-base font-bold text-gray-900">
+                                  {webinar.meeting_url || 'Lokasi akan diinformasikan kemudian'}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </a>
+                        ) : (
+                          <a
+                            href={webinar.meeting_url || '#'}
+                            target={webinar.meeting_url ? '_blank' : undefined}
+                            onClick={(e)=>{ if (!webinar.meeting_url) e.preventDefault() }}
+                            className={`group relative overflow-hidden bg-white/80 backdrop-blur-sm ${platformInfo.borderColor} border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer ${!webinar.meeting_url ? 'opacity-70 cursor-not-allowed' : ''}`}
+                          >
+                            <div className={`absolute inset-0 bg-gradient-to-br ${platformInfo.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
+                            <div className="relative flex items-center gap-4">
+                              {platformInfo.imageUrl && (
+                                <div className="relative w-14 h-14 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                  <Image 
+                                    src={platformInfo.imageUrl} 
+                                    alt={platformInfo.name}
+                                    width={56}
+                                    height={56}
+                                    className="object-contain"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <div className={`text-xs ${platformInfo.textColor} font-semibold uppercase tracking-wide mb-1`}>Link Meeting</div>
+                                <div className="text-base font-bold text-gray-900">{webinar.meeting_url ? platformInfo.name : 'Link meeting belum tersedia'}</div>
+                              </div>
+                            </div>
+                          </a>
+                        )}
                         {/* Free Card */}
                         <div className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-green-200 border-2 rounded-2xl p-5 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                           <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

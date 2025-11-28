@@ -8,21 +8,25 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // Determine requester role
-    const { data: authData, error: authError } = await (supabase as any).auth.getUser()
-    if (authError) {
-      console.error('Error getting auth user:', authError)
-    }
-
+    // Determine requester role (optional - no session is OK for public routes)
     let isPrivileged = false
-    const userId = authData?.user?.id
-    if (userId) {
-      const { data: profile } = await (supabase as any)
-        .from('user_profiles')
-        .select('role')
-        .eq('id', userId)
-        .single()
-      isPrivileged = profile?.role === 'admin' || profile?.role === 'manager'
+    try {
+      const { data: authData, error: authError } = await (supabase as any).auth.getUser()
+      
+      // Only check role if we have a valid session
+      if (!authError && authData?.user?.id) {
+        const userId = authData.user.id
+        const { data: profile } = await (supabase as any)
+          .from('user_profiles')
+          .select('role')
+          .eq('id', userId)
+          .single()
+        isPrivileged = profile?.role === 'admin' || profile?.role === 'manager'
+      }
+      // If no session, that's fine - user will only see published programs
+    } catch (err) {
+      // Silently handle auth errors - public route, no session is OK
+      // User will only see published programs
     }
 
     // Admin/manager can see all programs; others only published

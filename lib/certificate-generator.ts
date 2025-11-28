@@ -1,8 +1,6 @@
 import { getSupabaseAdmin } from './supabase-admin'
 import QRCode from 'qrcode'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import fs from 'fs'
-import path from 'path'
 
 export interface CertificateData {
   certificate_number: string
@@ -40,33 +38,48 @@ export interface CertificateTemplate {
 /**
  * Generate QR code for certificate verification
  */
-export async function generateQRCode(certificateNumber: string): Promise<{ qrCodeDataUrl: string; qrCodeUrl: string }> {
+function getVerificationUrl(certificateNumber: string, isWebinar: boolean = false) {
+  const verifyPath = isWebinar 
+    ? `/webinar-certificates/verify/${certificateNumber}`
+    : `/certificate/verify/${certificateNumber}`
+  return `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}${verifyPath}`
+}
+
+async function createQrCodeAssets(verificationUrl: string) {
+  const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+    width: 200,
+    margin: 2,
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
+  })
+
+  const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
+    width: 200,
+    margin: 2,
+    color: {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
+  })
+
+  return { qrCodeDataUrl, qrCodeBuffer }
+}
+
+export async function generateQRCode(
+  certificateNumber: string, 
+  isWebinar: boolean = false
+): Promise<{ qrCodeDataUrl: string; qrCodeUrl: string }> {
   try {
     const supabaseAdmin = getSupabaseAdmin()
-    const verificationUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/certificate/verify/${certificateNumber}`
-    
-    // Generate QR code as data URL
-    const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
-      width: 200,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
-
-    // Generate QR code as PNG buffer for storage
-    const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
-      width: 200,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
+    const verificationUrl = getVerificationUrl(certificateNumber, isWebinar)
+    const { qrCodeDataUrl, qrCodeBuffer } = await createQrCodeAssets(verificationUrl)
 
     // Upload QR code to storage
     const qrFileName = `qr-${certificateNumber}-${Date.now()}.png`
+    console.log('Uploading QR code to storage:', { bucket: 'certificate-qr-codes', fileName: qrFileName })
+    
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('certificate-qr-codes')
       .upload(qrFileName, qrCodeBuffer, {
@@ -75,13 +88,20 @@ export async function generateQRCode(certificateNumber: string): Promise<{ qrCod
       })
 
     if (uploadError) {
-      throw new Error(`Failed to upload QR code: ${uploadError.message}`)
+      console.error('QR code upload error:', uploadError)
+      throw new Error(`Failed to upload QR code to storage: ${uploadError.message}. Make sure 'certificate-qr-codes' bucket exists.`)
     }
+    
+    console.log('QR code uploaded successfully:', uploadData)
 
     // Get public URL
     const { data: urlData } = supabaseAdmin.storage
       .from('certificate-qr-codes')
       .getPublicUrl(qrFileName)
+    
+    if (!urlData?.publicUrl) {
+      throw new Error('Failed to get public URL for QR code')
+    }
 
     return {
       qrCodeDataUrl,
@@ -91,6 +111,15 @@ export async function generateQRCode(certificateNumber: string): Promise<{ qrCod
     console.error('Error generating QR code:', error)
     throw error
   }
+}
+
+export async function generateQRCodeDataUrl(
+  certificateNumber: string,
+  isWebinar: boolean = false
+): Promise<{ qrCodeDataUrl: string; verificationUrl: string }> {
+  const verificationUrl = getVerificationUrl(certificateNumber, isWebinar)
+  const { qrCodeDataUrl } = await createQrCodeAssets(verificationUrl)
+  return { qrCodeDataUrl, verificationUrl }
 }
 
 /**
@@ -130,6 +159,128 @@ async function downloadSignatureImage(signatureUrl: string): Promise<Uint8Array>
 /**
  * Generate certificate PDF with filled data
  */
+async function renderCertificatePdfBytes(
+  template: CertificateTemplate,
+  certificateData: CertificateData,
+  qrCodeDataUrl: string
+): Promise<Uint8Array> {
+  // Download template PDF
+  const templatePdfBytes = await downloadTemplatePDF(template.template_pdf_url)
+  
+  // Load PDF document
+  const pdfDoc = await PDFDocument.load(templatePdfBytes)
+  const pages = pdfDoc.getPages()
+  const firstPage = pages[0]
+  const { width, height } = firstPage.getSize()
+
+  // Get fonts
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+
+  // Prepare text data
+  const textData = {
+    [template.participant_name_field]: certificateData.recipient_name,
+    [template.participant_company_field]: certificateData.recipient_company || '',
+    [template.participant_position_field]: certificateData.recipient_position || '',
+    [template.program_title_field]: certificateData.program_title,
+    [template.program_date_field]: certificateData.program_start_date ? 
+      `${certificateData.program_start_date} - ${certificateData.program_end_date}` : '',
+    [template.completion_date_field]: certificateData.completion_date,
+    [template.trainer_name_field]: certificateData.trainer_name || '',
+    [template.trainer_level_field]: certificateData.trainer_level || '',
+    'signatory_name': certificateData.signatory_name,
+    'signatory_position': certificateData.signatory_position
+  }
+
+  if (template.template_fields) {
+    for (const [fieldName, fieldConfig] of Object.entries(template.template_fields)) {
+      const textValue = textData[fieldName] || ''
+      
+      if (fieldConfig && typeof fieldConfig === 'object') {
+        const position = fieldConfig.position
+        const fontConfig = fieldConfig.font || {}
+        
+        if (position && position.x !== undefined && position.y !== undefined) {
+          const fontSize = fontConfig.size || 12
+          const fontToUse = (fontConfig.weight === 'bold') ? boldFont : font
+          const fontColor = fontConfig.color || '#000000'
+          
+          const hexColor = fontColor.replace('#', '')
+          const r = parseInt(hexColor.substring(0, 2), 16) / 255
+          const g = parseInt(hexColor.substring(2, 4), 16) / 255
+          const b = parseInt(hexColor.substring(4, 6), 16) / 255
+
+          const fontAscent = fontToUse.heightAtSize(fontSize)
+          const additionalOffset = fontSize * 0.3
+          const pdfY = height - position.y - fontAscent - additionalOffset
+          
+          let finalX = position.x
+          const align = fieldConfig.align || 'left'
+          const fieldWidth = fieldConfig.width || 200
+          
+          if (align === 'center' || align === 'centre') {
+            const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
+            finalX = position.x + (fieldWidth / 2) - (textWidth / 2)
+          } else if (align === 'right') {
+            const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
+            finalX = position.x + fieldWidth - textWidth
+          }
+          
+          firstPage.drawText(textValue, {
+            x: finalX,
+            y: pdfY,
+            size: fontSize,
+            font: fontToUse,
+            color: rgb(r, g, b)
+          })
+        }
+      }
+    }
+  }
+
+  // Add QR code
+  try {
+    const qrCodeResponse = await fetch(qrCodeDataUrl)
+    const qrCodeArrayBuffer = await qrCodeResponse.arrayBuffer()
+    const qrCodeBytes = new Uint8Array(qrCodeArrayBuffer)
+    const qrCodeImage = await pdfDoc.embedPng(qrCodeBytes)
+    const qrCodeSize = template.qr_code_size || 100
+    let qrCodeX = template.qr_code_position_x ?? (width - qrCodeSize - 20)
+    let qrCodeY = 20
+    
+    if (template.qr_code_position_y !== undefined && template.qr_code_position_y !== null) {
+      qrCodeY = height - template.qr_code_position_y - qrCodeSize
+    }
+    
+    firstPage.drawImage(qrCodeImage, {
+      x: qrCodeX,
+      y: qrCodeY,
+      width: qrCodeSize,
+      height: qrCodeSize
+    })
+  } catch (qrError) {
+    console.warn('Failed to add QR code to PDF:', qrError)
+  }
+
+  // Add signature if available
+  if (certificateData.signatory_signature_url) {
+    try {
+      const signatureBytes = await downloadSignatureImage(certificateData.signatory_signature_url)
+      const signatureImage = await pdfDoc.embedPng(signatureBytes)
+      firstPage.drawImage(signatureImage, {
+        x: width - 150,
+        y: height - 200,
+        width: 100,
+        height: 50
+      })
+    } catch (signatureError) {
+      console.warn('Failed to add signature to PDF:', signatureError)
+    }
+  }
+
+  return await pdfDoc.save()
+}
+
 export async function generateCertificatePDF(
   template: CertificateTemplate,
   certificateData: CertificateData,
@@ -137,213 +288,11 @@ export async function generateCertificatePDF(
 ): Promise<{ pdfBuffer: Uint8Array; pdfUrl: string }> {
   try {
     const supabaseAdmin = getSupabaseAdmin()
-    // Download template PDF
-    const templatePdfBytes = await downloadTemplatePDF(template.template_pdf_url)
-    
-    // Load PDF document
-    const pdfDoc = await PDFDocument.load(templatePdfBytes)
-    const pages = pdfDoc.getPages()
-    const firstPage = pages[0]
-    const { width, height } = firstPage.getSize()
+    const pdfBytes = await renderCertificatePdfBytes(template, certificateData, qrCodeDataUrl)
 
-    // Get fonts
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
-
-    // Prepare text data
-    const textData = {
-      [template.participant_name_field]: certificateData.recipient_name,
-      [template.participant_company_field]: certificateData.recipient_company || '',
-      [template.participant_position_field]: certificateData.recipient_position || '',
-      [template.program_title_field]: certificateData.program_title,
-      [template.program_date_field]: certificateData.program_start_date ? 
-        `${certificateData.program_start_date} - ${certificateData.program_end_date}` : '',
-      [template.completion_date_field]: certificateData.completion_date,
-      [template.trainer_name_field]: certificateData.trainer_name || '',
-      [template.trainer_level_field]: certificateData.trainer_level || '',
-      'signatory_name': certificateData.signatory_name,
-      'signatory_position': certificateData.signatory_position
-    }
-
-    // Fill text fields based on template configuration
-    if (template.template_fields) {
-      console.log('===== CERTIFICATE GENERATOR DEBUG =====')
-      console.log('Page size:', { width, height })
-      console.log('Template fields to render:', JSON.stringify(template.template_fields, null, 2))
-      console.log('Available text data:', textData)
-      
-      for (const [fieldName, fieldConfig] of Object.entries(template.template_fields)) {
-        const textValue = textData[fieldName] || ''
-        
-        console.log(`\n[FIELD] ${fieldName}:`, {
-          config: JSON.stringify(fieldConfig, null, 2),
-          textValue,
-          hasPosition: fieldConfig?.position,
-          hasX: fieldConfig?.position?.x !== undefined,
-          hasY: fieldConfig?.position?.y !== undefined,
-          align: fieldConfig?.align,
-          width: fieldConfig?.width
-        })
-        
-        if (fieldConfig && typeof fieldConfig === 'object') {
-          // Get position from fieldConfig (new structure from configure page)
-          const position = fieldConfig.position
-          const fontConfig = fieldConfig.font || {}
-          
-          if (position && position.x !== undefined && position.y !== undefined) {
-            const fontSize = fontConfig.size || 12
-            const fontToUse = (fontConfig.weight === 'bold') ? boldFont : font
-            const fontColor = fontConfig.color || '#000000'
-            
-            // Convert color from hex to RGB
-            const hexColor = fontColor.replace('#', '')
-            const r = parseInt(hexColor.substring(0, 2), 16) / 255
-            const g = parseInt(hexColor.substring(2, 4), 16) / 255
-            const b = parseInt(hexColor.substring(4, 6), 16) / 255
-
-            // Convert Y coordinate from top-left (HTML) to bottom-left (PDF)
-            // PDF text is positioned from baseline, not top-left
-            // PDF y=0 is at bottom, HTML y=0 is at top
-            // We need to add a bit more offset to match the visual position in editor
-            const fontAscent = fontToUse.heightAtSize(fontSize)
-            const additionalOffset = fontSize * 0.3 // Add extra offset to lower the text
-            const pdfY = height - position.y - fontAscent - additionalOffset
-            
-            // Handle text alignment (left, center, right)
-            let finalX = position.x
-            const align = fieldConfig.align || 'left'
-            const fieldWidth = fieldConfig.width || 200
-            
-            if (align === 'center' || align === 'centre') {
-              // Calculate text width and center it
-              const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
-              // Center calculation: 
-              // fieldLeftEdge = position.x
-              // fieldCenter = position.x + (fieldWidth / 2)
-              // textLeft = fieldCenter - (textWidth / 2)
-              finalX = position.x + (fieldWidth / 2) - (textWidth / 2)
-              
-              console.log(`[CENTER CALC] ${fieldName}:`, {
-                fieldLeft: position.x,
-                fieldCenter: position.x + (fieldWidth / 2),
-                textWidth,
-                finalX,
-                calculation: `finalX = ${position.x} + (${fieldWidth} / 2) - (${textWidth} / 2) = ${finalX}`
-              })
-            } else if (align === 'right') {
-              // Right align text
-              const textWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
-              finalX = position.x + fieldWidth - textWidth
-            }
-            
-            const actualTextWidth = fontToUse.widthOfTextAtSize(textValue, fontSize)
-            
-            console.log(`[DRAW] ${fieldName}:`, {
-              originalX: position.x,
-              finalX,
-              pdfY,
-              originalY: position.y,
-              size: fontSize,
-              align,
-              fieldWidth,
-              textWidth: actualTextWidth,
-              fieldLeftEdge: position.x,
-              fieldRightEdge: position.x + fieldWidth,
-              fieldCenterX: position.x + fieldWidth / 2,
-              textLeftEdge: finalX,
-              textRightEdge: finalX + actualTextWidth,
-              text: textValue,
-              pageCenterX: width / 2,
-              offsetFromPageCenter: finalX - (width / 2)
-            })
-
-            firstPage.drawText(textValue, {
-              x: finalX,
-              y: pdfY,
-              size: fontSize,
-              font: fontToUse,
-              color: rgb(r, g, b)
-            })
-          }
-        }
-      }
-    }
-
-    // Add QR code to the PDF
-    try {
-      // Convert data URL to image bytes
-      const qrCodeResponse = await fetch(qrCodeDataUrl)
-      const qrCodeArrayBuffer = await qrCodeResponse.arrayBuffer()
-      const qrCodeBytes = new Uint8Array(qrCodeArrayBuffer)
-      
-      // Embed QR code image
-      const qrCodeImage = await pdfDoc.embedPng(qrCodeBytes)
-      
-      // Get QR code size and position from template configuration
-      // Note: PDF coordinates start from bottom-left (0,0 at bottom-left corner)
-      // But the configure page uses top-left coordinate system (0,0 at top-left)
-      // So we need to convert: pdf_y = page_height - html_y - object_height
-      const qrCodeSize = template.qr_code_size || 100
-      
-      // Default to bottom right corner if not configured
-      let qrCodeX = template.qr_code_position_x ?? (width - qrCodeSize - 20)
-      let qrCodeY = 20
-      
-      // Convert Y coordinate from top-left (HTML) to bottom-left (PDF) system
-      if (template.qr_code_position_y !== undefined && template.qr_code_position_y !== null) {
-        // In configure page: y=0 means top, y=595 means bottom
-        // In PDF: y=0 means bottom, y=height means top
-        // Conversion: pdf_y = height - html_y - qrCodeSize
-        qrCodeY = height - template.qr_code_position_y - qrCodeSize
-      } else {
-        // Default position at bottom right
-        qrCodeY = 20
-      }
-      
-      // Debug logging
-      console.log('QR Code Positioning:', {
-        pageSize: { width, height },
-        configuredX: template.qr_code_position_x,
-        configuredY: template.qr_code_position_y,
-        configuredSize: template.qr_code_size,
-        finalX: qrCodeX,
-        finalY: qrCodeY,
-        qrCodeSize
-      })
-      
-      firstPage.drawImage(qrCodeImage, {
-        x: qrCodeX,
-        y: qrCodeY,
-        width: qrCodeSize,
-        height: qrCodeSize
-      })
-    } catch (qrError) {
-      console.warn('Failed to add QR code to PDF:', qrError)
-    }
-
-    // Add signature if available
-    if (certificateData.signatory_signature_url) {
-      try {
-        const signatureBytes = await downloadSignatureImage(certificateData.signatory_signature_url)
-        const signatureImage = await pdfDoc.embedPng(signatureBytes)
-        
-        // Add signature (adjust position based on template)
-        firstPage.drawImage(signatureImage, {
-          x: width - 150,
-          y: height - 200,
-          width: 100,
-          height: 50
-        })
-      } catch (signatureError) {
-        console.warn('Failed to add signature to PDF:', signatureError)
-      }
-    }
-
-    // Serialize PDF
-    const pdfBytes = await pdfDoc.save()
-
-    // Upload PDF to storage
     const pdfFileName = `certificate-${certificateData.certificate_number}-${Date.now()}.pdf`
+    console.log('Uploading PDF to storage:', { bucket: 'certificates', fileName: pdfFileName })
+    
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('certificates')
       .upload(pdfFileName, pdfBytes, {
@@ -352,13 +301,19 @@ export async function generateCertificatePDF(
       })
 
     if (uploadError) {
-      throw new Error(`Failed to upload certificate PDF: ${uploadError.message}`)
+      console.error('PDF upload error:', uploadError)
+      throw new Error(`Failed to upload certificate PDF: ${uploadError.message}. Make sure 'certificates' bucket exists.`)
     }
+    
+    console.log('PDF uploaded successfully:', uploadData)
 
-    // Get public URL
     const { data: urlData } = supabaseAdmin.storage
       .from('certificates')
       .getPublicUrl(pdfFileName)
+    
+    if (!urlData?.publicUrl) {
+      throw new Error('Failed to get public URL for PDF')
+    }
 
     return {
       pdfBuffer: pdfBytes,
@@ -375,10 +330,18 @@ export async function generateCertificatePDF(
  */
 export async function generateCompleteCertificate(
   templateId: string,
-  certificateData: CertificateData
+  certificateData: CertificateData,
+  isWebinar: boolean = false
 ): Promise<{ certificateId: string; pdfUrl: string; qrCodeUrl: string }> {
   try {
     const supabaseAdmin = getSupabaseAdmin()
+    
+    console.log('Starting certificate generation:', {
+      templateId,
+      certificateNumber: certificateData.certificate_number,
+      recipientName: certificateData.recipient_name
+    })
+    
     // Get template data
     const { data: template, error: templateError } = await supabaseAdmin
       .from('certificate_templates')
@@ -386,24 +349,94 @@ export async function generateCompleteCertificate(
       .eq('id', templateId)
       .single()
 
-    if (templateError || !template) {
-      throw new Error('Template not found')
+    if (templateError) {
+      console.error('Template error:', templateError)
+      throw new Error(`Template error: ${templateError.message}`)
     }
+    
+    if (!template) {
+      console.error('Template not found for ID:', templateId)
+      throw new Error(`Template not found for ID: ${templateId}`)
+    }
+    
+    if (!template.is_active) {
+      console.error('Template is not active:', templateId)
+      throw new Error(`Template is not active: ${templateId}`)
+    }
+    
+    if (!template.template_pdf_url) {
+      console.error('Template PDF URL is missing:', templateId)
+      throw new Error(`Template PDF URL is missing for template: ${templateId}`)
+    }
+    
+    console.log('Template found:', {
+      id: template.id,
+      name: template.template_name,
+      hasPdfUrl: !!template.template_pdf_url,
+      isActive: template.is_active
+    })
 
     // Generate QR code
-    const { qrCodeDataUrl, qrCodeUrl } = await generateQRCode(certificateData.certificate_number)
+    console.log('Generating QR code...', { isWebinar, certificateNumber: certificateData.certificate_number })
+    const { qrCodeDataUrl, qrCodeUrl } = await generateQRCode(certificateData.certificate_number, isWebinar)
+    console.log('QR code generated:', { qrCodeUrl })
 
     // Generate PDF
+    console.log('Generating PDF...')
     const { pdfUrl } = await generateCertificatePDF(template, certificateData, qrCodeDataUrl)
+    console.log('PDF generated:', { pdfUrl })
+
+    if (!pdfUrl || !qrCodeUrl) {
+      throw new Error(`Missing URLs: pdfUrl=${!!pdfUrl}, qrCodeUrl=${!!qrCodeUrl}`)
+    }
 
     return {
       certificateId: templateId,
       pdfUrl,
       qrCodeUrl
     }
-  } catch (error) {
-    console.error('Error in complete certificate generation:', error)
+  } catch (error: any) {
+    console.error('Error in complete certificate generation:', {
+      error: error?.message,
+      stack: error?.stack,
+      templateId,
+      certificateNumber: certificateData.certificate_number
+    })
     throw error
+  }
+}
+
+export async function renderCertificateBuffer(
+  templateId: string,
+  certificateData: CertificateData,
+  isWebinar: boolean = false
+): Promise<{ pdfBuffer: Uint8Array; qrCodeDataUrl: string }> {
+  const supabaseAdmin = getSupabaseAdmin()
+
+  const { data: template, error: templateError } = await supabaseAdmin
+    .from('certificate_templates')
+    .select('*')
+    .eq('id', templateId)
+    .single()
+
+  if (templateError || !template) {
+    throw new Error(templateError?.message || 'Template not found')
+  }
+
+  if (!template.is_active || !template.template_pdf_url) {
+    throw new Error('Template is not active or missing PDF URL')
+  }
+
+  const { qrCodeDataUrl } = await generateQRCodeDataUrl(
+    certificateData.certificate_number,
+    isWebinar
+  )
+
+  const pdfBuffer = await renderCertificatePdfBytes(template as CertificateTemplate, certificateData, qrCodeDataUrl)
+
+  return {
+    pdfBuffer,
+    qrCodeDataUrl
   }
 }
 

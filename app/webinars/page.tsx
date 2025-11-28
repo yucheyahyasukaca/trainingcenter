@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { PublicNav } from '@/components/layout/PublicNav'
-import { Search, Calendar, TrendingUp } from 'lucide-react'
+import { Search, Calendar, TrendingUp, Award } from 'lucide-react'
 
 interface Webinar {
   id: string
@@ -59,7 +59,7 @@ export default function WebinarsListPage() {
             </p>
           </div>
 
-          {/* Search */}
+          {/* Search & Certificate Button */}
           <div className="max-w-4xl mx-auto">
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
@@ -72,6 +72,13 @@ export default function WebinarsListPage() {
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                 />
               </div>
+              <Link
+                href="/webinar-certificates"
+                className="inline-flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-lg hover:shadow-xl font-semibold whitespace-nowrap"
+              >
+                <Award className="w-5 h-5" />
+                <span>Sertifikat Webinar</span>
+              </Link>
             </div>
           </div>
         </div>

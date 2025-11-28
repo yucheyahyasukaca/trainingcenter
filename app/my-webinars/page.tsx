@@ -127,7 +127,8 @@ export default function MyWebinarsPage() {
     const platforms: Record<string, string> = {
       'microsoft-teams': 'Microsoft Teams',
       'google-meet': 'Google Meet',
-      'zoom': 'Zoom'
+      'zoom': 'Zoom',
+      'luring': 'Luring (Offline)'
     }
     return platforms[platform] || platform
   }
