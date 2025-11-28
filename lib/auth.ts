@@ -208,24 +208,19 @@ export async function signInWithGoogle() {
       throw new Error('signInWithGoogle must be called from client-side')
     }
 
-    // Force http:// for localhost (never use https:// for localhost)
-    let origin = window.location.origin
-    if (origin.includes('localhost') && origin.startsWith('https://')) {
-      origin = origin.replace('https://', 'http://')
-      console.warn('⚠️ Changed origin from https:// to http:// for localhost')
-    }
-    
-    const redirectUrl = `${origin}/auth/callback`
-    console.log('🔗 Redirect URL:', redirectUrl)
+    // Don't set redirectTo - let Supabase use its own default redirect URI
+    // Supabase will redirect to http://localhost:8000/auth/v1/callback
+    // which then redirects to our frontend callback page
+    console.log('🔗 Using Supabase default redirect URI: http://localhost:8000/auth/v1/callback')
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
-        }
+        },
+        skipBrowserRedirect: false
         // flowType is set in supabase client config, not here
       }
     })
