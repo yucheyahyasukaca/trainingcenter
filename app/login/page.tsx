@@ -127,15 +127,43 @@ export default function LoginPage() {
   }
 
   async function handleGoogleLogin() {
-    toast.error('Fitur login dengan Google saat ini belum tersedia. Silakan gunakan email dan password untuk login.', {
-      duration: 5000,
-      icon: '⚠️',
-      style: {
-        background: '#FFF3CD',
-        color: '#856404',
-        border: '1px solid #FFE69C',
-      },
-    })
+    setLoading(true)
+    setError('')
+    
+    try {
+      console.log('🚀 Starting Google OAuth login...')
+      
+      // Store referral code in sessionStorage if exists
+      if (referralCode) {
+        sessionStorage.setItem('referralCode', referralCode)
+      }
+      
+      // Store next redirect if exists
+      const next = searchParams.get('next')
+      if (next) {
+        sessionStorage.setItem('nextAfterAuth', next)
+      }
+      
+      // Store redirect param if exists
+      const redirectTo = searchParams.get('redirect')
+      if (redirectTo) {
+        sessionStorage.setItem('redirectAfterAuth', redirectTo)
+      }
+      
+      // Initiate Google OAuth login
+      await signInWithGoogle()
+      
+      // Note: User will be redirected to Google, then to /auth/callback
+      // The callback route will handle the rest
+    } catch (err: any) {
+      console.error('❌ Google login error:', err)
+      setError(err.message || 'Gagal login dengan Google. Silakan coba lagi.')
+      setLoading(false)
+      toast.error(err.message || 'Gagal login dengan Google. Silakan coba lagi.', {
+        duration: 5000,
+        icon: '❌',
+      })
+    }
   }
 
 
