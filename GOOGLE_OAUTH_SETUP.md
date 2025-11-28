@@ -164,9 +164,19 @@ SELECT * FROM user_profiles WHERE email = 'your-email@gmail.com';
 1. Buka Google Cloud Console → Credentials
 2. Edit OAuth 2.0 Client ID Anda
 3. Pastikan **Authorized redirect URIs** berisi:
+   
+   **Untuk Development (Local):**
    ```
    http://localhost:8000/auth/v1/callback
    ```
+   
+   **Untuk Production (supabase.garuda-21.com):**
+   ```
+   https://supabase.garuda-21.com/auth/v1/callback
+   ```
+   
+   **PENTING**: Tambahkan KEDUA redirect URI jika Anda menggunakan keduanya (development dan production)
+
 4. Simpan perubahan
 5. Tunggu beberapa menit untuk propagasi
 6. Coba login lagi
@@ -225,28 +235,51 @@ redirectTo: `${window.location.origin}/dashboard`
 
 ## 🚀 Production Setup
 
-Untuk production, ubah konfigurasi berikut:
+Untuk production dengan domain `supabase.garuda-21.com`, ubah konfigurasi berikut:
 
 ### 1. Google Cloud Console
 
 Tambahkan domain production:
-- **Authorized JavaScript origins**: `https://yourdomain.com`
-- **Authorized redirect URIs**: `https://yourdomain.com/auth/v1/callback`
+
+**Authorized JavaScript origins** (domain frontend aplikasi Next.js):
+- `https://academy.garuda-21.com` ← **Ini yang benar untuk point 4**
+- Jika masih development, tambahkan juga: `http://localhost:3000`
+
+**Authorized redirect URIs** (harus sesuai dengan yang dikirim oleh Supabase):
+- `https://supabase.garuda-21.com/auth/v1/callback` ← **Ideal: Supabase backend**
+- `https://academy.garuda-21.com/auth/v1/callback` ← **Jika Supabase mengirim ini, tambahkan juga**
+- Jika masih development, tambahkan juga: `http://localhost:8000/auth/v1/callback`
+
+**⚠️ PENTING**: 
+- Jika di query string parameters Anda melihat `redirect_uri` = `academy.garuda-21.com/auth/v1/callback`, maka **TAMBAHKAN** URI tersebut ke Authorized redirect URIs
+- Idealnya Supabase harus mengirim `redirect_uri` ke `supabase.garuda-21.com/auth/v1/callback`, tapi jika tidak, tambahkan yang dikirim oleh Supabase
+
+**Penjelasan**:
+- **Authorized JavaScript origins** = domain di mana aplikasi frontend (Next.js) berjalan → `academy.garuda-21.com`
+- **Authorized redirect URIs** = URI yang dikirim oleh Supabase ke Google (bisa backend atau frontend tergantung konfigurasi)
 
 ### 2. Supabase Environment
 
-Update `docker-compose.yml`:
+Update `supabase/docker-compose.yml`:
 ```yaml
-GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "https://yourdomain.com/auth/v1/callback"
-GOTRUE_SITE_URL: https://yourdomain.com
+API_EXTERNAL_URL: https://supabase.garuda-21.com
+GOTRUE_SITE_URL: https://academy.garuda-21.com  # domain aplikasi frontend
+GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: "https://supabase.garuda-21.com/auth/v1/callback"
 ```
+
+**⚠️ Catatan**: 
+- Jika setelah konfigurasi ini, Supabase masih mengirim `redirect_uri` ke `academy.garuda-21.com/auth/v1/callback`, maka tambahkan URI tersebut juga ke Google Cloud Console
+- Pastikan `API_EXTERNAL_URL` mengarah ke domain Supabase backend (`supabase.garuda-21.com`)
+- `GOTRUE_SITE_URL` adalah domain frontend (`academy.garuda-21.com`)
 
 ### 3. Application
 
-Update `lib/auth.ts`:
-```typescript
-redirectTo: `https://yourdomain.com/dashboard`
+Pastikan environment variable `.env.local` atau production environment:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://supabase.garuda-21.com
 ```
+
+File `lib/auth.ts` tidak perlu diubah karena sudah menggunakan `window.location.origin` yang akan otomatis menyesuaikan.
 
 ---
 
