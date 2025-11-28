@@ -123,10 +123,15 @@ export default function Toast({ toast, onRemove }: ToastProps) {
               </p>
             )}
             {toast.action && (
-              <div className="mt-3">
+              <div className="mt-3 flex">
                 <button
-                  onClick={toast.action.onClick}
-                  className={`text-sm font-medium ${colorClasses.title} hover:underline focus:outline-none`}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    toast.action?.onClick()
+                  }}
+                  className={`px-4 py-2 text-sm font-medium rounded-md text-white ${colorClasses.progress} border-2 ${colorClasses.border} hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm`}
                 >
                   {toast.action.label}
                 </button>

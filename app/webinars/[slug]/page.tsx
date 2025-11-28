@@ -8,6 +8,7 @@ import { PublicNav } from '@/components/layout/PublicNav'
 import { supabase } from '@/lib/supabase'
 import { Calendar, Clock, CheckCircle, Download, Video, MessageCircle, ChevronDown, Sparkles, Award, Users, X } from 'lucide-react'
 import { cleanEmailHTML } from '@/lib/html-utils'
+import WebinarRegistrationModal from '@/components/webinar/WebinarRegistrationModal'
 
 interface Speaker {
   id: string
@@ -45,6 +46,7 @@ export default function WebinarLandingPage() {
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [participantCount, setParticipantCount] = useState<number>(0)
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
 
   const isEnded = useMemo(() => webinar ? new Date(webinar.end_time) < new Date() : false, [webinar])
   const isRegistrationClosed = useMemo(() => {
@@ -149,19 +151,13 @@ export default function WebinarLandingPage() {
 
   async function handleRegister() {
     if (!webinar) return
-    // Selalu arahkan ke register sesuai requirement
-    if (!user) {
-      router.push(`/register?next=/webinars/${webinar.slug}`)
-      return
-    }
-    try {
-      setRegistering(true)
-      await supabase.from('webinar_registrations').insert({ webinar_id: webinar.id, user_id: user.id })
-      setRegistered(true)
-      setParticipantCount(prev => prev + 1)
-    } finally {
-      setRegistering(false)
-    }
+    // Selalu tampilkan modal form untuk mengisi data diri
+    setShowRegistrationModal(true)
+  }
+
+  function handleRegistrationSuccess() {
+    setRegistered(true)
+    setParticipantCount(prev => prev + 1)
   }
 
   function parseYouTubeId(url: string) {
@@ -250,11 +246,11 @@ export default function WebinarLandingPage() {
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base">
                     <div className="flex items-center gap-2 bg-primary-50 px-3 py-1.5 rounded-full text-primary-700">
                       <Calendar className="w-4 h-4" />
-                      <span>{new Date(webinar.start_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      <span>{new Date(webinar.start_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' })}</span>
                     </div>
                     <div className="flex items-center gap-2 bg-primary-50 px-3 py-1.5 rounded-full text-primary-700">
                       <Clock className="w-4 h-4" />
-                      <span>{new Date(webinar.start_time).toLocaleTimeString('id-ID', { timeStyle: 'short' })} — {new Date(webinar.end_time).toLocaleTimeString('id-ID', { timeStyle: 'short' })}</span>
+                      <span>{new Date(webinar.start_time).toLocaleTimeString('id-ID', { timeStyle: 'short', timeZone: 'Asia/Jakarta' })} — {new Date(webinar.end_time).toLocaleTimeString('id-ID', { timeStyle: 'short', timeZone: 'Asia/Jakarta' })}</span>
                     </div>
                   </div>
                 </div>
@@ -650,6 +646,16 @@ export default function WebinarLandingPage() {
           </>
         )}
       </div>
+
+      {/* Registration Modal */}
+      {webinar && (
+        <WebinarRegistrationModal
+          isOpen={showRegistrationModal}
+          onClose={() => setShowRegistrationModal(false)}
+          webinarSlug={webinar.slug}
+          onSuccess={handleRegistrationSuccess}
+        />
+      )}
     </div>
   )
 }

@@ -149,7 +149,7 @@ export default function WebinarsListPage() {
                     })()}
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-gray-700">
-                        {new Date(w.start_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}
+                        {new Date(w.start_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' })}
                       </div>
                     </div>
                   </div>

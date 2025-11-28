@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle } from '@/lib/auth'
-import { Mail, Lock, AlertCircle } from 'lucide-react'
+import { Mail, Lock, AlertCircle, X, KeyRound } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -49,6 +52,47 @@ export default function LoginPage() {
       } catch {}
     })()
   }, [searchParams])
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resetEmail) {
+      toast.error('Email wajib diisi')
+      return
+    }
+
+    setResetLoading(true)
+    try {
+      console.log('🔄 Requesting password reset for:', resetEmail)
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: resetEmail })
+      })
+
+      const data = await response.json()
+      console.log('📥 Password reset response:', { status: response.status, data })
+
+      if (response.ok) {
+        if (data.success) {
+          toast.success(data.message || 'Password baru telah dikirim ke email Anda. Silakan cek inbox dan folder spam.')
+          setShowResetPasswordModal(false)
+          setResetEmail('')
+        } else {
+          toast.error(data.error || 'Gagal mereset password')
+        }
+      } else {
+        toast.error(data.error || 'Gagal mereset password')
+        console.error('Password reset failed:', data)
+      }
+    } catch (err: any) {
+      console.error('❌ Error resetting password:', err)
+      toast.error('Terjadi kesalahan saat mereset password. Silakan coba lagi atau hubungi support.')
+    } finally {
+      setResetLoading(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -295,6 +339,15 @@ export default function LoginPage() {
         {/* Footer Info */}
         <div className="mt-6 text-center space-y-3">
           <p className="text-sm text-gray-600">
+            <button
+              type="button"
+              onClick={() => setShowResetPasswordModal(true)}
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              Lupa Password?
+            </button>
+          </p>
+          <p className="text-sm text-gray-600">
             Belum punya akun?{' '}
             <a href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
               Daftar di sini
@@ -311,6 +364,86 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Reset Password Modal */}
+      {showResetPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                  <KeyRound className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Reset Password
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowResetPasswordModal(false)
+                  setResetEmail('')
+                }}
+                className="rounded-md p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                disabled={resetLoading}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Masukkan email Anda"
+                    autoComplete="email"
+                    disabled={resetLoading}
+                  />
+                </div>
+                <p className="mt-2 text-sm text-gray-500">
+                  Password baru akan dikirim ke email Anda.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 space-y-2 space-y-reverse sm:space-y-0 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetPasswordModal(false)
+                    setResetEmail('')
+                  }}
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {resetLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    'Kirim Password Baru'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
