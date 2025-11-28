@@ -6,6 +6,7 @@ import { EnrollmentStatusChart } from '@/components/dashboard/EnrollmentStatusCh
 import { MonthlyEnrollmentsChart } from '@/components/statistics/MonthlyEnrollmentsChart'
 import { TrainerPerformance } from '@/components/statistics/TrainerPerformance'
 import { ProgramRevenue } from '@/components/statistics/ProgramRevenue'
+import { WebinarStatistics } from '@/components/statistics/WebinarStatistics'
 
 export default function StatisticsPage() {
   return (
@@ -28,6 +29,8 @@ export default function StatisticsPage() {
         <TrainerPerformance />
         <ProgramRevenue />
       </div>
+
+      <WebinarStatistics />
     </div>
   )
 }

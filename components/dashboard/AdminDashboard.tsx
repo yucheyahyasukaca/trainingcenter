@@ -13,6 +13,7 @@ import { UsersChart } from './UsersChart'
 import { SystemOverview } from './SystemOverview'
 import { ManagerManagement } from './ManagerManagement'
 import { MobileNotificationToast } from '@/components/ui/MobileNotificationToast'
+import { WebinarStatistics } from '@/components/statistics/WebinarStatistics'
 import { 
   BarChart3,
   LayoutDashboard,
@@ -112,6 +113,9 @@ function AdminDashboardContent() {
             <ProgramsChart />
             <EnrollmentStatusChart />
           </div>
+
+          {/* Webinar Statistics */}
+          <WebinarStatistics />
 
           {/* System Overview & Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

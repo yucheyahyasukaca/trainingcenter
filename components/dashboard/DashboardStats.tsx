@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, UserCog, GraduationCap, Calendar, DollarSign, Shield } from 'lucide-react'
+import { Users, UserCog, GraduationCap, Calendar, DollarSign, Shield, Video } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -11,7 +11,7 @@ interface Stats {
   totalTrainers: number
   totalEnrollments: number
   totalRevenue: number
-  systemHealth: number
+  totalWebinars: number
 }
 
 export function DashboardStats() {
@@ -21,7 +21,7 @@ export function DashboardStats() {
     totalTrainers: 0,
     totalEnrollments: 0,
     totalRevenue: 0,
-    systemHealth: 0,
+    totalWebinars: 0,
   })
   const [loading, setLoading] = useState(true)
 
@@ -30,40 +30,17 @@ export function DashboardStats() {
       try {
         console.log('🔄 Fetching dashboard stats...')
         
-        const [programs, participants, trainers, enrollments, revenue] = await Promise.all([
+        const [programs, participants, trainers, enrollments, revenue, webinars] = await Promise.all([
           supabase.from('programs').select('id', { count: 'exact', head: true }),
           supabase.from('participants').select('id', { count: 'exact', head: true }),
           supabase.from('trainers').select('id', { count: 'exact', head: true }),
           supabase.from('enrollments').select('id', { count: 'exact', head: true }),
           supabase.from('enrollments').select('amount_paid').eq('payment_status', 'paid'),
+          supabase.from('webinars').select('id', { count: 'exact', head: true }).eq('is_published', true),
         ])
 
         // Calculate total revenue
         const totalRevenue = (revenue.data as any)?.reduce((sum: number, enrollment: any) => sum + (enrollment.amount_paid || 0), 0) || 0
-
-        // Calculate system health based on active programs and recent enrollments
-        const now = new Date()
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        
-        const [activePrograms, recentEnrollments] = await Promise.all([
-          supabase.from('programs').select('id', { count: 'exact', head: true }).eq('status', 'published'),
-          supabase.from('enrollments').select('id', { count: 'exact', head: true }).gte('enrollment_date', thirtyDaysAgo.toISOString()),
-        ])
-
-        const activeProgramsCount = activePrograms.count || 0
-        const recentEnrollmentsCount = recentEnrollments.count || 0
-        
-        // System health: 100% if active programs > 0 and recent enrollments > 0, otherwise based on activity
-        let systemHealth = 0
-        if (activeProgramsCount > 0 && recentEnrollmentsCount > 0) {
-          systemHealth = 99.9
-        } else if (activeProgramsCount > 0) {
-          systemHealth = 85.0
-        } else if (recentEnrollmentsCount > 0) {
-          systemHealth = 70.0
-        } else {
-          systemHealth = 50.0
-        }
 
         console.log('📊 Stats fetched:', {
           programs: programs.count,
@@ -71,7 +48,7 @@ export function DashboardStats() {
           trainers: trainers.count,
           enrollments: enrollments.count,
           revenue: totalRevenue,
-          systemHealth
+          webinars: webinars.count
         })
 
         setStats({
@@ -80,7 +57,7 @@ export function DashboardStats() {
           totalTrainers: trainers.count || 0,
           totalEnrollments: enrollments.count || 0,
           totalRevenue,
-          systemHealth,
+          totalWebinars: webinars.count || 0,
         })
       } catch (error) {
         console.error('❌ Error fetching stats:', error)
@@ -91,7 +68,7 @@ export function DashboardStats() {
           totalTrainers: 0,
           totalEnrollments: 0,
           totalRevenue: 0,
-          systemHealth: 0,
+          totalWebinars: 0,
         })
       } finally {
         setLoading(false)
@@ -130,13 +107,13 @@ export function DashboardStats() {
       trend: '+18%',
     },
     {
-      label: 'System Health',
-      value: `${stats.systemHealth}%`,
-      icon: Shield,
-      color: 'bg-green-500',
-      lightColor: 'bg-green-50',
-      textColor: 'text-green-700',
-      status: stats.systemHealth >= 90 ? 'Stable' : stats.systemHealth >= 70 ? 'Warning' : 'Critical',
+      label: 'Webinars',
+      value: stats.totalWebinars,
+      icon: Video,
+      color: 'bg-teal-500',
+      lightColor: 'bg-teal-50',
+      textColor: 'text-teal-700',
+      trend: stats.totalWebinars > 0 ? `${stats.totalWebinars} Published` : 'No webinars',
     },
   ]
 
