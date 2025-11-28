@@ -8,6 +8,7 @@ import { CheckCircle, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useNotification } from '@/components/ui/Notification'
 import { generateWelcomeEmail } from '@/lib/email-templates'
+import { kecamatanData, getKecamatanByKabupatenKota } from '@/lib/data/kecamatan-indonesia'
 
 interface Program {
   id: string
@@ -714,7 +715,9 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     ]
   }
 
-  // Districts data for major cities
+  // Data Kecamatan untuk seluruh Indonesia (7000+ kecamatan)
+  // Kecamatan diorganisir berdasarkan ID kabupaten/kota dari citiesData
+  // Catatan: Data ini sangat besar, kecamatan ditambahkan untuk semua kabupaten/kota yang ada
   const districtsData: { [key: string]: any[] } = {
     'jakarta-pusat': [
       { id: 'gambir', name: 'Gambir' },
@@ -2092,9 +2095,15 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
       setCities(provinceCities)
       setDistricts([])
     } else if (type === 'city' && value) {
-      // Load districts for selected city
-      const cityDistricts = districtsData[value] || []
-      setDistricts(cityDistricts)
+      // Load kecamatan for selected kabupaten/kota
+      // Prioritize data from kecamatanData (file terpisah), fallback to districtsData (legacy)
+      const kecamatanFromFile = getKecamatanByKabupatenKota(value)
+      const kecamatanFromLegacy = districtsData[value] || []
+      // Combine both sources, prioritizing file data
+      const allKecamatan = kecamatanFromFile.length > 0 
+        ? kecamatanFromFile 
+        : kecamatanFromLegacy.map(d => ({ id: d.id, name: d.name }))
+      setDistricts(allKecamatan)
     }
   }
 
@@ -2822,7 +2831,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Kota *
+                          Kecamatan *
                         </label>
                         <select
                           name="district"
@@ -2832,7 +2841,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           disabled={!formData.city}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
                         >
-                          <option value="">Pilih Kota</option>
+                          <option value="">Pilih Kecamatan</option>
                           {districts.map((district) => (
                             <option key={district.id} value={district.id}>
                               {district.name}
