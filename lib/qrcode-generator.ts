@@ -8,14 +8,14 @@ import QRCode from 'qrcode'
 export async function generateCertificateQRCode(certificateNumber: string): Promise<string> {
   try {
     // Use window.location.origin if available (client-side), otherwise use env var
-    const baseUrl = typeof window !== 'undefined' 
-      ? window.location.origin 
-      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    
+    const baseUrl = typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL || 'https://academy.garuda-21.com'
+
     const verificationUrl = `${baseUrl}/certificate/verify/${certificateNumber}`
-    
+
     console.log('Generating QR code for URL:', verificationUrl)
-    
+
     // Generate QR code with high error correction
     const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
       errorCorrectionLevel: 'H',
@@ -27,7 +27,7 @@ export async function generateCertificateQRCode(certificateNumber: string): Prom
         light: '#FFFFFF'
       }
     })
-    
+
     return qrCodeDataUrl
   } catch (error) {
     console.error('Error generating QR code:', error)
@@ -42,8 +42,8 @@ export async function generateCertificateQRCode(certificateNumber: string): Prom
  */
 export async function generateCertificateQRCodeBuffer(certificateNumber: string): Promise<Buffer> {
   try {
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/certificate/verify/${certificateNumber}`
-    
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://academy.garuda-21.com'}/certificate/verify/${certificateNumber}`
+
     const qrCodeBuffer = await QRCode.toBuffer(verificationUrl, {
       errorCorrectionLevel: 'H',
       type: 'png',
@@ -54,7 +54,7 @@ export async function generateCertificateQRCodeBuffer(certificateNumber: string)
         light: '#FFFFFF'
       }
     })
-    
+
     return qrCodeBuffer
   } catch (error) {
     console.error('Error generating QR code buffer:', error)

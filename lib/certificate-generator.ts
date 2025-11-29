@@ -39,10 +39,10 @@ export interface CertificateTemplate {
  * Generate QR code for certificate verification
  */
 function getVerificationUrl(certificateNumber: string, isWebinar: boolean = false) {
-  const verifyPath = isWebinar 
+  const verifyPath = isWebinar
     ? `/webinar-certificates/verify/${certificateNumber}`
     : `/certificate/verify/${certificateNumber}`
-  return `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}${verifyPath}`
+  return `${process.env.NEXT_PUBLIC_SITE_URL || 'https://academy.garuda-21.com'}${verifyPath}`
 }
 
 async function createQrCodeAssets(verificationUrl: string) {
@@ -68,7 +68,7 @@ async function createQrCodeAssets(verificationUrl: string) {
 }
 
 export async function generateQRCode(
-  certificateNumber: string, 
+  certificateNumber: string,
   isWebinar: boolean = false
 ): Promise<{ qrCodeDataUrl: string; qrCodeUrl: string }> {
   try {
@@ -79,7 +79,7 @@ export async function generateQRCode(
     // Upload QR code to storage
     const qrFileName = `qr-${certificateNumber}-${Date.now()}.png`
     console.log('Uploading QR code to storage:', { bucket: 'certificate-qr-codes', fileName: qrFileName })
-    
+
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('certificate-qr-codes')
       .upload(qrFileName, qrCodeBuffer, {
@@ -91,14 +91,14 @@ export async function generateQRCode(
       console.error('QR code upload error:', uploadError)
       throw new Error(`Failed to upload QR code to storage: ${uploadError.message}. Make sure 'certificate-qr-codes' bucket exists.`)
     }
-    
+
     console.log('QR code uploaded successfully:', uploadData)
 
     // Get public URL
     const { data: urlData } = supabaseAdmin.storage
       .from('certificate-qr-codes')
       .getPublicUrl(qrFileName)
-    
+
     if (!urlData?.publicUrl) {
       throw new Error('Failed to get public URL for QR code')
     }
@@ -183,7 +183,7 @@ function wrapText(text: string, font: any, fontSize: number, maxWidth: number): 
       // Current line is full, start new line
       lines.push(currentLine)
       currentLine = word
-      
+
       // If single word is too long, truncate it
       const wordWidth = font.widthOfTextAtSize(word, fontSize)
       if (wordWidth > safeMaxWidth) {
@@ -218,7 +218,7 @@ async function renderCertificatePdfBytes(
 ): Promise<Uint8Array> {
   // Download template PDF
   const templatePdfBytes = await downloadTemplatePDF(template.template_pdf_url)
-  
+
   // Load PDF document
   const pdfDoc = await PDFDocument.load(templatePdfBytes)
   const pages = pdfDoc.getPages()
@@ -235,7 +235,7 @@ async function renderCertificatePdfBytes(
     [template.participant_company_field]: certificateData.recipient_company || '',
     [template.participant_position_field]: certificateData.recipient_position || '',
     [template.program_title_field]: certificateData.program_title,
-    [template.program_date_field]: certificateData.program_start_date ? 
+    [template.program_date_field]: certificateData.program_start_date ?
       `${certificateData.program_start_date} - ${certificateData.program_end_date}` : '',
     [template.completion_date_field]: certificateData.completion_date,
     [template.trainer_name_field]: certificateData.trainer_name || '',
@@ -247,16 +247,16 @@ async function renderCertificatePdfBytes(
   if (template.template_fields) {
     for (const [fieldName, fieldConfig] of Object.entries(template.template_fields)) {
       const textValue = textData[fieldName] || ''
-      
+
       if (fieldConfig && typeof fieldConfig === 'object') {
         const position = fieldConfig.position
         const fontConfig = fieldConfig.font || {}
-        
+
         if (position && position.x !== undefined && position.y !== undefined) {
           const fontSize = fontConfig.size || 12
           const fontToUse = (fontConfig.weight === 'bold') ? boldFont : font
           const fontColor = fontConfig.color || '#000000'
-          
+
           const hexColor = fontColor.replace('#', '')
           const r = parseInt(hexColor.substring(0, 2), 16) / 255
           const g = parseInt(hexColor.substring(2, 4), 16) / 255
@@ -265,31 +265,31 @@ async function renderCertificatePdfBytes(
           const fontAscent = fontToUse.heightAtSize(fontSize)
           const additionalOffset = fontSize * 0.3
           const pdfY = height - position.y - fontAscent - additionalOffset
-          
+
           const align = fieldConfig.align || 'left'
           // Use field width from config, or calculate reasonable default based on page width
           const fieldWidth = fieldConfig.width || Math.min(400, width - position.x - 20)
           const lineHeight = fontSize * 1.2 // Line height with spacing
           const maxLines = fieldConfig.maxLines || 3 // Maximum number of lines
-          
+
           // Ensure fieldWidth doesn't exceed page boundaries
           const maxAllowedWidth = width - position.x - 10 // Leave 10px margin
           const safeFieldWidth = Math.min(fieldWidth, maxAllowedWidth)
-          
+
           // Wrap text to fit within field width
           const wrappedLines = wrapText(textValue, fontToUse, fontSize, safeFieldWidth)
           const linesToRender = wrappedLines.slice(0, maxLines) // Limit to maxLines
-          
+
           // Render each line
           linesToRender.forEach((line, lineIndex) => {
             const lineY = pdfY - (lineIndex * lineHeight)
             const maxX = position.x + safeFieldWidth
             const minX = position.x
-            
+
             // First, ensure the line itself fits within fieldWidth
             let textToRender = line
             let textWidth = fontToUse.widthOfTextAtSize(line, fontSize)
-            
+
             // If text exceeds field width, truncate it
             if (textWidth > fieldWidth) {
               let truncatedLine = line
@@ -302,7 +302,7 @@ async function renderCertificatePdfBytes(
               textToRender = truncatedLine
               textWidth = fontToUse.widthOfTextAtSize(textToRender, fontSize)
             }
-            
+
             // Calculate X position based on alignment
             let finalX = minX
             if (align === 'center' || align === 'centre') {
@@ -310,10 +310,10 @@ async function renderCertificatePdfBytes(
             } else if (align === 'right') {
               finalX = minX + safeFieldWidth - textWidth
             }
-            
+
             // Ensure X position is within boundaries
             finalX = Math.max(minX, Math.min(finalX, maxX - textWidth))
-            
+
             // Final safety check: ensure text doesn't exceed boundaries
             if (finalX + textWidth > maxX) {
               // If still exceeds, adjust to fit
@@ -322,7 +322,7 @@ async function renderCertificatePdfBytes(
             if (finalX < minX) {
               finalX = minX
             }
-            
+
             firstPage.drawText(textToRender, {
               x: finalX,
               y: lineY,
@@ -345,11 +345,11 @@ async function renderCertificatePdfBytes(
     const qrCodeSize = template.qr_code_size || 100
     let qrCodeX = template.qr_code_position_x ?? (width - qrCodeSize - 20)
     let qrCodeY = 20
-    
+
     if (template.qr_code_position_y !== undefined && template.qr_code_position_y !== null) {
       qrCodeY = height - template.qr_code_position_y - qrCodeSize
     }
-    
+
     firstPage.drawImage(qrCodeImage, {
       x: qrCodeX,
       y: qrCodeY,
@@ -390,7 +390,7 @@ export async function generateCertificatePDF(
 
     const pdfFileName = `certificate-${certificateData.certificate_number}-${Date.now()}.pdf`
     console.log('Uploading PDF to storage:', { bucket: 'certificates', fileName: pdfFileName })
-    
+
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('certificates')
       .upload(pdfFileName, pdfBytes, {
@@ -402,13 +402,13 @@ export async function generateCertificatePDF(
       console.error('PDF upload error:', uploadError)
       throw new Error(`Failed to upload certificate PDF: ${uploadError.message}. Make sure 'certificates' bucket exists.`)
     }
-    
+
     console.log('PDF uploaded successfully:', uploadData)
 
     const { data: urlData } = supabaseAdmin.storage
       .from('certificates')
       .getPublicUrl(pdfFileName)
-    
+
     if (!urlData?.publicUrl) {
       throw new Error('Failed to get public URL for PDF')
     }
@@ -433,13 +433,13 @@ export async function generateCompleteCertificate(
 ): Promise<{ certificateId: string; pdfUrl: string; qrCodeUrl: string }> {
   try {
     const supabaseAdmin = getSupabaseAdmin()
-    
+
     console.log('Starting certificate generation:', {
       templateId,
       certificateNumber: certificateData.certificate_number,
       recipientName: certificateData.recipient_name
     })
-    
+
     // Get template data
     const { data: template, error: templateError } = await supabaseAdmin
       .from('certificate_templates')
@@ -451,22 +451,22 @@ export async function generateCompleteCertificate(
       console.error('Template error:', templateError)
       throw new Error(`Template error: ${templateError.message}`)
     }
-    
+
     if (!template) {
       console.error('Template not found for ID:', templateId)
       throw new Error(`Template not found for ID: ${templateId}`)
     }
-    
+
     if (!template.is_active) {
       console.error('Template is not active:', templateId)
       throw new Error(`Template is not active: ${templateId}`)
     }
-    
+
     if (!template.template_pdf_url) {
       console.error('Template PDF URL is missing:', templateId)
       throw new Error(`Template PDF URL is missing for template: ${templateId}`)
     }
-    
+
     console.log('Template found:', {
       id: template.id,
       name: template.template_name,
