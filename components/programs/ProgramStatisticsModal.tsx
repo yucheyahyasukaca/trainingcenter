@@ -76,8 +76,8 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
       }
 
       // Get unique participant IDs
-      const participantIds = [...new Set(enrollments.map((e: any) => e.participant_id).filter(Boolean))]
-      
+      const participantIds = Array.from(new Set(enrollments.map((e: any) => e.participant_id).filter(Boolean)))
+
       if (participantIds.length === 0) {
         setStats({
           total: enrollments.length,
@@ -92,36 +92,54 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
         return
       }
 
-      // Fetch participants (jenjang/provinsi/kabupaten are in user_profiles, not participants)
-      const { data: participants, error: participantsError } = await supabase
-        .from('participants')
-        .select('id, user_id')
-        .in('id', participantIds)
+      // Helper to chunk array
+      const chunkArray = (arr: any[], size: number) => {
+        return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+          arr.slice(i * size, i * size + size)
+        )
+      }
 
-      if (participantsError) {
-        console.error('Error fetching participants:', participantsError)
-        // Continue even if participants fetch fails
+      // Fetch participants (jenjang/provinsi/kabupaten are in user_profiles, not participants)
+      // Batching to avoid URI too large error
+      let participants: any[] = []
+      const participantIdChunks = chunkArray(participantIds, 50)
+
+      for (const chunk of participantIdChunks) {
+        const { data: chunkData, error: chunkError } = await supabase
+          .from('participants')
+          .select('id, user_id')
+          .in('id', chunk)
+
+        if (chunkError) {
+          console.error('Error fetching participants chunk:', chunkError)
+        } else if (chunkData) {
+          participants = [...participants, ...chunkData]
+        }
       }
 
       // Get unique user IDs from participants
-      const userIds = [...new Set(
+      const userIds = Array.from(new Set(
         (participants || [])
           .map((p: any) => p?.user_id)
           .filter(Boolean)
-      )]
+      ))
 
       // Fetch user_profiles if we have user IDs
       let userProfiles: any[] = []
       if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('user_profiles')
-          .select('id, jenjang, provinsi, kabupaten')
-          .in('id', userIds)
+        const userIdChunks = chunkArray(userIds, 50)
 
-        if (profilesError) {
-          console.error('Error fetching user_profiles:', profilesError)
-        } else {
-          userProfiles = profiles || []
+        for (const chunk of userIdChunks) {
+          const { data: chunkData, error: chunkError } = await supabase
+            .from('user_profiles')
+            .select('id, jenjang, provinsi, kabupaten')
+            .in('id', chunk)
+
+          if (chunkError) {
+            console.error('Error fetching user_profiles chunk:', chunkError)
+          } else if (chunkData) {
+            userProfiles = [...userProfiles, ...chunkData]
+          }
         }
       }
 
@@ -149,7 +167,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
         }
 
         // Get participant data from map
-        const participant = enrollment.participant_id 
+        const participant = enrollment.participant_id
           ? participantsMap.get(enrollment.participant_id)
           : null
 
@@ -172,15 +190,15 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
 
           // Count by jenjang, provinsi, kabupaten
           if (jenjang) {
-            processedStats.byJenjang[jenjang] = 
+            processedStats.byJenjang[jenjang] =
               (processedStats.byJenjang[jenjang] || 0) + 1
           }
           if (provinsi) {
-            processedStats.byProvinsi[provinsi] = 
+            processedStats.byProvinsi[provinsi] =
               (processedStats.byProvinsi[provinsi] || 0) + 1
           }
           if (kabupaten) {
-            processedStats.byKabupaten[kabupaten] = 
+            processedStats.byKabupaten[kabupaten] =
               (processedStats.byKabupaten[kabupaten] || 0) + 1
           }
         }
@@ -238,7 +256,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
@@ -309,7 +327,7 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
               {/* Filter Section */}
               <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Filter Data</h3>
-                
+
                 {/* Main Filter Buttons */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   <button
@@ -317,11 +335,10 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                       setSelectedFilter('jenjang')
                       setSelectedValue('all')
                     }}
-                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      selectedFilter === 'jenjang'
-                        ? 'bg-primary-600 text-white shadow-md'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                    }`}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${selectedFilter === 'jenjang'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                      }`}
                   >
                     Jenjang
                   </button>
@@ -330,11 +347,10 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                       setSelectedFilter('provinsi')
                       setSelectedValue('all')
                     }}
-                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      selectedFilter === 'provinsi'
-                        ? 'bg-primary-600 text-white shadow-md'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                    }`}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${selectedFilter === 'provinsi'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                      }`}
                   >
                     Provinsi
                   </button>
@@ -343,11 +359,10 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                       setSelectedFilter('kabupaten')
                       setSelectedValue('all')
                     }}
-                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      selectedFilter === 'kabupaten'
-                        ? 'bg-primary-600 text-white shadow-md'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                    }`}
+                    className={`px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${selectedFilter === 'kabupaten'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                      }`}
                   >
                     Kabupaten
                   </button>
@@ -360,11 +375,10 @@ export function ProgramStatisticsModal({ isOpen, onClose, programId }: ProgramSt
                       <button
                         key={option}
                         onClick={() => setSelectedValue(option)}
-                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                          selectedValue === option
-                            ? 'bg-primary-100 text-primary-700 border-2 border-primary-600'
-                            : 'bg-white text-gray-600 border border-gray-300 hover:border-primary-400'
-                        }`}
+                        className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${selectedValue === option
+                          ? 'bg-primary-100 text-primary-700 border-2 border-primary-600'
+                          : 'bg-white text-gray-600 border border-gray-300 hover:border-primary-400'
+                          }`}
                       >
                         {option === 'all' ? 'Semua' : option}
                       </button>
