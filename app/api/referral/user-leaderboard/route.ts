@@ -7,48 +7,58 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient()
-    
+
     // Get all users who have referral codes (not just role = 'user')
     // This includes all users (with any role) who have referral codes
     const { data: referralCodesData } = await supabase
       .from('referral_codes')
       .select('trainer_id')
-    
+
     const trainerIds = [...new Set(referralCodesData?.map((r: any) => r.trainer_id) || [])]
-    
+
     if (trainerIds.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: [],
-        message: 'No users with referral codes found' 
+        message: 'No users with referral codes found'
       })
     }
-    
-    // Only include regular users; exclude trainers/managers from this list
-    const { data: users, error: userError } = await supabase
-      .from('user_profiles')
-      .select('id, full_name, email, role')
-      .in('id', trainerIds)
-      .eq('role', 'user')
-    
-    console.log('Users found:', users)
-    console.log('User error:', userError)
-    
-    if (userError) {
-      console.error('Error fetching users:', userError)
-      return NextResponse.json({ 
-        success: false,
-        error: 'Failed to fetch users',
-        details: userError.message
-      }, { status: 500 })
+
+    // Batch fetch users to avoid URL length limits
+    const BATCH_SIZE = 20
+    let users: any[] = []
+
+    for (let i = 0; i < trainerIds.length; i += BATCH_SIZE) {
+      const batch = trainerIds.slice(i, i + BATCH_SIZE)
+      // Only include regular users; exclude trainers/managers from this list
+      const { data: batchUsers, error: batchError } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, role')
+        .in('id', batch)
+        .eq('role', 'user')
+
+      if (batchError) {
+        console.error('Error fetching users batch:', batchError)
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to fetch users',
+          details: batchError.message
+        }, { status: 500 })
+      }
+
+      if (batchUsers) {
+        users = [...users, ...batchUsers]
+      }
     }
-    
+
+    console.log(`Fetched ${users.length} users in total`)
+
     if (!users || users.length === 0) {
       console.log('No users found for the given user IDs')
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: [],
-        message: 'No users found with referral codes' 
+        message: 'No users found with referral codes'
       })
     }
 
@@ -93,10 +103,10 @@ export async function GET(request: NextRequest) {
         // Filter by period
         const filteredTrackingData = trackingData?.filter(stat => {
           if (period === 'all') return true
-          
+
           const statDate = new Date((stat as any).created_at)
           const now = new Date()
-          
+
           switch (period) {
             case 'week':
               const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -136,8 +146,8 @@ export async function GET(request: NextRequest) {
         const conversionRate = totalReferrals > 0 ? (confirmedReferrals / totalReferrals) * 100 : 0
 
         // Get last referral date
-        const lastReferralDate = filteredTrackingData.length > 0        
-          ? (filteredTrackingData.sort((a: any, b: any) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime())[0] as any).created_at                      
+        const lastReferralDate = filteredTrackingData.length > 0
+          ? (filteredTrackingData.sort((a: any, b: any) => new Date((b as any).created_at).getTime() - new Date((a as any).created_at).getTime())[0] as any).created_at
           : null
 
         return {
@@ -167,7 +177,7 @@ export async function GET(request: NextRequest) {
       return b.conversion_rate - a.conversion_rate
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       data: sortedLeaderboard,
       period: period

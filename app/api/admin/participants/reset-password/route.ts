@@ -3,9 +3,11 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createClient } from '@supabase/supabase-js'
 
 // Generate secure random password
+// Generate secure random password
 function generateSecurePassword(): string {
-  const randomNum = Math.floor(100000 + Math.random() * 900000)
-  return `Garuda-21${randomNum}`
+  // const randomNum = Math.floor(100000 + Math.random() * 900000)
+  // return `Garuda-21${randomNum}`
+  return 'Garuda-21.com' // Set to default password as stated in UI
 }
 
 // Generate password reset email
@@ -94,6 +96,7 @@ function generatePasswordResetEmail(data: {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await request.json()
+    console.log(`[ResetPassword] Request received for userId: ${userId}`)
 
     if (!userId) {
       return NextResponse.json(
@@ -102,8 +105,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check authorization
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Get the user from the session token passed in the request header
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token)
+
+    if (authError || !caller) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check if caller is admin or manager
+    const { data: callerProfile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', caller.id)
+      .single()
+
+    if (!callerProfile || (callerProfile.role !== 'admin' && callerProfile.role !== 'manager')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const supabaseAdmin = getSupabaseAdmin()
-    
+
     // Generate secure random password
     const newPassword = generateSecurePassword()
 
@@ -133,10 +169,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile for name
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    // supabaseUrl and supabaseServiceKey are already defined above
     if (supabaseUrl && supabaseServiceKey) {
-      const supabase = createClient(supabaseUrl, supabaseServiceKey)
+      // const supabase = createClient(supabaseUrl, supabaseServiceKey) // Already created above as 'supabase'
+      // But wait, the 'supabase' above uses service key? Yes.
+      // So we can reuse 'supabase' client or create a new one if needed.
+      // The code below uses 'supabase' variable.
+      // Let's check if 'supabase' variable is available in this scope.
+      // Yes, it was defined in the auth check block.
+
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('full_name')

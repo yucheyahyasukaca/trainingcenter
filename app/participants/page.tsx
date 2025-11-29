@@ -172,7 +172,7 @@ export default function ParticipantsPage() {
         .eq('id', deleteModal.userId)
 
       if (error) throw error
-      
+
       addToast.success('Peserta berhasil dihapus', 'Berhasil')
       fetchProfiles()
       closeDeleteModal()
@@ -189,10 +189,13 @@ export default function ParticipantsPage() {
     setResetPasswordModal(prev => ({ ...prev, isLoading: true }))
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+
       const response = await fetch('/api/admin/participants/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           userId: resetPasswordModal.userId
@@ -595,7 +598,7 @@ export default function ParticipantsPage() {
                           {getRoleLabel(profile.role)}
                         </span>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm mb-3">
                         {profile.phone && (
                           <div className="flex items-center text-gray-600">
@@ -658,7 +661,7 @@ export default function ParticipantsPage() {
             <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
               Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredProfiles.length)} dari {filteredProfiles.length} peserta
             </div>
-            
+
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -668,7 +671,7 @@ export default function ParticipantsPage() {
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-1" />
                 <span className="hidden sm:inline">Sebelumnya</span>
               </button>
-              
+
               <div className="hidden sm:flex items-center gap-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
@@ -681,23 +684,22 @@ export default function ParticipantsPage() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        currentPage === pageNum
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
                           ? 'bg-primary-600 text-white'
                           : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
               </div>
-              
+
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}

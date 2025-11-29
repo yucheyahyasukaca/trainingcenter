@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Plus, Search, Edit, Trash2, Calendar, UserPlus, GraduationCap, Users, Clock, MapPin, CheckCircle } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Calendar, UserPlus, GraduationCap, Users, Clock, MapPin, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
@@ -15,7 +15,13 @@ export default function EnrollmentsPage() {
   const [userEnrollments, setUserEnrollments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  
+
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [limit] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalEnrollments, setTotalEnrollments] = useState(0)
+
   const isAdminOrManager = profile?.role === 'admin' || profile?.role === 'manager'
 
   useEffect(() => {
@@ -25,60 +31,23 @@ export default function EnrollmentsPage() {
       fetchPrograms()
       fetchUserEnrollments()
     }
-  }, [isAdminOrManager])
+  }, [isAdminOrManager, page]) // Refetch when page changes
 
   async function fetchEnrollments() {
     try {
-      // Fetch enrollments with programs only
-      const { data: enrollmentsData, error: enrollmentsError } = await supabase
-        .from('enrollments')
-        .select(`
-          *,
-          program:programs(title, price)
-        `)
-        .order('created_at', { ascending: false })
+      setLoading(true)
+      const response = await fetch(`/api/admin/enrollments?page=${page}&limit=${limit}`)
+      const result = await response.json()
 
-      if (enrollmentsError) throw enrollmentsError
-
-      if (!enrollmentsData || enrollmentsData.length === 0) {
-        setEnrollments([])
-        setLoading(false)
-        return
+      if (result.error) {
+        throw new Error(result.error)
       }
 
-      // Get unique participant IDs
-      const participantIds = [...new Set(enrollmentsData.map(e => e.participant_id).filter(Boolean))]
-      
-      if (participantIds.length === 0) {
-        setEnrollments(enrollmentsData)
-        setLoading(false)
-        return
+      setEnrollments(result.data || [])
+      if (result.meta) {
+        setTotalPages(result.meta.totalPages)
+        setTotalEnrollments(result.meta.total)
       }
-
-      // Fetch participants separately
-      const { data: participantsData, error: participantsError } = await supabase
-        .from('participants')
-        .select('id, name, email, phone')
-        .in('id', participantIds)
-
-      if (participantsError) {
-        console.error('Error fetching participants:', participantsError)
-        setEnrollments(enrollmentsData)
-        setLoading(false)
-        return
-      }
-
-      // Map participants to enrollments
-      const participantsMap = new Map(
-        (participantsData || []).map(p => [p.id, p])
-      )
-
-      const enrollmentsWithParticipants = enrollmentsData.map(enrollment => ({
-        ...enrollment,
-        participant: participantsMap.get(enrollment.participant_id) || null
-      }))
-
-      setEnrollments(enrollmentsWithParticipants)
     } catch (error) {
       console.error('Error fetching enrollments:', error)
       setEnrollments([])
@@ -138,7 +107,7 @@ export default function EnrollmentsPage() {
 
       // Get unique trainer IDs
       const trainerIds = [...new Set((classTrainersData || []).map((ct: any) => ct.trainer_id).filter(Boolean))]
-      
+
       // Fetch trainers separately
       let trainersMap = new Map()
       if (trainerIds.length > 0) {
@@ -237,7 +206,7 @@ export default function EnrollmentsPage() {
   const getUserEnrollmentStatus = (programId: string) => {
     const enrollment = userEnrollments.find(e => e.program_id === programId)
     if (!enrollment) return null
-    
+
     return {
       status: enrollment.status,
       paymentStatus: enrollment.payment_status,
@@ -308,7 +277,7 @@ export default function EnrollmentsPage() {
                 const isEnrolled = enrollmentStatus !== null
                 const isApproved = enrollmentStatus?.status === 'approved'
                 const isPending = enrollmentStatus?.status === 'pending'
-                
+
                 return (
                   <div key={program.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                     <div className="flex items-start justify-between mb-4">
@@ -346,86 +315,85 @@ export default function EnrollmentsPage() {
                       </div>
                     </div>
 
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{program.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{program.title}</h3>
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{program.description}</p>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <GraduationCap className="w-4 h-4 mr-2" />
-                      <span>{program.category}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>
-                        {(program as any).registration_type === 'lifetime' || 
-                         ((program as any).start_date === (program as any).end_date)
-                          ? 'Lifetime' 
-                          : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
-                        }
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>
-                        {program.max_participants === null || program.max_participants === undefined 
-                          ? 'Unlimited peserta' 
-                          : `Max ${program.max_participants} peserta`
-                        }
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Harga</span>
-                      <span className="text-lg font-bold text-primary-600">
-                        {formatCurrency(program.price)}
-                      </span>
-                    </div>
-                    
-                    {program.classes && program.classes.length > 0 && (
-                      <div className="mb-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Kelas Tersedia</span>
-                          <span className="text-sm font-medium text-gray-900">
-                            {program.classes.length} kelas
-                          </span>
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          Total kuota: {(() => {
-                            const totalQuota = program.classes.reduce((sum, cls) => {
-                              if (cls.max_participants === null || cls.max_participants === undefined) {
-                                return sum + 999999; // Use a large number to represent unlimited
-                              }
-                              return sum + cls.max_participants;
-                            }, 0);
-                            return totalQuota >= 999999 ? 'Unlimited peserta' : `${totalQuota} peserta`;
-                          })()}
-                        </div>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <GraduationCap className="w-4 h-4 mr-2" />
+                        <span>{program.category}</span>
                       </div>
-                    )}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        <span>
+                          {(program as any).registration_type === 'lifetime' ||
+                            ((program as any).start_date === (program as any).end_date)
+                            ? 'Lifetime'
+                            : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="w-4 h-4 mr-2" />
+                        <span>
+                          {program.max_participants === null || program.max_participants === undefined
+                            ? 'Unlimited peserta'
+                            : `Max ${program.max_participants} peserta`
+                          }
+                        </span>
+                      </div>
+                    </div>
 
-                    {isEnrolled && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-600">Status Pendaftaran:</span>
-                          <span className={`text-xs font-medium ${
-                            isApproved ? 'text-green-600' : 
-                            isPending ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {enrollmentStatus?.status === 'approved' ? 'Disetujui' :
-                             enrollmentStatus?.status === 'pending' ? 'Menunggu' : 'Ditolak'}
-                          </span>
-                        </div>
-                        {enrollmentStatus?.className && (
-                          <div className="mt-1 text-xs text-gray-500">
-                            Kelas: {enrollmentStatus.className}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Harga</span>
+                        <span className="text-lg font-bold text-primary-600">
+                          {formatCurrency(program.price)}
+                        </span>
+                      </div>
+
+                      {program.classes && program.classes.length > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Kelas Tersedia</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {program.classes.length} kelas
+                            </span>
                           </div>
-                        )}
-                      </div>
-                    )}
+                          <div className="mt-1 text-xs text-gray-500">
+                            Total kuota: {(() => {
+                              const totalQuota = program.classes.reduce((sum, cls) => {
+                                if (cls.max_participants === null || cls.max_participants === undefined) {
+                                  return sum + 999999; // Use a large number to represent unlimited
+                                }
+                                return sum + cls.max_participants;
+                              }, 0);
+                              return totalQuota >= 999999 ? 'Unlimited peserta' : `${totalQuota} peserta`;
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {isEnrolled && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Status Pendaftaran:</span>
+                            <span className={`text-xs font-medium ${isApproved ? 'text-green-600' :
+                              isPending ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                              {enrollmentStatus?.status === 'approved' ? 'Disetujui' :
+                                enrollmentStatus?.status === 'pending' ? 'Menunggu' : 'Ditolak'}
+                            </span>
+                          </div>
+                          {enrollmentStatus?.className && (
+                            <div className="mt-1 text-xs text-gray-500">
+                              Kelas: {enrollmentStatus.className}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
                 )
               })}
             </div>
@@ -553,8 +521,60 @@ export default function EnrollmentsPage() {
             </table>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        {isAdminOrManager && filteredEnrollments.length > 0 && (
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-b-xl">
+            <div className="flex flex-1 justify-between sm:hidden">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{(page - 1) * limit + 1}</span> to <span className="font-medium">{Math.min(page * limit, totalEnrollments)}</span> of{' '}
+                  <span className="font-medium">{totalEnrollments}</span> results
+                </p>
+              </div>
+              <div>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Next</span>
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-

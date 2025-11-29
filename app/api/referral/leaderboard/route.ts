@@ -7,50 +7,60 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient()
-    
+
     // Get all users who have referral codes (not just trainers with role = 'trainer')
     // This includes trainers AND regular users with referral codes
     const { data: referralCodesData } = await supabase
       .from('referral_codes')
       .select('trainer_id')
-    
+
     console.log('Referral codes data:', referralCodesData)
-    
+
     const trainerIds = [...new Set(referralCodesData?.map((r: any) => r.trainer_id) || [])]
     console.log('Unique trainer IDs:', trainerIds)
-    
+
     if (trainerIds.length === 0) {
       console.log('No trainer IDs found')
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: [],
-        message: 'No users with referral codes found' 
+        message: 'No users with referral codes found'
       })
     }
-    
-    const { data: trainers, error: trainerError } = await supabase
-      .from('user_profiles')
-      .select('id, full_name, email, role')
-      .in('id', trainerIds)
-    
-    console.log('Trainers found:', trainers)
-    console.log('Trainer error:', trainerError)
-    
-    if (trainerError) {
-      console.error('Error fetching trainers:', trainerError)
-      return NextResponse.json({ 
-        success: false,
-        error: 'Failed to fetch trainers',
-        details: trainerError.message
-      }, { status: 500 })
+
+    // Batch fetch trainers to avoid URL length limits
+    const BATCH_SIZE = 20
+    let trainers: any[] = []
+
+    for (let i = 0; i < trainerIds.length; i += BATCH_SIZE) {
+      const batch = trainerIds.slice(i, i + BATCH_SIZE)
+      const { data: batchTrainers, error: batchError } = await supabase
+        .from('user_profiles')
+        .select('id, full_name, email, role')
+        .in('id', batch)
+
+      if (batchError) {
+        console.error('Error fetching trainers batch:', batchError)
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to fetch trainers',
+          details: batchError.message
+        }, { status: 500 })
+      }
+
+      if (batchTrainers) {
+        trainers = [...trainers, ...batchTrainers]
+      }
     }
-    
+
+    console.log(`Fetched ${trainers.length} trainers in total`)
+
     if (!trainers || trainers.length === 0) {
       console.log('No trainers found for the given trainer IDs')
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: [],
-        message: 'No trainers found with referral codes' 
+        message: 'No trainers found with referral codes'
       })
     }
 
@@ -60,7 +70,7 @@ export async function GET(request: NextRequest) {
     // Build date filter based on period
     let dateFilter = ''
     const now = new Date()
-    
+
     switch (period) {
       case 'week':
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -146,7 +156,7 @@ export async function GET(request: NextRequest) {
         const totalCommissionEarned = 0 // Not derived here; left as 0 to avoid misleading sums
         const confirmedCommission = 0
         const totalDiscountGiven = 0
-        
+
         console.log(`Trainer ${trainer.full_name} stats:`, {
           totalReferrals,
           confirmedReferrals,
@@ -191,7 +201,7 @@ export async function GET(request: NextRequest) {
       return b.conversion_rate - a.conversion_rate
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       data: sortedLeaderboard,
       period: period
