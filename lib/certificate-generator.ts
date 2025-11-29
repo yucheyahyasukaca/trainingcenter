@@ -42,7 +42,9 @@ function getVerificationUrl(certificateNumber: string, isWebinar: boolean = fals
   const verifyPath = isWebinar
     ? `/webinar-certificates/verify/${certificateNumber}`
     : `/certificate/verify/${certificateNumber}`
-  return `${process.env.NEXT_PUBLIC_SITE_URL || 'https://academy.garuda-21.com'}${verifyPath}`
+  // Always use production URL for certificates to ensure they are verifiable globally
+  const baseUrl = 'https://academy.garuda-21.com'
+  return `${baseUrl}${verifyPath}`
 }
 
 async function createQrCodeAssets(verificationUrl: string) {
@@ -441,11 +443,13 @@ export async function generateCompleteCertificate(
     })
 
     // Get template data
-    const { data: template, error: templateError } = await supabaseAdmin
+    const { data: templateData, error: templateError } = await supabaseAdmin
       .from('certificate_templates')
       .select('*')
       .eq('id', templateId)
       .single()
+
+    const template = templateData as any
 
     if (templateError) {
       console.error('Template error:', templateError)
