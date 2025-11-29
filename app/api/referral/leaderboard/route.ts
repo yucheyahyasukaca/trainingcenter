@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/referral/leaderboard - Get referral leaderboard for admin
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
     
     // Get all users who have referral codes (not just trainers with role = 'trainer')
     // This includes trainers AND regular users with referral codes
@@ -34,12 +34,23 @@ export async function GET(request: NextRequest) {
       .in('id', trainerIds)
     
     console.log('Trainers found:', trainers)
+    console.log('Trainer error:', trainerError)
     
-    if (trainerError || !trainers || trainers.length === 0) {
+    if (trainerError) {
+      console.error('Error fetching trainers:', trainerError)
+      return NextResponse.json({ 
+        success: false,
+        error: 'Failed to fetch trainers',
+        details: trainerError.message
+      }, { status: 500 })
+    }
+    
+    if (!trainers || trainers.length === 0) {
+      console.log('No trainers found for the given trainer IDs')
       return NextResponse.json({ 
         success: true, 
         data: [],
-        message: 'No trainers found' 
+        message: 'No trainers found with referral codes' 
       })
     }
 

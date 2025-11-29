@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createAdminClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/referral-policies - Get all referral policies
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
 
     // Get all referral policies with program info
     const { data: policies, error: policiesError } = await (supabase as any)
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/referral-policies - Create new referral policy
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = createAdminClient()
 
     // For now, let's get the first admin for testing
     // In production, you would get the user from the session

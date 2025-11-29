@@ -185,10 +185,16 @@ export default function ReferralManagementPage() {
       const response = await fetch(`/api/referral/leaderboard?period=${trainerSelectedPeriod}`)
       const result = await response.json()
       
-      if (result.success) {
+      console.log('Trainer leaderboard response:', result)
+      
+      if (result.success && result.data) {
         setTrainerLeaderboard(result.data)
-      } else {
+      } else if (result.success === false) {
+        console.error('API error:', result.error, result.details)
         addToast.error('Error', result.error || 'Gagal memuat leaderboard referral trainer')
+      } else {
+        // success: true but empty data
+        setTrainerLeaderboard([])
       }
     } catch (error) {
       console.error('Error fetching trainer leaderboard:', error)
@@ -201,10 +207,16 @@ export default function ReferralManagementPage() {
       const response = await fetch(`/api/referral/user-leaderboard?period=${userSelectedPeriod}`)
       const result = await response.json()
       
-      if (result.success) {
+      console.log('User leaderboard response:', result)
+      
+      if (result.success && result.data) {
         setUserLeaderboard(result.data)
-      } else {
+      } else if (result.success === false) {
+        console.error('API error:', result.error, result.details)
         addToast.error('Error', result.error || 'Gagal memuat leaderboard referral user')
+      } else {
+        // success: true but empty data
+        setUserLeaderboard([])
       }
     } catch (error) {
       console.error('Error fetching user leaderboard:', error)
@@ -217,10 +229,16 @@ export default function ReferralManagementPage() {
       const response = await fetch('/api/admin/referral-policies')
       const result = await response.json()
       
-      if (result.success) {
+      console.log('Policies response:', result)
+      
+      if (result.success && result.data) {
         setPolicies(result.data)
-      } else {
+      } else if (result.success === false) {
+        console.error('API error:', result.error, result.details)
         addToast.error('Error', result.error || 'Gagal memuat policy referral')
+      } else {
+        // success: true but empty data
+        setPolicies([])
       }
     } catch (error) {
       console.error('Error fetching policies:', error)
