@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import Script from 'next/script'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { signIn, signInWithGoogle } from '@/lib/auth'
+import { signIn, signInWithIdToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { Mail, X, KeyRound } from 'lucide-react'
@@ -43,7 +44,7 @@ export default function RegisterPage() {
           router.push(storedNext)
           router.refresh()
         }
-      } catch {}
+      } catch { }
     })()
   }, [searchParams])
 
@@ -125,6 +126,117 @@ export default function RegisterPage() {
     }
   }
 
+  // Google Identity Services Handler
+  async function handleGoogleCallback(response: any) {
+    console.log('📥 Received Google credential response')
+
+    try {
+      setLoading(true)
+      const { credential } = response
+
+      if (!credential) {
+        throw new Error('No credential received from Google')
+      }
+
+      console.log('🔐 Authenticating with Supabase using ID Token...')
+      const data = await signInWithIdToken(credential)
+
+      if (data?.session) {
+        console.log('✅ Google login successful, session created')
+
+        // Handle post-login redirection
+
+        // Store referral code in sessionStorage if exists
+        if (referralCode) {
+          sessionStorage.setItem('referralCode', referralCode)
+        }
+
+        // Store next redirect if exists
+        const next = searchParams.get('next')
+        if (next) {
+          sessionStorage.setItem('nextAfterAuth', next)
+        }
+
+        // Store redirect param if exists
+        const redirectToParam = searchParams.get('redirect')
+        if (redirectToParam) {
+          sessionStorage.setItem('redirectAfterAuth', redirectToParam)
+        }
+
+        // Determine redirect destination
+        const storedNext = sessionStorage.getItem('nextAfterAuth')
+        let redirectUrl = '/dashboard'
+
+        if (storedNext) {
+          sessionStorage.removeItem('nextAfterAuth')
+          redirectUrl = storedNext
+        } else if (redirectToParam) {
+          redirectUrl = redirectToParam
+        } else if (referralCode) {
+          redirectUrl = `/register-referral/${referralCode}`
+        }
+
+        window.location.href = redirectUrl
+      }
+    } catch (err: any) {
+      console.error('❌ Google login error:', err)
+      setError(err.message || 'Gagal login dengan Google')
+      toast.error('Gagal login dengan Google')
+      setLoading(false)
+    }
+  }
+
+  // Initialize Google Button
+  useEffect(() => {
+    // Only initialize if the login modal is open
+    if (!isLoginOpen) return
+
+    const initializeGoogle = () => {
+      if ((window as any).google) {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        if (!clientId) {
+          console.error('❌ NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing')
+          return
+        }
+
+        console.log('🔧 Initializing Google Identity Services...')
+          ; (window as any).google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          })
+
+        const buttonDiv = document.getElementById('googleButton')
+        if (buttonDiv) {
+          ; (window as any).google.accounts.id.renderButton(buttonDiv, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%', // Responsive width
+            text: 'sign_in_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+          })
+          console.log('✅ Google button rendered')
+        }
+      }
+    }
+
+    // Check if script is already loaded
+    if ((window as any).google) {
+      initializeGoogle()
+    } else {
+      // Wait for script to load
+      const interval = setInterval(() => {
+        if ((window as any).google) {
+          initializeGoogle()
+          clearInterval(interval)
+        }
+      }, 100)
+      return () => clearInterval(interval)
+    }
+  }, [isLoginOpen])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -132,7 +244,7 @@ export default function RegisterPage() {
     try {
       await signIn(email, password)
       setIsLoginOpen(false)
-      
+
       // Redirect based on referral code
       setTimeout(() => {
         const next = sessionStorage.getItem('nextAfterAuth')
@@ -150,44 +262,9 @@ export default function RegisterPage() {
         router.refresh()
       }, 300)
     } catch (err: any) {
-      setError(err.message || 'Login gagal')
+      toast.error('Email wajib diisi')
+      return
     } finally {
-      setLoading(false)
-    }
-  }
-
-  async function handleGoogleLogin() {
-    setLoading(true)
-    setError('')
-    
-    try {
-      console.log('🚀 Starting Google OAuth login...')
-      
-      // Store referral code in sessionStorage if exists
-      if (referralCode) {
-        sessionStorage.setItem('referralCode', referralCode)
-      }
-      
-      // Store next redirect if exists
-      const next = searchParams.get('next')
-      if (next) {
-        sessionStorage.setItem('nextAfterAuth', next)
-      }
-      
-      // Store redirect param if exists
-      const redirectTo = searchParams.get('redirect')
-      if (redirectTo) {
-        sessionStorage.setItem('redirectAfterAuth', redirectTo)
-      }
-      
-      // Initiate Google OAuth login
-      await signInWithGoogle()
-      
-      // Note: User will be redirected to Google, then to /auth/callback
-      // The callback route will handle the rest
-    } catch (err: any) {
-      console.error('❌ Google login error:', err)
-      setError(err.message || 'Gagal login dengan Google. Silakan coba lagi.')
       setLoading(false)
     }
   }
@@ -248,65 +325,65 @@ export default function RegisterPage() {
       </div>
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4">
         <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center mx-auto">
-        {/* Visual / Illustration */}
-        <div className="rounded-3xl overflow-hidden shadow-xl ring-1 ring-black/5 relative aspect-[4/3] lg:aspect-auto lg:h-[600px]">
-          <Image
-            src="/registration-banner.png"
-            alt="GARUDA-21 Registration Banner"
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover"
-            priority
-          />
-        </div>
+          {/* Visual / Illustration */}
+          <div className="rounded-3xl overflow-hidden shadow-xl ring-1 ring-black/5 relative aspect-[4/3] lg:aspect-auto lg:h-[600px]">
+            <Image
+              src="/registration-banner.png"
+              alt="GARUDA-21 Registration Banner"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
+          </div>
 
-        {/* Content */}
-        <div className="text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-            Selamat Datang di Pendaftaran GARUDA-21 Training Center
-            <span className="ml-2">👋</span>
-          </h1>
-          <p className="text-gray-600 mt-5 text-base md:text-lg">
-            Proses pendaftaran GARUDA-21 Training Center terdiri dari 2 langkah utama dan semuanya dilakukan melalui platform Garuda Academy.
-          </p>
-          <p className="text-gray-600 mt-2 text-base">
-            Untuk melanjutkan, silakan masuk menggunakan akun Garuda Academy.
-          </p>
-
-          {/* Referral Code Info */}
-          {referralCode && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-green-600">🎁</span>
-                <span className="font-semibold text-green-800">Anda memiliki kode referral!</span>
-              </div>
-              <p className="text-sm text-green-700">
-                Kode referral: <span className="font-mono font-bold">{referralCode}</span>
-              </p>
-              <p className="text-xs text-green-600 mt-1">
-                Setelah login, Anda akan diarahkan ke pendaftaran program dengan diskon khusus.
-              </p>
-              <div className="mt-2 p-2 bg-white rounded border">
-                <p className="text-xs text-gray-600">
-                  <strong>Catatan:</strong> Silakan login atau buat akun baru untuk melanjutkan pendaftaran dengan kode referral ini.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-8 flex flex-col gap-3">
-            <button onClick={() => setIsLoginOpen(true)} className="btn-primary py-3 text-center shadow-lg hover:shadow-xl transition-shadow">
-              Masuk dengan akun Garuda Academy
-            </button>
-            <p className="text-sm text-gray-600">
-              Belum punya akun Garuda Academy?{' '}
-              <a href="/register/new" className="text-primary-600 hover:text-primary-700 font-medium">
-                Buat akun.
-              </a>
+          {/* Content */}
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+              Selamat Datang di Pendaftaran GARUDA-21 Training Center
+              <span className="ml-2">👋</span>
+            </h1>
+            <p className="text-gray-600 mt-5 text-base md:text-lg">
+              Proses pendaftaran GARUDA-21 Training Center terdiri dari 2 langkah utama dan semuanya dilakukan melalui platform Garuda Academy.
             </p>
+            <p className="text-gray-600 mt-2 text-base">
+              Untuk melanjutkan, silakan masuk menggunakan akun Garuda Academy.
+            </p>
+
+            {/* Referral Code Info */}
+            {referralCode && (
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-green-600">🎁</span>
+                  <span className="font-semibold text-green-800">Anda memiliki kode referral!</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Kode referral: <span className="font-mono font-bold">{referralCode}</span>
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Setelah login, Anda akan diarahkan ke pendaftaran program dengan diskon khusus.
+                </p>
+                <div className="mt-2 p-2 bg-white rounded border">
+                  <p className="text-xs text-gray-600">
+                    <strong>Catatan:</strong> Silakan login atau buat akun baru untuk melanjutkan pendaftaran dengan kode referral ini.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 flex flex-col gap-3">
+              <button onClick={() => setIsLoginOpen(true)} className="btn-primary py-3 text-center shadow-lg hover:shadow-xl transition-shadow">
+                Masuk dengan akun Garuda Academy
+              </button>
+              <p className="text-sm text-gray-600">
+                Belum punya akun Garuda Academy?{' '}
+                <a href="/register/new" className="text-primary-600 hover:text-primary-700 font-medium">
+                  Buat akun.
+                </a>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       </div>
 
       {/* Login Modal */}
@@ -346,7 +423,7 @@ export default function RegisterPage() {
                     <input type="checkbox" className="rounded border-gray-300" />
                     Remember me
                   </label>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowResetPasswordModal(true)}
                     className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer relative z-10"
@@ -364,44 +441,51 @@ export default function RegisterPage() {
                 </button>
 
                 <div className="flex items-center gap-4 my-2">
-                  <span className="flex-1 h-px bg-gray-200" />
-                  <span className="text-sm text-gray-500">atau</span>
-                  <span className="flex-1 h-px bg-gray-200" />
+                  Dengan melakukan login, Anda setuju dengan syarat & ketentuan Garuda Academy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.
                 </div>
 
-                <button 
-                  type="button" 
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center justify-center gap-2 relative z-10"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  Masuk dengan Google
-                </button>
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-gray-300"></div>
+                  <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">Atau</span>
+                  <div className="flex-grow border-t border-gray-300"></div>
+                </div>
 
-                <p className="text-center text-sm text-gray-600 mt-2">
-                  Belum punya akun? Ayo <Link href="/register/new" className="text-primary-600 hover:text-primary-700 font-medium">daftar</Link>
-                </p>
-
-                <div className="pt-4 text-xs text-gray-500">
-                  Dengan melakukan login, Anda setuju dengan syarat & ketentuan Garuda Academy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.
+                {/* Google Login Button Container */}
+                <div className="w-full">
+                  <div id="googleButton" className="w-full flex justify-center">
+                    {/* Fallback button if Google Sign-In fails to load */}
+                    <button
+                      type="button"
+                      onClick={() => toast.error('Google Login belum siap atau belum dikonfigurasi. Harap refresh halaman.')}
+                      className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path
+                          fill="#4285F4"
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        />
+                      </svg>
+                      Masuk dengan Google
+                    </button>
+                  </div>
+                  {/* Fallback/Loading state if JS hasn't loaded */}
+                  <noscript>
+                    <div className="text-center text-sm text-red-500 p-2">
+                      Browser Anda tidak mendukung JavaScript, Google Login tidak dapat digunakan.
+                    </div>
+                  </noscript>
                 </div>
               </form>
             </div>
@@ -488,6 +572,11 @@ export default function RegisterPage() {
           </div>
         </div>
       )}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => console.log('✅ Google Identity Services script loaded')}
+      />
     </div>
   )
 }
