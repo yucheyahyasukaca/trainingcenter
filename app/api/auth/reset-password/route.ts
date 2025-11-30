@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getAppBaseUrl } from '@/lib/url-utils'
+import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -295,7 +295,8 @@ export async function POST(request: NextRequest) {
 
     try {
       const baseUrl = getAppBaseUrl()
-      const loginUrl = `${baseUrl}/login`
+      const emailBaseUrl = getEmailBaseUrl()
+      const loginUrl = `${emailBaseUrl}/login`
 
       const emailHtml = generatePasswordResetEmail({
         participantName,

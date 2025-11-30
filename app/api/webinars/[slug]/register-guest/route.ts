@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getAppBaseUrl } from '@/lib/url-utils'
+import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     // Try to find existing user by email first
-    let userId: string
+    let userId: string = ''
     let isExistingUser = false
     let defaultPassword = generateDefaultPassword()
 
@@ -530,7 +530,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     // Send email notification (only if not already registered)
     try {
       const baseUrl = getAppBaseUrl()
-      const loginUrl = `${baseUrl}/login`
+      const emailBaseUrl = getEmailBaseUrl()
+      const loginUrl = `${emailBaseUrl}/login`
 
       const emailHtml = generateAccountWelcomeEmail({
         participantName: full_name,

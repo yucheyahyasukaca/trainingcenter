@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWelcomeEmail } from '@/lib/email-templates'
-import { getAppBaseUrl } from '@/lib/url-utils'
+import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
 
 // Test email endpoint dengan mock data
 export async function POST(request: NextRequest) {
@@ -14,8 +14,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get base URL
+    // Get base URL for API calls
     const baseUrl = getAppBaseUrl()
+    // Get base URL for email links (always production)
+    const emailBaseUrl = getEmailBaseUrl()
 
     // Mock data untuk test - sama dengan data real user
     const mockData = {
@@ -23,8 +25,8 @@ export async function POST(request: NextRequest) {
       programTitle: 'Program Pelatihan AI Generatif untuk Pendidik',
       programDescription: 'Program pelatihan komprehensif yang dirancang untuk membekali pendidik dengan pengetahuan dan keterampilan dalam menggunakan teknologi AI generatif, khususnya Google Gemini, untuk meningkatkan kualitas pembelajaran dan pengajaran di era digital.',
       userReferralCode: 'ABC123XY',
-      referralLink: `${baseUrl}/referral/ABC123XY`,
-      dashboardUrl: `${baseUrl}/dashboard`,
+      referralLink: `${emailBaseUrl}/referral/ABC123XY`,
+      dashboardUrl: `${emailBaseUrl}/dashboard`,
       openMaterials: [
         'Fondasi AI Generatif dan Prompting Efektif',
         'Dari Ide Menjadi Materi Ajar di Gemini Canvas',
@@ -95,9 +97,11 @@ export async function GET(request: NextRequest) {
     const to = searchParams.get('to') || 'yucheyahya@gmail.com'
 
     // Get base URL
+    // Get base URL
     const protocol = request.headers.get('x-forwarded-proto') || 'http'
     const host = request.headers.get('host') || 'localhost:3000'
     const baseUrl = `${protocol}://${host}`
+    const emailBaseUrl = getEmailBaseUrl()
 
     // Mock data untuk test
     const mockData = {
@@ -105,8 +109,8 @@ export async function GET(request: NextRequest) {
       programTitle: 'Program Pelatihan AI Generatif untuk Pendidik',
       programDescription: 'Program pelatihan komprehensif yang dirancang untuk membekali pendidik dengan pengetahuan dan keterampilan dalam menggunakan teknologi AI generatif, khususnya Google Gemini, untuk meningkatkan kualitas pembelajaran dan pengajaran di era digital.',
       userReferralCode: 'ABC123XY',
-      referralLink: `${baseUrl}/referral/ABC123XY`,
-      dashboardUrl: `${baseUrl}/dashboard`,
+      referralLink: `${emailBaseUrl}/referral/ABC123XY`,
+      dashboardUrl: `${emailBaseUrl}/dashboard`,
       openMaterials: [
         'Fondasi AI Generatif dan Prompting Efektif',
         'Dari Ide Menjadi Materi Ajar di Gemini Canvas',

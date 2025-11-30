@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { replaceTemplateVariables, type TemplateUserData } from '@/lib/email-template-utils'
 import { cleanEmailHTML } from '@/lib/html-utils'
-import { getAppBaseUrl } from '@/lib/url-utils'
+import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
 
 // Helper function to generate email signature HTML
 function generateSignatureHTML(template: any): string {
@@ -483,11 +483,13 @@ export async function POST(req: NextRequest) {
                     }
                 }
 
+                const emailBaseUrl = getEmailBaseUrl()
                 const userData: TemplateUserData = {
                     nama: nama,
                     email: recipient.email,
                     program: program || 'Program Training', // Fallback jika tidak ada program
                     kode_referral: '',
+                    dashboardUrl: `${emailBaseUrl}/dashboard`,
                     tanggal_daftar: recipient.created_at
                         ? new Date(recipient.created_at).toLocaleDateString('id-ID', {
                             day: 'numeric',

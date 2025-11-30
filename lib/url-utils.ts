@@ -21,3 +21,13 @@ export function getAppBaseUrl(): string {
     // Fallback to localhost for development
     return 'http://localhost:3000'
 }
+
+export function getEmailBaseUrl(): string {
+    // Always use production URL for emails unless specifically overridden
+    // This ensures emails sent from local dev still point to production
+    if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL
+    }
+
+    return 'https://academy.garuda-21.com'
+}
