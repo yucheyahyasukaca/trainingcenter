@@ -24,6 +24,13 @@ const nextConfig = {
       },
     ],
   },
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      "osx-temperature-sensor": false,
+    };
+    return config;
+  },
 }
 
 module.exports = nextConfig

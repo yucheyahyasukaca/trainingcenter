@@ -11,13 +11,13 @@ const publicRoutes = [
   '/programs',
   '/about',
   '/contact',
-  '/unauthorized'
+  '/unauthorized',
+  '/trainers'
 ]
 
 // Daftar routes yang PASTI memerlukan authentication
 const protectedRoutes = [
   '/dashboard',
-  '/trainers',
   '/participants',
   '/enrollments',
   '/statistics',
@@ -70,7 +70,10 @@ export async function middleware(request: NextRequest) {
 
   // SAFE ROLLOUT STRATEGY:
   // 1. Check if route is explicitly protected
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  // Use exact match or sub-path match to avoid partial matches (e.g. /trainer matching /trainers)
+  const isProtectedRoute = protectedRoutes.some(route =>
+    pathname === route || pathname.startsWith(`${route}/`)
+  )
 
   // 2. If it is protected and no session, redirect to login
   if (isProtectedRoute && !session) {
