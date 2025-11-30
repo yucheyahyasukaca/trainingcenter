@@ -13,6 +13,11 @@ export function getAppBaseUrl(): string {
         return `https://${process.env.VERCEL_URL}`
     }
 
+    // Production fallback
+    if (process.env.NODE_ENV === 'production') {
+        return 'https://academy.garuda-21.com'
+    }
+
     // Fallback to localhost for development
     return 'http://localhost:3000'
 }
