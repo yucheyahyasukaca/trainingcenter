@@ -40,12 +40,12 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
   const searchParams = useSearchParams()
   const { profile, loading: authLoading } = useAuth()
   const { addNotification } = useNotification()
-  
+
   const [program, setProgram] = useState<Program | null>(null)
   const [referralData, setReferralData] = useState<ReferralData | null>(null)
   const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
-  
+
   const programId = params.programId
   const referralCode = searchParams.get('referral')
 
@@ -96,9 +96,9 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
           const disabilityOk = !!(participant as any)?.disability
           const programSourceOk = !!(participant as any)?.program_source
 
-          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk && 
-                            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk && 
-                            itBackgroundOk && disabilityOk && programSourceOk
+          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk &&
+            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk &&
+            itBackgroundOk && disabilityOk && programSourceOk
 
           if (!isComplete) {
             // Show notification about incomplete profile
@@ -110,7 +110,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
             })
 
             console.log('➡️ Redirecting to edit profile page to complete data first')
-            
+
             setTimeout(() => {
               router.push(`/profile/edit?return=${encodeURIComponent(`/enroll-program/${programId}${referralCode ? `?referral=${referralCode}` : ''}`)}`)
             }, 1500)
@@ -126,7 +126,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
           message: 'Untuk mendaftar program, silakan lengkapi data profil Anda terlebih dahulu.',
           duration: 5000
         })
-        
+
         setTimeout(() => {
           router.push(`/profile/edit?return=${encodeURIComponent(`/enroll-program/${programId}${referralCode ? `?referral=${referralCode}` : ''}`)}`)
         }, 1500)
@@ -194,7 +194,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
     if (!referralData) return program.price
 
     let finalPrice = program.price
-    
+
     // Apply discount
     if (referralData.discount_percentage > 0) {
       finalPrice = finalPrice * (1 - referralData.discount_percentage / 100)
@@ -246,6 +246,35 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
 
       if (!participantId) {
         throw new Error('Failed to get participant ID')
+      }
+
+      // Check if user already enrolled in this program
+      const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
+        .from('enrollments')
+        .select('id, status')
+        .eq('participant_id', participantId)
+        .eq('program_id', program.id)
+        .maybeSingle()
+
+      if (enrollmentCheckError) {
+        throw enrollmentCheckError
+      }
+
+      if (existingEnrollment) {
+        const statusText = (existingEnrollment as any).status === 'pending' ? 'menunggu persetujuan' :
+          (existingEnrollment as any).status === 'approved' ? 'sudah disetujui' :
+            'ditolak'
+
+        addNotification({
+          type: 'warning',
+          title: 'Sudah Terdaftar',
+          message: `Anda sudah terdaftar di program ini dengan status ${statusText}. Silakan cek halaman "Kelas Terdaftar".`,
+          duration: 8000
+        })
+
+        // Redirect to my enrollments
+        router.push('/my-enrollments')
+        return
       }
 
       // Create enrollment
@@ -343,8 +372,8 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link 
-            href="/programs" 
+          <Link
+            href="/programs"
             className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -358,7 +387,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">{program.title}</h2>
-              
+
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <User className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -400,7 +429,7 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pendaftaran</h3>
-              
+
               {/* Referral Info */}
               {referralData && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -418,14 +447,14 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
                   <span className="text-gray-600">Harga Normal</span>
                   <span className="text-gray-900">Rp {program.price.toLocaleString('id-ID')}</span>
                 </div>
-                
+
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Diskon</span>
                     <span>- Rp {discount.toLocaleString('id-ID')}</span>
                   </div>
                 )}
-                
+
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold">
                     <span>Total Pembayaran</span>

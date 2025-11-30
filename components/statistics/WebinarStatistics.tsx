@@ -76,7 +76,7 @@ export function WebinarStatistics() {
         const registeredCount = registrations?.length || 0
         const uploadedCount = uploadedParticipants?.length || 0
         const totalRegistrations = registeredCount + uploadedCount
-        
+
         // Count attendance based on certificates (both registered users and uploaded participants)
         const totalAttendees = certificates?.length || 0
         const averageAttendance = totalRegistrations > 0 ? (totalAttendees / totalRegistrations) * 100 : 0
@@ -240,13 +240,13 @@ export function WebinarStatistics() {
             <p className="text-gray-600 text-center py-8">Belum ada data webinar</p>
           ) : (
             stats.topWebinars.map((webinar, index) => (
-              <div key={webinar.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center space-x-4 flex-1">
+              <div key={webinar.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-4">
+                <div className="flex items-center space-x-4 w-full md:flex-1 min-w-0">
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-bold text-primary-600">#{index + 1}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{webinar.title}</p>
+                    <p className="font-medium text-gray-900 truncate" title={webinar.title}>{webinar.title}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Clock className="w-4 h-4 text-gray-400" />
                       <p className="text-sm text-gray-500">
@@ -255,17 +255,18 @@ export function WebinarStatistics() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Pendaftar</p>
+
+                <div className="flex items-center justify-between md:justify-end space-x-2 md:space-x-6 w-full md:w-auto flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-gray-200">
+                  <div className="text-center flex-1 md:flex-none min-w-[80px]">
+                    <p className="text-xs text-gray-500 mb-1">Pendaftar</p>
                     <p className="text-lg font-bold text-blue-600">{webinar.registrations}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Hadir</p>
+                  <div className="text-center flex-1 md:flex-none min-w-[80px]">
+                    <p className="text-xs text-gray-500 mb-1">Hadir</p>
                     <p className="text-lg font-bold text-green-600">{webinar.attendees}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-gray-500">Tingkat Kehadiran</p>
+                  <div className="text-center flex-1 md:flex-none min-w-[100px]">
+                    <p className="text-xs text-gray-500 mb-1">Kehadiran</p>
                     <p className="text-lg font-bold text-purple-600">{webinar.attendance_rate.toFixed(1)}%</p>
                   </div>
                 </div>

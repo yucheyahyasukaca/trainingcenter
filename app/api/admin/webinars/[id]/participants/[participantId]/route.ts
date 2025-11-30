@@ -53,8 +53,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
                 full_name,
                 unit_kerja: unit_kerja || null,
                 email: email || null,
-                phone: phone || null,
-                updated_at: new Date().toISOString()
+                phone: phone || null
             } as any)
             .eq('id', participantId)
             .eq('webinar_id', webinarId)
