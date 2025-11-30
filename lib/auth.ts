@@ -210,7 +210,15 @@ export async function signInWithGoogle() {
 
     // Explicitly set redirect URL to current origin + /auth/callback
     // This ensures it works on localhost:3000 even if Supabase is configured for production
-    const redirectTo = `${window.location.origin}/auth/callback`
+    let origin = window.location.origin
+
+    // Force HTTP for localhost to avoid SSL errors
+    if (window.location.hostname === 'localhost' && origin.startsWith('https://')) {
+      console.log('⚠️ Detected HTTPS on localhost, forcing HTTP for redirect URI')
+      origin = origin.replace('https://', 'http://')
+    }
+
+    const redirectTo = `${origin}/auth/callback`
     console.log('🔗 Using redirect URI:', redirectTo)
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -235,6 +243,30 @@ export async function signInWithGoogle() {
   } catch (err: any) {
     console.error('❌ Exception in Google sign in:', err)
     throw new Error(err.message || 'Failed to sign in with Google')
+  }
+}
+
+// Sign in with Google ID Token (GIS Flow)
+export async function signInWithIdToken(token: string, nonce?: string) {
+  console.log('🚀 Starting Google ID Token sign in...')
+
+  try {
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token,
+      nonce
+    })
+
+    if (error) {
+      console.error('❌ Google ID Token sign in error:', error)
+      throw new Error(error.message)
+    }
+
+    console.log('✅ Google ID Token sign in successful')
+    return data
+  } catch (err: any) {
+    console.error('❌ Exception in Google ID Token sign in:', err)
+    throw new Error(err.message || 'Failed to sign in with Google ID Token')
   }
 }
 

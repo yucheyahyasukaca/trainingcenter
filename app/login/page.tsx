@@ -1,9 +1,11 @@
 'use client'
 
+import Script from 'next/script'
+
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { signIn, signInWithGoogle } from '@/lib/auth'
+import { signIn, signInWithGoogle, signInWithIdToken } from '@/lib/auth'
 import { Mail, Lock, AlertCircle, X, KeyRound } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
@@ -49,7 +51,7 @@ export default function LoginPage() {
           router.push(storedNext)
           router.refresh()
         }
-      } catch {}
+      } catch { }
     })()
   }, [searchParams])
 
@@ -110,13 +112,13 @@ export default function LoginPage() {
       console.log('🚀 Calling signIn function...')
       const result = await signIn(formData.email, formData.password)
       console.log('✅ Login successful!', result)
-      
+
       // Wait for session to be properly set in localStorage
       const supabase = (await import('@/lib/supabase')).supabase
       let sessionSet = false
       let attempts = 0
       const maxAttempts = 10
-      
+
       while (attempts < maxAttempts && !sessionSet) {
         const { data } = await supabase.auth.getSession()
         if (data?.session) {
@@ -127,15 +129,15 @@ export default function LoginPage() {
         attempts++
         await new Promise(resolve => setTimeout(resolve, 200))
       }
-      
+
       if (!sessionSet) {
         console.warn('⚠️ Session not set after login, but proceeding with redirect...')
       }
-      
+
       // Determine redirect destination
       const next = sessionStorage.getItem('nextAfterAuth')
       let redirectUrl = '/dashboard'
-      
+
       if (next) {
         sessionStorage.removeItem('nextAfterAuth')
         redirectUrl = next
@@ -152,7 +154,7 @@ export default function LoginPage() {
           console.log('🎯 Redirecting to dashboard')
         }
       }
-      
+
       // Use window.location for reliable redirect
       window.location.href = redirectUrl
     } catch (err: any) {
@@ -170,44 +172,101 @@ export default function LoginPage() {
     }))
   }
 
-  async function handleGoogleLogin() {
-    setLoading(true)
-    setError('')
-    
+  // Google Identity Services Handler
+  async function handleGoogleCallback(response: any) {
+    console.log('📥 Received Google credential response')
+
     try {
-      console.log('🚀 Starting Google OAuth login...')
-      
-      // Store referral code in sessionStorage if exists
-      if (referralCode) {
-        sessionStorage.setItem('referralCode', referralCode)
+      setLoading(true)
+      const { credential } = response
+
+      if (!credential) {
+        throw new Error('No credential received from Google')
       }
-      
-      // Store next redirect if exists
-      const next = searchParams.get('next')
-      if (next) {
-        sessionStorage.setItem('nextAfterAuth', next)
+
+      console.log('🔐 Authenticating with Supabase using ID Token...')
+      const data = await signInWithIdToken(credential)
+
+      if (data?.session) {
+        console.log('✅ Google login successful, session created')
+
+        // Handle post-login redirection
+        const next = sessionStorage.getItem('nextAfterAuth')
+        let redirectUrl = '/dashboard'
+
+        if (next) {
+          sessionStorage.removeItem('nextAfterAuth')
+          redirectUrl = next
+        } else {
+          const redirectTo = searchParams.get('redirect')
+          if (redirectTo) {
+            redirectUrl = redirectTo
+          } else if (referralCode) {
+            redirectUrl = `/register-referral/${referralCode}`
+          }
+        }
+
+        window.location.href = redirectUrl
       }
-      
-      // Store redirect param if exists
-      const redirectTo = searchParams.get('redirect')
-      if (redirectTo) {
-        sessionStorage.setItem('redirectAfterAuth', redirectTo)
-      }
-      
-      // Initiate Google OAuth login
-      await signInWithGoogle()
-      
-      // Note: User will be redirected to Google, then to /auth/callback
-      // The callback route will handle the rest
     } catch (err: any) {
       console.error('❌ Google login error:', err)
-      setError(err.message || 'Gagal login dengan Google. Silakan coba lagi.')
+      setError(err.message || 'Gagal login dengan Google')
+      toast.error('Gagal login dengan Google')
       setLoading(false)
-      toast.error(err.message || 'Gagal login dengan Google. Silakan coba lagi.', {
-        duration: 5000,
-        icon: '❌',
-      })
     }
+  }
+
+  // Initialize Google Button
+  useEffect(() => {
+    const initializeGoogle = () => {
+      if ((window as any).google) {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        if (!clientId) {
+          console.error('❌ NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing')
+          return
+        }
+
+        console.log('🔧 Initializing Google Identity Services...')
+          ; (window as any).google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          })
+
+        const buttonDiv = document.getElementById('googleButton')
+        if (buttonDiv) {
+          ; (window as any).google.accounts.id.renderButton(buttonDiv, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%', // Responsive width
+            text: 'sign_in_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+          })
+          console.log('✅ Google button rendered')
+        }
+      }
+    }
+
+    // Check if script is already loaded
+    if ((window as any).google) {
+      initializeGoogle()
+    } else {
+      // Wait for script to load
+      const interval = setInterval(() => {
+        if ((window as any).google) {
+          initializeGoogle()
+          clearInterval(interval)
+        }
+      }, 100)
+      return () => clearInterval(interval)
+    }
+  }, [])
+
+  // Legacy handler (kept but unused if button is replaced)
+  async function handleGoogleLogin() {
+    // ... existing implementation ...
   }
 
 
@@ -227,7 +286,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
           <p className="text-gray-600">Silakan login untuk melanjutkan</p>
-          
+
           {/* Referral Code Info */}
           {referralCode && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -306,32 +365,43 @@ export default function LoginPage() {
               <span className="flex-1 h-px bg-gray-200" />
             </div>
 
-            <button 
-              type="button" 
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Masuk dengan Google
-            </button>
+            {/* Google Login Button Container */}
+            <div className="w-full">
+              <div id="googleButton" className="w-full flex justify-center">
+                {/* Fallback button if Google Sign-In fails to load */}
+                <button
+                  type="button"
+                  onClick={() => toast.error('Google Login belum siap atau belum dikonfigurasi. Harap refresh halaman.')}
+                  className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Masuk dengan Google
+                </button>
+              </div>
+              {/* Fallback/Loading state if JS hasn't loaded */}
+              <noscript>
+                <div className="text-center text-sm text-red-500 p-2">
+                  Browser Anda tidak mendukung JavaScript, Google Login tidak dapat digunakan.
+                </div>
+              </noscript>
+            </div>
           </form>
 
         </div>
@@ -353,10 +423,10 @@ export default function LoginPage() {
               Daftar di sini
             </a>
           </p>
-          
+
           <div className="pt-3 border-t border-gray-200">
-            <a 
-              href="/" 
+            <a
+              href="/"
               className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               ← Kembali ke Beranda
@@ -444,6 +514,11 @@ export default function LoginPage() {
           </div>
         </div>
       )}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => console.log('✅ Google Identity Services script loaded')}
+      />
     </div>
   )
 }

@@ -26,7 +26,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce', // Use PKCE flow for better security
     storageKey: 'sb-auth-token', // Explicit storage key for auth tokens
     // Ensure PKCE code verifier is stored properly
-    debug: process.env.NODE_ENV === 'development'
+    debug: true // Enable debug mode to see auth logs
   }
 })
 

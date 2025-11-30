@@ -14,7 +14,7 @@ export default function AuthCallbackClientPage() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Ref untuk melacak apakah efek sudah berjalan
   const effectRan = useRef(false)
 
@@ -47,6 +47,9 @@ export default function AuthCallbackClientPage() {
           setTimeout(() => router.push('/login'), 3000)
           return
         }
+
+        console.log('🔄 Exchanging code for session:', code)
+        console.log('📦 LocalStorage keys:', Object.keys(localStorage))
 
         // Exchange code for session using client-side Supabase
         // This has access to localStorage where PKCE code verifier is stored
