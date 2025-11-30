@@ -52,6 +52,15 @@ export default function ParticipantsPage() {
     userName: '',
     isLoading: false
   })
+  const [newPasswordModal, setNewPasswordModal] = useState<{
+    isOpen: boolean
+    password: string
+    userName: string
+  }>({
+    isOpen: false,
+    password: '',
+    userName: ''
+  })
 
   useEffect(() => {
     fetchProfiles()
@@ -208,8 +217,17 @@ export default function ParticipantsPage() {
         throw new Error(data.error || 'Failed to reset password')
       }
 
-      addToast.success('Password berhasil direset ke default (Garuda-21.com)', 'Berhasil')
       closeResetPasswordModal()
+
+      if (data.newPassword) {
+        setNewPasswordModal({
+          isOpen: true,
+          password: data.newPassword,
+          userName: resetPasswordModal.userName
+        })
+      } else {
+        addToast.success('Password berhasil direset dan dikirim ke email', 'Berhasil')
+      }
     } catch (err: any) {
       console.error('Error resetting password:', err)
       addToast.error('Gagal reset password: ' + (err.message || 'Unknown error'), 'Error')
@@ -441,6 +459,7 @@ export default function ParticipantsPage() {
                                 {profile.provinsi && (
                                   <p className="text-sm text-gray-900">{profile.provinsi}</p>
                                 )}
+                                {profile.provinsi && profile.kabupaten && <span>, </span>}
                                 {profile.kabupaten && (
                                   <p className="text-xs text-gray-500">{profile.kabupaten}</p>
                                 )}
@@ -690,8 +709,8 @@ export default function ParticipantsPage() {
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
-                          ? 'bg-primary-600 text-white'
-                          : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        ? 'bg-primary-600 text-white'
+                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
                         }`}
                     >
                       {pageNum}
@@ -732,12 +751,73 @@ export default function ParticipantsPage() {
         onClose={closeResetPasswordModal}
         onConfirm={confirmResetPassword}
         title="Reset Password"
-        message={`Apakah Anda yakin ingin mereset password untuk "${resetPasswordModal.userName}"? Password akan direset menjadi "Garuda-21.com".`}
+        message={`Apakah Anda yakin ingin mereset password untuk "${resetPasswordModal.userName}"? Password baru akan digenerate secara acak dan dikirim ke email pengguna.`}
         confirmText="Ya, Reset Password"
         cancelText="Batal"
         variant="default"
         isLoading={resetPasswordModal.isLoading}
       />
+
+      {/* New Password Display Modal */}
+      {newPasswordModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
+                  <KeyRound className="h-5 w-5 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Password Berhasil Direset
+                </h3>
+              </div>
+              <button
+                onClick={() => setNewPasswordModal({ ...newPasswordModal, isOpen: false })}
+                className="rounded-md p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Password baru untuk <strong>{newPasswordModal.userName}</strong> telah berhasil dibuat dan dikirim ke email.
+              </p>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-xs text-gray-500 mb-1 uppercase font-semibold">Password Baru:</p>
+                <div className="flex items-center justify-between">
+                  <code className="text-lg font-mono font-bold text-primary-600 select-all">
+                    {newPasswordModal.password}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(newPasswordModal.password)
+                      addToast.success('Password disalin ke clipboard', 'Disalin')
+                    }}
+                    className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    Salin
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-red-600">
+                * Harap simpan password ini jika email pengguna bermasalah.
+              </p>
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setNewPasswordModal({ ...newPasswordModal, isOpen: false })}
+                  className="w-full btn-primary"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

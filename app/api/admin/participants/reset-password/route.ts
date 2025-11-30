@@ -5,9 +5,17 @@ import { createClient } from '@supabase/supabase-js'
 // Generate secure random password
 // Generate secure random password
 function generateSecurePassword(): string {
-  // const randomNum = Math.floor(100000 + Math.random() * 900000)
-  // return `Garuda-21${randomNum}`
-  return 'Garuda-21.com' // Set to default password as stated in UI
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
+  let password = ''
+  // Generate 12 character random password
+  const array = new Uint32Array(12)
+  crypto.getRandomValues(array)
+
+  for (let i = 0; i < 12; i++) {
+    password += charset[array[i] % charset.length]
+  }
+
+  return password
 }
 
 // Generate password reset email
@@ -92,8 +100,10 @@ function generatePasswordResetEmail(data: {
   `
 }
 
+import { withAdmin } from '@/lib/api-auth'
+
 // POST /api/admin/participants/reset-password - Reset user password (Admin only)
-export async function POST(request: NextRequest) {
+export const POST = withAdmin(async (request, auth) => {
   try {
     const { userId } = await request.json()
     console.log(`[ResetPassword] Request received for userId: ${userId}`)
@@ -103,39 +113,6 @@ export async function POST(request: NextRequest) {
         { error: 'User ID is required' },
         { status: 400 }
       )
-    }
-
-    // Check authorization
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Get the user from the session token passed in the request header
-    const authHeader = request.headers.get('Authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token)
-
-    if (authError || !caller) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if caller is admin or manager
-    const { data: callerProfile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', caller.id)
-      .single()
-
-    if (!callerProfile || (callerProfile.role !== 'admin' && callerProfile.role !== 'manager')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const supabaseAdmin = getSupabaseAdmin()
@@ -169,57 +146,51 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile for name
-    // supabaseUrl and supabaseServiceKey are already defined above
-    if (supabaseUrl && supabaseServiceKey) {
-      // const supabase = createClient(supabaseUrl, supabaseServiceKey) // Already created above as 'supabase'
-      // But wait, the 'supabase' above uses service key? Yes.
-      // So we can reuse 'supabase' client or create a new one if needed.
-      // The code below uses 'supabase' variable.
-      // Let's check if 'supabase' variable is available in this scope.
-      // Yes, it was defined in the auth check block.
+    // We can use the supabase client from auth context if we wanted, but here we just need profile
+    // Let's use supabaseAdmin for consistency in this admin route
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('full_name')
-        .eq('id', userId)
-        .maybeSingle()
+    const { data: profile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .maybeSingle()
 
-      const participantName = profile?.full_name || userData.user.email || 'Pengguna'
+    const participantName = profile?.full_name || userData.user.email || 'Pengguna'
 
-      // Send email with new password
-      try {
-        const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-        const loginUrl = `${baseUrl}/login`
+    // Send email with new password
+    try {
+      const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const loginUrl = `${baseUrl}/login`
 
-        const emailHtml = generatePasswordResetEmail({
-          participantName,
-          email: userData.user.email!,
-          newPassword,
-          loginUrl
+      const emailHtml = generatePasswordResetEmail({
+        participantName,
+        email: userData.user.email!,
+        newPassword,
+        loginUrl
+      })
+
+      fetch(`${baseUrl}/api/email/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: userData.user.email!,
+          subject: 'Password Baru Anda | GARUDA-21 Training Center',
+          html: emailHtml,
+          useQueue: true
         })
-
-        fetch(`${baseUrl}/api/email/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: userData.user.email!,
-            subject: 'Password Baru Anda | GARUDA-21 Training Center',
-            html: emailHtml,
-            useQueue: true
-          })
-        }).catch(err => {
-          console.error('Error sending password reset email:', err)
-        })
-      } catch (emailErr) {
-        console.error('Error preparing password reset email:', emailErr)
-      }
+      }).catch(err => {
+        console.error('Error sending password reset email:', err)
+      })
+    } catch (emailErr) {
+      console.error('Error preparing password reset email:', emailErr)
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Password berhasil direset. Password baru telah dikirim ke email user.'
+      message: 'Password berhasil direset. Password baru telah dikirim ke email user.',
+      newPassword // Return password so admin can see it if needed
     })
   } catch (error: any) {
     console.error('Error in POST /api/admin/participants/reset-password:', error)
@@ -228,5 +199,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 

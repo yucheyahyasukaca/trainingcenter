@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { withAdmin } from '@/lib/api-auth'
 
 // GET /api/admin/certificate-templates - Get all certificate templates
-export async function GET(request: NextRequest) {
+export const GET = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     const programId = searchParams.get('program_id')
     const isActive = searchParams.get('is_active')
-    
+
     console.log('GET /api/admin/certificate-templates called with params:', { id, programId, isActive })
 
     let query = supabaseAdmin
@@ -41,15 +42,15 @@ export async function GET(request: NextRequest) {
     if (id) {
       query = query.eq('id', id)
       const { data, error } = await query.single()
-      
+
       if (error) {
         console.error('Error fetching certificate templates:', error)
         return NextResponse.json({ error: 'Failed to fetch certificate templates' }, { status: 500 })
       }
-      
+
       return NextResponse.json({ data })
     }
-    
+
     // Fetch multiple templates
     query = query.order('created_at', { ascending: false })
     const { data, error } = await query
@@ -64,23 +65,23 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/admin/certificate-templates:', error)
     console.error('Error message:', error?.message)
     console.error('Error stack:', error?.stack)
-    
+
     // Return more detailed error for debugging
     const errorMessage = error?.message || 'Internal server error'
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
-}
+})
 
 // POST /api/admin/certificate-templates - Create new certificate template
-export async function POST(request: NextRequest) {
+export const POST = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     // Parse FormData since we're uploading files
     const formData = await request.formData()
-    
+
     const program_id = (formData.get('program_id') as string) || ''
     const template_name = formData.get('template_name') as string
     const template_description = formData.get('template_description') as string
@@ -127,11 +128,11 @@ export async function POST(request: NextRequest) {
     // Upload PDF template to storage
     const pdfFileName = `template-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`
     const pdfBuffer = await template_pdf_file.arrayBuffer()
-    
+
     console.log('Uploading PDF to certificate-templates bucket...')
     console.log('File name:', pdfFileName)
     console.log('File size:', pdfBuffer.byteLength)
-    
+
     const { data: pdfData, error: pdfError } = await supabaseAdmin.storage
       .from('certificate-templates')
       .upload(pdfFileName, pdfBuffer, {
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
       console.error('Error details:', JSON.stringify(pdfError, null, 2))
       return NextResponse.json({ error: `Failed to upload PDF template: ${pdfError.message}` }, { status: 500 })
     }
-    
+
     console.log('PDF uploaded successfully:', pdfData)
 
     // Get PDF URL
@@ -173,7 +174,7 @@ export async function POST(request: NextRequest) {
       const { data: signatureUrlData } = supabaseAdmin.storage
         .from('signatures')
         .getPublicUrl(signatureFileName)
-      
+
       signatureUrl = signatureUrlData.publicUrl
     }
 
@@ -225,15 +226,15 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/admin/certificate-templates:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})
 
 // PUT /api/admin/certificate-templates/[id] - Update certificate template
-export async function PUT(request: NextRequest) {
+export const PUT = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const templateId = searchParams.get('id')
-    
+
     if (!templateId) {
       return NextResponse.json({ error: 'Template ID is required' }, { status: 400 })
     }
@@ -357,8 +358,8 @@ export async function PUT(request: NextRequest) {
 
       if (body.template_fields !== undefined) {
         try {
-          updateData.template_fields = typeof body.template_fields === 'string' 
-            ? JSON.parse(body.template_fields) 
+          updateData.template_fields = typeof body.template_fields === 'string'
+            ? JSON.parse(body.template_fields)
             : body.template_fields
         } catch (_) {
           updateData.template_fields = body.template_fields
@@ -386,15 +387,15 @@ export async function PUT(request: NextRequest) {
     console.error('Error in PUT /api/admin/certificate-templates:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})
 
 // DELETE /api/admin/certificate-templates/[id] - Delete certificate template
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const templateId = searchParams.get('id')
-    
+
     if (!templateId) {
       return NextResponse.json({ error: 'Template ID is required' }, { status: 400 })
     }
@@ -446,4 +447,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Error in DELETE /api/admin/certificate-templates:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})

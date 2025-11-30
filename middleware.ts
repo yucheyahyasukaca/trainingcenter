@@ -1,18 +1,27 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 // Daftar routes yang tidak memerlukan authentication
-const publicRoutes = ['/', '/login', '/register', '/certificate/verify', '/certificate']
+const publicRoutes = [
+  '/',
+  '/login',
+  '/register',
+  '/certificate/verify',
+  '/programs',
+  '/about',
+  '/contact',
+  '/unauthorized'
+]
 
-// Daftar routes yang memerlukan authentication
+// Daftar routes yang PASTI memerlukan authentication
 const protectedRoutes = [
   '/dashboard',
   '/trainers',
   '/participants',
-  '/programs',
   '/enrollments',
   '/statistics',
-  '/admin', // Admin routes harus protected
+  '/admin',
   '/profile',
   '/settings',
   '/my-enrollments',
@@ -26,18 +35,65 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Skip middleware for API routes, static files, etc
-  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.includes('.') // Skip files with extensions
+  ) {
     return NextResponse.next()
   }
 
-  // IMPORTANT: Supabase uses localStorage (client-side), not cookies
-  // So middleware cannot detect auth state. Let client-side handle all auth checks.
-  // This prevents redirect loops and allows proper session detection.
-  
-  // For now, disable middleware redirects and let client-side handle auth
-  // Admin layout and other protected pages will handle their own auth checks
-  
-  return NextResponse.next()
+  // Create Supabase client
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+        },
+      },
+    }
+  )
+
+  // Refresh session if expired - required for Server Components
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // SAFE ROLLOUT STRATEGY:
+  // 1. Check if route is explicitly protected
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+
+  // 2. If it is protected and no session, redirect to login
+  if (isProtectedRoute && !session) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // 3. Admin check for /admin routes
+  if (pathname.startsWith('/admin') && session) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'manager')) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url))
+    }
+  }
+
+  // 4. For all other routes (public or unknown), allow access
+  return response
 }
 
 export const config = {
@@ -48,7 +104,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (public folder)
-     * - api routes that handle their own auth
+     * - api routes (handled separately)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|api/).*)',
   ],

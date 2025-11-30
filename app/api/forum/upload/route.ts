@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { validateFile, generateSecureFileName } from '@/lib/file-validation'
 
 export const runtime = 'nodejs'
 
@@ -9,95 +10,91 @@ export async function POST(req: NextRequest) {
     const form = await req.formData()
     const file = form.get('file') as File | null
     const path = (form.get('path') as string) || ''
-    
+
     console.log('File received:', file?.name, 'Path:', path)
-    
+
     if (!file) {
       console.error('Missing file')
       return NextResponse.json({ error: 'Missing file' }, { status: 400 })
     }
 
-    // Normalize filename - remove special characters and spaces
-    const normalizedFileName = file.name
-      .replace(/[^a-zA-Z0-9.-]/g, '_')
-      .replace(/\s+/g, '_')
-      .toLowerCase()
-    
+    // ✅ Validate file
+    // Default to 'image' category for forum uploads unless path indicates otherwise
+    const category = path.includes('assignments') ? 'document' : 'image'
+
+    // For assignments, we might want to allow images too, but let's stick to strict validation first
+    // If it's an assignment, we might need a more flexible validation or multiple categories
+    // For now, let's assume assignments are documents (PDF) and forum posts are images
+    // If we need to support both for assignments, we can adjust the library or logic here
+
+    // Let's use a safer approach: check extension to guess category, then validate against that category
+    // This prevents "image.pdf" being validated as image and failing
+
+    let validationCategory: 'image' | 'document' = 'image'
+    if (file.type.startsWith('application/pdf')) {
+      validationCategory = 'document'
+    }
+
+    const validation = validateFile(file, validationCategory)
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    // ✅ Generate secure filename
+    const secureFileName = generateSecureFileName(file.name)
+
     // Generate path if not provided
-    const finalPath = path || `images/${Date.now()}_${normalizedFileName}`
+    // Use secure filename instead of original filename
+    const finalPath = path ? `${path}/${secureFileName}` : `images/${Date.now()}_${secureFileName}`
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
-    
-    console.log('Supabase URL:', supabaseUrl || 'Missing')
-    console.log('Service Key:', serviceKey ? `${serviceKey.substring(0, 10)}...` : 'Missing')
-    
-    if (!supabaseUrl) {
-      console.error('Missing NEXT_PUBLIC_SUPABASE_URL')
-      return NextResponse.json({ error: 'Missing NEXT_PUBLIC_SUPABASE_URL' }, { status: 500 })
-    }
-    if (!serviceKey) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY')
-      return NextResponse.json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY' }, { status: 500 })
+
+    if (!supabaseUrl || !serviceKey) {
+      console.error('Missing Supabase configuration')
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    // For custom domains, use direct Supabase project URL for storage
-    const storageUrl = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL || supabaseUrl
-    
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     })
-    
-    console.log('Supabase client created')
 
     // Determine bucket based on path
     const bucketId = path.includes('assignments') ? 'assignments' : 'forum-attachments'
-    
-    console.log('Using bucket:', bucketId)
-    
-    // Skip bucket creation, just try to upload
-    // Bucket should be created manually via SQL
 
     const arrayBuffer = await file.arrayBuffer()
-    console.log('Uploading to path:', finalPath, 'Size:', arrayBuffer.byteLength)
-    
+
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucketId)
       .upload(finalPath, arrayBuffer, {
-        contentType: file.type || 'application/octet-stream',
-        upsert: true, // Allow overwriting
+        contentType: file.type, // ✅ Trust validated type
+        upsert: false, // ✅ Prevent overwrite
       })
-      
-    console.log('Upload result:', { uploadData, uploadError })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      return NextResponse.json({ 
-        error: uploadError.message || 'Upload error', 
-        details: uploadError 
+      return NextResponse.json({
+        error: uploadError.message || 'Upload error',
+        details: uploadError
       }, { status: 500 })
     }
 
-    console.log('Getting public URL for:', finalPath)
-    
     const { data: publicUrlData } = supabase.storage
       .from(bucketId)
       .getPublicUrl(finalPath)
 
-    console.log('Public URL data:', publicUrlData)
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       url: publicUrlData.publicUrl,
-      path: finalPath 
+      path: finalPath
     }, { status: 200 })
   } catch (err: any) {
     console.error('Upload API error:', err)
-    return NextResponse.json({ 
-      error: err?.message || 'Upload failed', 
-      stack: err?.stack 
+    return NextResponse.json({
+      error: err?.message || 'Upload failed',
+      stack: err?.stack
     }, { status: 500 })
   }
 }

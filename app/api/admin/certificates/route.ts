@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { withAdmin } from '@/lib/api-auth'
 
 // GET /api/admin/certificates - Get all certificates
-export async function GET(request: NextRequest) {
+export const GET = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
@@ -65,8 +66,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch certificates' }, { status: 500 })
     }
 
-    return NextResponse.json({ 
-      data, 
+    return NextResponse.json({
+      data,
       pagination: {
         page,
         limit,
@@ -78,15 +79,15 @@ export async function GET(request: NextRequest) {
     console.error('Error in GET /api/admin/certificates:', error)
     console.error('Error message:', error?.message)
     const errorMessage = error?.message || 'Internal server error'
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
     }, { status: 500 })
   }
-}
+})
 
 // POST /api/admin/certificates/generate - Generate certificate manually
-export async function POST(request: NextRequest) {
+export const POST = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()
@@ -169,15 +170,15 @@ export async function POST(request: NextRequest) {
     console.error('Error in POST /api/admin/certificates/generate:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})
 
 // PUT /api/admin/certificates/[id] - Update certificate
-export async function PUT(request: NextRequest) {
+export const PUT = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const certificateId = searchParams.get('id')
-    
+
     if (!certificateId) {
       return NextResponse.json({ error: 'Certificate ID is required' }, { status: 400 })
     }
@@ -223,15 +224,15 @@ export async function PUT(request: NextRequest) {
     console.error('Error in PUT /api/admin/certificates:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})
 
 // DELETE /api/admin/certificates/[id] - Delete certificate
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAdmin(async (request, auth) => {
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const certificateId = searchParams.get('id')
-    
+
     if (!certificateId) {
       return NextResponse.json({ error: 'Certificate ID is required' }, { status: 400 })
     }
@@ -283,4 +284,4 @@ export async function DELETE(request: NextRequest) {
     console.error('Error in DELETE /api/admin/certificates:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+})
