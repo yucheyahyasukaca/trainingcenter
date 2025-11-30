@@ -21,7 +21,8 @@ import {
   User,
   FileText,
   Link2,
-  Ticket
+  Ticket,
+  AlertTriangle
 } from 'lucide-react'
 
 import { useAuth } from '@/components/AuthProvider'
@@ -42,6 +43,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: UserCog, label: 'Trainer', href: '/admin/trainers', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
+      { icon: AlertTriangle, label: 'Konflik Pendaftaran', href: '/admin/enrollments/conflicts', roles: ['admin'] },
       { icon: Settings, label: 'Atur Sertifikat', href: '/admin/certificate-management', roles: ['admin'] },
       { icon: BarChart3, label: 'Statistik', href: '/statistics', roles: ['admin'] },
       { icon: Trophy, label: 'Program Referral', href: '/admin/referral-management', roles: ['admin'] },
@@ -143,8 +145,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="px-4 sm:px-6 py-2 sm:py-3 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${(profile as any).role === 'admin' ? 'bg-red-500' :
-                (profile as any).role === 'manager' ? 'bg-blue-500' :
-                  (profile as any).role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
+              (profile as any).role === 'manager' ? 'bg-blue-500' :
+                (profile as any).role === 'trainer' ? 'bg-purple-500' : 'bg-green-500'
               }`}></div>
             <span className="text-xs sm:text-sm font-medium text-gray-700 capitalize">
               {(profile as any).role === 'admin' ? 'Administrator' :
