@@ -29,21 +29,31 @@ export async function GET(request: NextRequest) {
             if (error) throw error
 
             // Fetch participants manually to avoid FK issues
-            const participantIds = [...new Set((enrollments as any[]).map(e => e.participant_id).filter(Boolean))]
+            // Use Array.from to convert Set to Array for better compatibility
+            const participantIds = Array.from(new Set((enrollments as any[] || []).map(e => e.participant_id).filter(Boolean)))
 
             let participantsMap = new Map()
             if (participantIds.length > 0) {
-                // Batch fetch participants if too many
-                const { data: participants, error: partError } = await supabase
-                    .from('participants')
-                    .select('id, email, name')
-                    .in('id', participantIds)
-
-                if (partError) {
-                    console.error('Error fetching participants:', partError)
-                } else {
-                    participantsMap = new Map(participants?.map(p => [p.id, p]))
+                // Batch fetch participants to avoid 414 Request-URI Too Large
+                const chunkSize = 50
+                const chunks = []
+                for (let i = 0; i < participantIds.length; i += chunkSize) {
+                    chunks.push(participantIds.slice(i, i + chunkSize))
                 }
+
+                const results = await Promise.all(chunks.map(chunk =>
+                    supabase
+                        .from('participants')
+                        .select('id, email, name')
+                        .in('id', chunk)
+                ))
+
+                const allParticipants = results.flatMap(r => {
+                    if (r.error) console.error('Error fetching participant chunk:', r.error)
+                    return r.data || []
+                })
+
+                participantsMap = new Map(allParticipants.map((p: any) => [p.id, p]))
             }
 
             // Group by participant + program
@@ -110,9 +120,9 @@ export async function GET(request: NextRequest) {
                 if (enrollError) throw enrollError
 
                 // Attach participant info manually
-                const result = enrollments?.map(e => ({
+                const result = (enrollments as any[])?.map(e => ({
                     ...e,
-                    participant: profiles.find(p => p.id === e.participant_id)
+                    participant: profiles.find((p: any) => p.id === e.participant_id)
                 }))
 
                 return NextResponse.json({ data: result })
@@ -131,9 +141,9 @@ export async function GET(request: NextRequest) {
             if (enrollError) throw enrollError
 
             // Attach participant info manually
-            const result = enrollments?.map(e => ({
+            const result = (enrollments as any[])?.map(e => ({
                 ...e,
-                participant: participants.find(p => p.id === e.participant_id)
+                participant: participants.find((p: any) => p.id === e.participant_id)
             }))
 
             return NextResponse.json({ data: result })
@@ -151,18 +161,30 @@ export async function DELETE(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams
         const id = searchParams.get('id')
+        const ids = searchParams.get('ids')
 
-        if (!id) {
-            return NextResponse.json({ error: 'ID is required' }, { status: 400 })
+        if (!id && !ids) {
+            return NextResponse.json({ error: 'ID or IDs are required' }, { status: 400 })
         }
 
         const supabase = createAdminClient()
-        const { error } = await supabase
-            .from('enrollments')
-            .delete()
-            .eq('id', id)
 
-        if (error) throw error
+        if (ids) {
+            const idList = ids.split(',')
+            const { error } = await supabase
+                .from('enrollments')
+                .delete()
+                .in('id', idList)
+
+            if (error) throw error
+        } else if (id) {
+            const { error } = await supabase
+                .from('enrollments')
+                .delete()
+                .eq('id', id)
+
+            if (error) throw error
+        }
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
