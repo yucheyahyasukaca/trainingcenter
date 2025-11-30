@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signInWithGoogle, signInWithIdToken } from '@/lib/auth'
 import { Mail, Lock, AlertCircle, X, KeyRound } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import CustomCaptcha from '@/components/ui/CustomCaptcha'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -22,6 +23,7 @@ export default function LoginPage() {
     email: '',
     password: '',
   })
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
 
   useEffect(() => {
     // Check for referral code in URL
@@ -100,6 +102,12 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    if (!isCaptchaVerified) {
+      setError('Mohon selesaikan verifikasi keamanan terlebih dahulu.')
+      setLoading(false)
+      return
+    }
 
     // Debug logging
     console.log('🔍 Login attempt started')
@@ -351,9 +359,11 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <CustomCaptcha onVerify={setIsCaptchaVerified} />
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isCaptchaVerified}
               className="w-full btn-primary disabled:opacity-50 py-3"
             >
               {loading ? 'Memproses...' : 'Login'}

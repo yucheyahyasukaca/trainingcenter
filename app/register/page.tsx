@@ -9,6 +9,7 @@ import { signIn, signInWithIdToken } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { Mail, X, KeyRound } from 'lucide-react'
+import CustomCaptcha from '@/components/ui/CustomCaptcha'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
 
   useEffect(() => {
     const referral = searchParams.get('referral')
@@ -241,6 +243,13 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    if (!isCaptchaVerified) {
+      setError('Mohon selesaikan verifikasi keamanan terlebih dahulu.')
+      setLoading(false)
+      return
+    }
+
     try {
       await signIn(email, password)
       setIsLoginOpen(false)
@@ -436,7 +445,9 @@ export default function RegisterPage() {
                   <div className="text-sm text-red-600">{error}</div>
                 )}
 
-                <button type="submit" disabled={loading} className="w-full btn-primary py-3">
+                <CustomCaptcha onVerify={setIsCaptchaVerified} />
+
+                <button type="submit" disabled={loading || !isCaptchaVerified} className="w-full btn-primary py-3">
                   {loading ? 'Memproses...' : 'Masuk'}
                 </button>
 

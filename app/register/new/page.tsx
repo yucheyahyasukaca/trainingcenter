@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signUp } from '@/lib/auth'
+import CustomCaptcha from '@/components/ui/CustomCaptcha'
 
 export default function NewRegisterPage() {
   const router = useRouter()
@@ -16,6 +17,7 @@ export default function NewRegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
 
   useEffect(() => {
     // Check for referral code in URL
@@ -39,12 +41,18 @@ export default function NewRegisterPage() {
     setError('')
     setSuccess(false)
 
+    if (!isCaptchaVerified) {
+      setError('Mohon selesaikan verifikasi keamanan terlebih dahulu.')
+      setLoading(false)
+      return
+    }
+
     try {
       // Call the actual signUp function
       await signUp(email, password, name)
-      
+
       setSuccess(true)
-      
+
       // Redirect to login page after successful registration
       // Preserve referral code in redirect
       setTimeout(() => {
@@ -94,7 +102,7 @@ export default function NewRegisterPage() {
           <div>
             <h1 className="text-4xl font-bold text-gray-900">Buat Akun Garuda Academy</h1>
             <p className="text-gray-600 mt-2">Silakan isi formulir di bawah ini untuk membuat akun Garuda Academy.</p>
-            
+
             {/* Referral Code Info */}
             {referralCode && (
               <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -110,7 +118,7 @@ export default function NewRegisterPage() {
                 </p>
               </div>
             )}
-            
+
             <div className="h-px bg-gray-200 my-6" />
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -164,9 +172,11 @@ export default function NewRegisterPage() {
                 </div>
               )}
 
-              <button 
-                type="submit" 
-                disabled={loading || success}
+              <CustomCaptcha onVerify={setIsCaptchaVerified} />
+
+              <button
+                type="submit"
+                disabled={loading || success || !isCaptchaVerified}
                 className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Membuat akun...' : success ? 'Berhasil!' : 'Buat akun baru'}
