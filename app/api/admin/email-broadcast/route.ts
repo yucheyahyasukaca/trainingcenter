@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { replaceTemplateVariables, type TemplateUserData } from '@/lib/email-template-utils'
 import { cleanEmailHTML } from '@/lib/html-utils'
+import { getAppBaseUrl } from '@/lib/url-utils'
 
 // Helper function to generate email signature HTML
 function generateSignatureHTML(template: any): string {
     const parts: string[] = []
-    
+
     // Signature container with tighter spacing and center alignment
     parts.push('<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">')
-    
+
     // Logo (if provided) - preserve transparency, centered
     if (template.signature_logo_url) {
         parts.push(`
@@ -18,7 +19,7 @@ function generateSignatureHTML(template: any): string {
             </div>
         `)
     }
-    
+
     // Name and Title with tighter spacing, centered
     if (template.signature_name) {
         parts.push(`<div style="margin-bottom: 2px; line-height: 1.3; text-align: center;"><strong style="font-size: 15px; color: #111827; font-family: Arial, sans-serif;">${template.signature_name}</strong></div>`)
@@ -26,7 +27,7 @@ function generateSignatureHTML(template: any): string {
     if (template.signature_title) {
         parts.push(`<div style="margin-bottom: 6px; line-height: 1.3; color: #6b7280; font-size: 13px; font-family: Arial, sans-serif; text-align: center;">${template.signature_title}</div>`)
     }
-    
+
     // Contact Information with tighter spacing, centered
     const contactInfo: string[] = []
     if (template.signature_email) {
@@ -38,18 +39,18 @@ function generateSignatureHTML(template: any): string {
     if (template.signature_website) {
         contactInfo.push(`<a href="${template.signature_website}" style="color: #3b82f6; text-decoration: none; font-size: 13px; font-family: Arial, sans-serif;">${template.signature_website}</a>`)
     }
-    
+
     if (contactInfo.length > 0) {
         parts.push(`<div style="margin-bottom: 4px; line-height: 1.4; text-align: center;">${contactInfo.join(' | ')}</div>`)
     }
-    
+
     // Address with tighter spacing, centered
     if (template.signature_address) {
         parts.push(`<div style="color: #6b7280; font-size: 12px; font-family: Arial, sans-serif; line-height: 1.4; margin-top: 4px; text-align: center;">${template.signature_address}</div>`)
     }
-    
+
     parts.push('</div>')
-    
+
     return parts.join('\n')
 }
 
@@ -81,9 +82,9 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
             console.log('⚠️ Trying to get users from auth.users...')
             return specificEmails.map(email => {
                 const authUser = authUsersList.find((u: any) => u.email === email)
-                const fullName = authUser?.user_metadata?.full_name || 
-                                authUser?.raw_user_meta_data?.full_name || 
-                                ''
+                const fullName = authUser?.user_metadata?.full_name ||
+                    authUser?.raw_user_meta_data?.full_name ||
+                    ''
                 console.log(`📋 Auth user untuk ${email}:`, {
                     id: authUser?.id,
                     user_metadata: authUser?.user_metadata,
@@ -99,7 +100,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
                 }
             })
         }
-        
+
         console.log(`✅ Fetched ${data.length} users from user_profiles`)
         console.log(`📋 Sample user data:`, data[0] ? {
             email: data[0].email,
@@ -107,7 +108,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
             full_name: data[0].full_name,
             has_id: !!data[0].id
         } : 'No data')
-        
+
         // Ensure all users have id and full_name - fill from auth.users if missing
         const enrichedData = await Promise.all((data || []).map(async (user: any) => {
             // If user doesn't have id, try to get from auth.users
@@ -121,34 +122,34 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
                     console.warn(`⚠️ User ${user.email} tidak ditemukan di auth.users juga`)
                 }
             }
-            
+
             // If user doesn't have full_name or it's empty, try to get from auth.users
             if (!user.full_name || user.full_name.trim() === '') {
                 console.warn(`⚠️ User ${user.email} tidak memiliki full_name, mencoba ambil dari auth.users...`)
                 const authUser = authUsersList.find((u: any) => u.email === user.email)
                 if (authUser) {
-                    user.full_name = authUser.user_metadata?.full_name || 
-                                   authUser.raw_user_meta_data?.full_name || 
-                                   ''
+                    user.full_name = authUser.user_metadata?.full_name ||
+                        authUser.raw_user_meta_data?.full_name ||
+                        ''
                     console.log(`✅ Updated user ${user.email} full_name: "${user.full_name}"`)
                 }
             }
-            
+
             return user
         }))
-        
+
         // Also check for emails that weren't found in user_profiles
         const foundEmails = new Set(data.map((u: any) => u.email))
         const missingEmails = specificEmails.filter(email => !foundEmails.has(email))
-        
+
         if (missingEmails.length > 0) {
             console.log(`⚠️ ${missingEmails.length} emails tidak ditemukan di user_profiles, mencoba dari auth.users:`, missingEmails)
             missingEmails.forEach(email => {
                 const authUser = authUsersList.find((u: any) => u.email === email)
                 if (authUser) {
-                    const fullName = authUser.user_metadata?.full_name || 
-                                    authUser.raw_user_meta_data?.full_name || 
-                                    ''
+                    const fullName = authUser.user_metadata?.full_name ||
+                        authUser.raw_user_meta_data?.full_name ||
+                        ''
                     console.log(`📋 Adding missing user ${email}:`, {
                         id: authUser.id,
                         full_name: fullName,
@@ -165,7 +166,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
                 }
             })
         }
-        
+
         console.log(`📤 Returning ${enrichedData.length} enriched recipients`)
         enrichedData.forEach((r: any) => {
             console.log(`  - ${r.email}: id=${r.id || 'MISSING'}, full_name="${r.full_name || 'MISSING'}"`)
@@ -173,7 +174,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
         return enrichedData
     }
 
-        let query = supabase
+    let query = supabase
         .from('user_profiles')
         .select('id, email, full_name, role, created_at')
 
@@ -189,7 +190,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
 
     const { data, error } = await query
     if (error) throw error
-    
+
     // Enrich with auth.users data if full_name is empty or null
     const enrichedData = await Promise.all((data || []).map(async (user: any) => {
         if (!user.full_name || user.full_name.trim() === '') {
@@ -207,7 +208,7 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
         }
         return user
     }))
-    
+
     return enrichedData
 }
 
@@ -237,9 +238,9 @@ export async function POST(req: NextRequest) {
 
         // 2. Get Recipients
         console.log('📋 Fetching recipients...', { target, specificEmails, excelRecipients: excelRecipients?.length || 0 })
-        
+
         let recipients: any[] = []
-        
+
         // If using Excel, use Excel recipients directly
         if (target === 'excel' && excelRecipients && excelRecipients.length > 0) {
             console.log(`📋 Using ${excelRecipients.length} recipients from Excel file`)
@@ -253,13 +254,13 @@ export async function POST(req: NextRequest) {
         } else {
             recipients = await fetchRecipients(supabase, target, specificEmails)
         }
-        
+
         console.log(`✅ Fetched ${recipients?.length || 0} recipients`)
 
         if (!recipients || recipients.length === 0) {
             return NextResponse.json({ error: 'No recipients found' }, { status: 400 })
         }
-        
+
         // Log first recipient untuk debugging
         if (recipients.length > 0) {
             console.log('📋 First recipient sample:', {
@@ -276,7 +277,7 @@ export async function POST(req: NextRequest) {
         // Let's use the queue logic directly since we have access to the DB/Queue variables if we were in the same file.
         // But `emailQueue` is in another file's memory. We should call the API endpoint.
 
-        const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        const appUrl = getAppBaseUrl()
         const emailApiUrl = `${appUrl}/api/email/send`
 
         let successCount = 0
@@ -319,7 +320,7 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`📧 Starting to process ${recipients.length} recipients for email broadcast`)
-        
+
         // 5. Process emails with tracking
         const emailPromises = recipients.map(async (recipient: any) => {
             if (!recipient.email) {
@@ -329,10 +330,10 @@ export async function POST(req: NextRequest) {
 
             try {
                 console.log(`\n🔄 Processing recipient: ${recipient.email}`)
-                
+
                 // CRITICAL: Use name from Excel if available (for new users), otherwise fetch from database
                 let nama = ''
-                
+
                 // If recipient has full_name already (from Excel), use it directly
                 if (recipient.full_name && recipient.full_name.trim() !== '') {
                     nama = recipient.full_name.trim()
@@ -346,7 +347,7 @@ export async function POST(req: NextRequest) {
                             .select('full_name')
                             .eq('id', recipient.id)
                             .single()
-                        
+
                         if (!freshError && freshUser?.full_name) {
                             nama = freshUser.full_name.trim()
                             console.log(`✅ Fresh full_name dari database untuk ${recipient.email}: "${nama}"`)
@@ -362,7 +363,7 @@ export async function POST(req: NextRequest) {
                     console.warn(`⚠️ Recipient ${recipient.email} tidak memiliki id, menggunakan full_name dari recipient object`)
                     nama = recipient.full_name?.trim() || ''
                 }
-                
+
                 // If still no nama and we have email, try to get from auth.users by email
                 if ((!nama || nama === '') && recipient.email) {
                     console.log(`⚠️ full_name masih kosong untuk ${recipient.email}, mencoba ambil dari auth.users berdasarkan email...`)
@@ -375,9 +376,9 @@ export async function POST(req: NextRequest) {
                                 user_metadata: authUser.user_metadata,
                                 raw_user_meta_data: authUser.raw_user_meta_data
                             })
-                            nama = authUser.user_metadata?.full_name || 
-                                   authUser.raw_user_meta_data?.full_name || 
-                                   ''
+                            nama = authUser.user_metadata?.full_name ||
+                                authUser.raw_user_meta_data?.full_name ||
+                                ''
                             if (nama) {
                                 nama = nama.trim()
                                 console.log(`✅ Mengambil nama dari auth.users untuk ${recipient.email}: "${nama}"`)
@@ -391,22 +392,22 @@ export async function POST(req: NextRequest) {
                         console.error(`❌ Error fetching from auth.users untuk ${recipient.email}:`, err)
                     }
                 }
-                
+
                 console.log(`🔍 Processing recipient ${recipient.email}:`, {
                     id: recipient.id,
                     full_name_from_recipient: recipient.full_name,
                     full_name_final: nama,
                     full_name_length: nama.length
                 })
-                
+
                 // Only use fallback if full_name is truly empty
                 if (!nama || nama === '') {
                     console.log(`⚠️ full_name kosong untuk ${recipient.email}, mencoba ambil dari auth.users...`)
-                    
+
                     if (recipient.id) {
                         try {
                             const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(recipient.id)
-                            
+
                             if (authError) {
                                 console.error(`❌ Error fetching auth user ${recipient.id}:`, authError)
                             } else {
@@ -422,7 +423,7 @@ export async function POST(req: NextRequest) {
                             console.error(`❌ Exception saat fetch auth user ${recipient.id}:`, err)
                         }
                     }
-                    
+
                     // Only use email fallback if still empty (last resort)
                     if (!nama || nama === '') {
                         const emailUsername = recipient.email.split('@')[0]
@@ -436,7 +437,7 @@ export async function POST(req: NextRequest) {
                     // full_name exists - use it directly, no fallback
                     console.log(`✅ Menggunakan full_name: "${nama}" (length: ${nama.length})`)
                 }
-                
+
                 // Get user's enrolled programs
                 let program = ''
                 if (recipient.id) {
@@ -447,7 +448,7 @@ export async function POST(req: NextRequest) {
                             .select('id')
                             .eq('user_id', recipient.id)
                             .maybeSingle()
-                        
+
                         if (participant) {
                             // Get enrollments with program titles
                             const { data: enrollments } = await supabase
@@ -461,17 +462,17 @@ export async function POST(req: NextRequest) {
                                 .eq('participant_id', participant.id)
                                 .order('created_at', { ascending: false })
                                 .limit(5) // Get latest 5 programs
-                            
+
                             if (enrollments && enrollments.length > 0) {
                                 // Get unique program titles
                                 const programTitles = enrollments
                                     .map((e: any) => e.programs?.title)
                                     .filter((title: string) => title)
                                     .filter((value: string, index: number, self: string[]) => self.indexOf(value) === index) // Remove duplicates
-                                
+
                                 if (programTitles.length > 0) {
-                                    program = programTitles.length === 1 
-                                        ? programTitles[0] 
+                                    program = programTitles.length === 1
+                                        ? programTitles[0]
                                         : programTitles.join(', ')
                                     console.log(`✅ Program untuk ${recipient.email}: "${program}"`)
                                 }
@@ -481,7 +482,7 @@ export async function POST(req: NextRequest) {
                         console.warn(`⚠️ Error fetching programs for ${recipient.email}:`, programError)
                     }
                 }
-                
+
                 const userData: TemplateUserData = {
                     nama: nama,
                     email: recipient.email,
@@ -496,7 +497,7 @@ export async function POST(req: NextRequest) {
                         : '',
                     role: recipient.role || 'participant',
                 }
-                
+
                 console.log(`📧 Final data untuk ${recipient.email}: nama="${nama}", program="${program}"`)
                 console.log(`📧 UserData object:`, JSON.stringify(userData, null, 2))
                 console.log(`📧 Template content sebelum replace:`, template.content.substring(0, 200))
@@ -504,10 +505,10 @@ export async function POST(req: NextRequest) {
                 // Replace variables in both subject and content
                 const personalizedSubject = replaceTemplateVariables(template.subject, userData)
                 let personalizedContent = replaceTemplateVariables(template.content, userData)
-                
+
                 console.log(`📧 Personalized subject: "${personalizedSubject}"`)
                 console.log(`📧 Personalized content setelah replace:`, personalizedContent.substring(0, 300))
-                
+
                 // Verify that {{nama}} was replaced
                 if (personalizedContent.includes('{{nama}}')) {
                     console.error(`❌ ERROR: {{nama}} masih ada di content setelah replace!`)
@@ -530,7 +531,7 @@ export async function POST(req: NextRequest) {
                     const buttonColor = template.cta_button_color || '#3B82F6'
                     const buttonText = replaceTemplateVariables(template.cta_button_text, userData)
                     const buttonUrl = replaceTemplateVariables(template.cta_button_url, userData)
-                    
+
                     // Generate email-friendly CTA button HTML
                     const ctaButtonHTML = `
 <div style="margin: 30px 0; text-align: center;">
@@ -539,7 +540,7 @@ export async function POST(req: NextRequest) {
     </a>
 </div>
                     `.trim()
-                    
+
                     personalizedContent = personalizedContent + ctaButtonHTML
                 }
 
@@ -602,12 +603,12 @@ export async function POST(req: NextRequest) {
             } catch (err) {
                 console.error(`Failed to queue email for ${recipient.email}`, err)
                 failCount++
-                
+
                 // Update recipient status to failed
                 if (logData) {
                     await supabase
                         .from('email_recipients')
-                        .update({ 
+                        .update({
                             status: 'failed',
                             error_message: err instanceof Error ? err.message : 'Unknown error'
                         })
@@ -624,7 +625,7 @@ export async function POST(req: NextRequest) {
         const emailCount = recipients.length
         const useAmazonSES = process.env.EMAIL_PROVIDER === 'ses' || process.env.AWS_SES_SMTP_HOST
         const isProduction = process.env.AWS_SES_PRODUCTION === 'true'
-        
+
         let warning = null
         if (useAmazonSES) {
             if (isProduction) {
@@ -636,7 +637,7 @@ export async function POST(req: NextRequest) {
                 // Sandbox mode: Show warnings for limits
                 const sesDailyLimit = 200
                 const sesSafeLimit = 190
-                
+
                 if (emailCount > sesSafeLimit) {
                     warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas sandbox Amazon SES (${sesSafeLimit}/hari). Mode sandbox aktif - request production access untuk limit lebih tinggi.`
                     console.warn(warning)
@@ -648,7 +649,7 @@ export async function POST(req: NextRequest) {
             // Gmail limits
             const GMAIL_DAILY_LIMIT = 500
             const SAFE_DAILY_LIMIT = 450
-            
+
             if (emailCount > SAFE_DAILY_LIMIT) {
                 warning = `⚠️ Peringatan: Anda akan mengirim ${emailCount} email, melebihi batas aman Gmail (${SAFE_DAILY_LIMIT}/hari). Email akan diproses dalam beberapa hari atau beberapa email mungkin gagal terkirim. Disarankan menggunakan Amazon SES atau email service provider untuk volume besar.`
                 console.warn(warning)

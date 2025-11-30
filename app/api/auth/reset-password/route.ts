@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAppBaseUrl } from '@/lib/url-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -152,15 +153,15 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Searching for user with email:', email)
     const normalizedEmail = email.toLowerCase().trim()
     console.log('🔍 Email normalized:', normalizedEmail)
-    
+
     let user = null
     let listUsersError = null
-    
+
     // Method 1: Search in auth.users via admin API
     try {
       const { data: allUsers, error: error } = await supabase.auth.admin.listUsers()
       listUsersError = error
-      
+
       if (error) {
         console.error('❌ Error listing users:', error)
       } else if (allUsers?.users) {
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
           const userEmail = u.email?.toLowerCase().trim()
           return userEmail === normalizedEmail
         })
-        
+
         // Log sample emails for debugging if not found
         if (!user && allUsers.users.length > 0) {
           const sampleEmails = allUsers.users.slice(0, 10).map(u => u.email).filter(Boolean)
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
       console.error('❌ Exception listing users:', err)
       listUsersError = err
     }
-    
+
     // Method 2: If not found in auth.users, try to find via user_profiles (fallback)
     if (!user) {
       console.log('🔍 User not found in auth.users, trying user_profiles...')
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
           .select('id, email')
           .ilike('email', normalizedEmail)
           .maybeSingle()
-        
+
         if (profile && !profileError) {
           console.log('✅ Found user via user_profiles:', profile.id)
           // Try to get user from auth using the ID
@@ -211,16 +212,16 @@ export async function POST(request: NextRequest) {
         console.error('❌ Exception searching user_profiles:', profileErr)
       }
     }
-    
+
     if (listUsersError && !user) {
       return NextResponse.json(
         { error: 'Gagal mencari user. Silakan coba lagi nanti.' },
         { status: 500 }
       )
     }
-    
-    console.log('👤 User search result:', { 
-      found: !!user, 
+
+    console.log('👤 User search result:', {
+      found: !!user,
       userId: user?.id,
       userEmail: user?.email,
       searchMethod: user ? (user.id ? 'auth.users' : 'user_profiles') : 'none'
@@ -235,7 +236,7 @@ export async function POST(request: NextRequest) {
         message: 'Jika email terdaftar, password baru telah dikirim ke email Anda.'
       })
     }
-    
+
     console.log('✅ User found:', {
       id: user.id,
       email: user.email,
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     console.log('✅ Password updated successfully for user:', user.id)
 
     // Get user profile for name (service role should bypass RLS)
@@ -280,9 +281,9 @@ export async function POST(request: NextRequest) {
       })
       // Continue anyway, we can use email as name
     } else {
-      console.log('✅ User profile fetched:', { 
-        hasProfile: !!profile, 
-        name: profile?.full_name 
+      console.log('✅ User profile fetched:', {
+        hasProfile: !!profile,
+        name: profile?.full_name
       })
     }
 
@@ -291,9 +292,9 @@ export async function POST(request: NextRequest) {
     // Send email with new password
     let emailSent = false
     let emailError: any = null
-    
+
     try {
-      const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const baseUrl = getAppBaseUrl()
       const loginUrl = `${baseUrl}/login`
 
       const emailHtml = generatePasswordResetEmail({
@@ -306,7 +307,7 @@ export async function POST(request: NextRequest) {
       // Send email and wait for response
       console.log('📧 Attempting to send password reset email to:', user.email)
       console.log('📧 Base URL:', baseUrl)
-      
+
       const emailResponse = await fetch(`${baseUrl}/api/email/send`, {
         method: 'POST',
         headers: {
@@ -321,7 +322,7 @@ export async function POST(request: NextRequest) {
       })
 
       const emailData = await emailResponse.json().catch(() => ({ error: 'Failed to parse response' }))
-      
+
       if (!emailResponse.ok) {
         emailError = emailData
         console.error('❌ Error sending password reset email:', emailData)

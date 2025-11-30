@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createClient } from '@supabase/supabase-js'
+import { getAppBaseUrl } from '@/lib/url-utils'
 
 // Generate secure random password
 // Generate secure random password
@@ -159,7 +160,7 @@ export const POST = withAdmin(async (request, auth) => {
 
     // Send email with new password
     try {
-      const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const baseUrl = getAppBaseUrl()
       const loginUrl = `${baseUrl}/login`
 
       const emailHtml = generatePasswordResetEmail({

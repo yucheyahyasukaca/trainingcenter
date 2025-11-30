@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateWelcomeEmail } from '@/lib/email-templates'
+import { getAppBaseUrl } from '@/lib/url-utils'
 
 // Test email endpoint dengan mock data
 export async function POST(request: NextRequest) {
@@ -14,9 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get base URL
-    const protocol = request.headers.get('x-forwarded-proto') || 'http'
-    const host = request.headers.get('host') || 'localhost:3000'
-    const baseUrl = `${protocol}://${host}`
+    const baseUrl = getAppBaseUrl()
 
     // Mock data untuk test - sama dengan data real user
     const mockData = {
@@ -60,9 +59,9 @@ export async function POST(request: NextRequest) {
 
     if (!sendResponse.ok) {
       return NextResponse.json(
-        { 
-          error: 'Failed to send email', 
-          details: sendResult 
+        {
+          error: 'Failed to send email',
+          details: sendResult
         },
         { status: 500 }
       )
@@ -141,9 +140,9 @@ export async function GET(request: NextRequest) {
 
     if (!sendResponse.ok) {
       return NextResponse.json(
-        { 
-          error: 'Failed to send email', 
-          details: sendResult 
+        {
+          error: 'Failed to send email',
+          details: sendResult
         },
         { status: 500 }
       )

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAppBaseUrl } from '@/lib/url-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -233,10 +234,10 @@ export async function POST(request: NextRequest, { params }: Params) {
     let userId: string
     let isExistingUser = false
     let defaultPassword = generateDefaultPassword()
-    
+
     // Check if email already exists - try multiple methods
     let userWithEmail = null
-    
+
     // Method 1: Check via user_profiles table (more reliable)
     try {
       const { data: profileData } = await supabase
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         .select('id, email')
         .eq('email', email.toLowerCase())
         .maybeSingle()
-      
+
       if (profileData?.id) {
         // Found in user_profiles, get user from auth
         try {
@@ -259,25 +260,25 @@ export async function POST(request: NextRequest, { params }: Params) {
     } catch (err) {
       console.error('Error checking user_profiles:', err)
     }
-    
+
     // Method 2: If not found, try listUsers (with pagination handling)
     if (!userWithEmail) {
       try {
         let page = 1
         let hasMore = true
         const pageSize = 1000 // Supabase default page size
-        
+
         while (hasMore && !userWithEmail) {
           const { data: allUsers, error: listError } = await supabase.auth.admin.listUsers({
             page,
             perPage: pageSize
           })
-          
+
           if (listError) {
             console.error('Error listing users:', listError)
             break
           }
-          
+
           if (allUsers?.users) {
             userWithEmail = allUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
             hasMore = allUsers.users.length === pageSize
@@ -310,14 +311,14 @@ export async function POST(request: NextRequest, { params }: Params) {
         // If email exists error, try to find user by checking user_profiles or auth
         if (authError.code === 'email_exists' || authError.message?.includes('already been registered') || authError.message?.includes('email')) {
           console.log('Email already exists, finding existing user...')
-          
+
           // Method 1: Try to find via user_profiles first (most reliable)
           const { data: profileData } = await supabase
             .from('user_profiles')
             .select('id, email')
             .eq('email', email.toLowerCase())
             .maybeSingle()
-          
+
           if (profileData?.id) {
             // Found in user_profiles - use this ID
             userId = profileData.id
@@ -328,7 +329,7 @@ export async function POST(request: NextRequest, { params }: Params) {
             // Since email_exists error means user exists in auth, try to get it
             // We'll use a workaround: try to get user by attempting to list and search
             let found = false
-            
+
             // Try paginated search
             for (let page = 1; page <= 10 && !found; page++) {
               try {
@@ -336,12 +337,12 @@ export async function POST(request: NextRequest, { params }: Params) {
                   page,
                   perPage: 1000
                 })
-                
+
                 if (listError) {
                   console.error('Error listing users:', listError)
                   break
                 }
-                
+
                 if (allUsersRetry?.users) {
                   const existingUserByEmail = allUsersRetry.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
                   if (existingUserByEmail) {
@@ -351,7 +352,7 @@ export async function POST(request: NextRequest, { params }: Params) {
                     console.log('Found user via listUsers:', userId)
                     break
                   }
-                  
+
                   // If we got less than 1000 users, we've reached the end
                   if (allUsersRetry.users.length < 1000) {
                     break
@@ -364,23 +365,23 @@ export async function POST(request: NextRequest, { params }: Params) {
                 break
               }
             }
-            
+
             if (!found) {
               // Email exists but we can't find the user ID via listUsers
               // Try one more method: query auth.users directly via RPC or use email as identifier
               // Since we can't directly query auth.users by email via admin API,
               // we'll need to handle this case differently
-              
+
               // Last resort: Try to get user by attempting to sign in or use email as fallback
               // But since we need user_id for webinar_registrations, we must find it
-              
+
               // Actually, if email exists in auth but not in user_profiles or listUsers,
               // it might be a data inconsistency. Let's try one more time with a fresh listUsers call
               try {
                 // Fresh call without pagination params (get first page)
                 const { data: freshUsers } = await supabase.auth.admin.listUsers()
                 const freshUser = freshUsers?.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-                
+
                 if (freshUser) {
                   userId = freshUser.id
                   isExistingUser = true
@@ -390,14 +391,14 @@ export async function POST(request: NextRequest, { params }: Params) {
               } catch (freshErr) {
                 console.error('Error in fresh listUsers call:', freshErr)
               }
-              
+
               if (!found) {
                 // Email exists but we can't find the user ID
                 // This is a rare edge case - return helpful error
                 console.error('Email exists but user not found in any method. Error:', authError)
                 console.error('Email:', email)
                 return NextResponse.json(
-                  { 
+                  {
                     error: 'Email sudah terdaftar. Silakan login dengan akun yang sudah ada untuk mendaftar webinar.',
                     emailExists: true,
                     suggestion: 'login'
@@ -528,7 +529,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // Send email notification (only if not already registered)
     try {
-      const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const baseUrl = getAppBaseUrl()
       const loginUrl = `${baseUrl}/login`
 
       const emailHtml = generateAccountWelcomeEmail({
@@ -548,7 +549,7 @@ export async function POST(request: NextRequest, { params }: Params) {
         },
         body: JSON.stringify({
           to: email,
-          subject: isExistingUser 
+          subject: isExistingUser
             ? `Pendaftaran Webinar Berhasil - ${webinar.title} | GARUDA-21 Training Center`
             : `Selamat Bergabung - Akun Baru Dibuat | GARUDA-21 Training Center`,
           html: emailHtml,
