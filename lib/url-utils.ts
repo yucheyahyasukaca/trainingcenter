@@ -23,11 +23,17 @@ export function getAppBaseUrl(): string {
 }
 
 export function getEmailBaseUrl(): string {
-    // Always use production URL for emails unless specifically overridden
-    // This ensures emails sent from local dev still point to production
-    if (process.env.NEXT_PUBLIC_APP_URL) {
+    // Check for specific email base URL first (optional override)
+    if (process.env.NEXT_PUBLIC_EMAIL_BASE_URL) {
+        return process.env.NEXT_PUBLIC_EMAIL_BASE_URL
+    }
+
+    // Check standard app URL, but ignore localhost
+    if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')) {
         return process.env.NEXT_PUBLIC_APP_URL
     }
 
+    // Always fallback to production URL for emails
+    // This ensures emails sent from local dev still point to production
     return 'https://academy.garuda-21.com'
 }
