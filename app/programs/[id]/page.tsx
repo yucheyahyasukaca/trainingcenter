@@ -46,7 +46,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
   async function fetchProgram() {
     try {
       setLoading(true)
-      
+
       const { data: programData, error: programError } = await supabase
         .from('programs')
         .select(`
@@ -69,7 +69,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
       if (programError) throw programError
 
       const programWithTrainer: any = programData
-      
+
       if ((programData as any).trainer_id) {
         const { data: trainerData } = await supabase
           .from('trainers')
@@ -179,9 +179,9 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
       answer: (programId: string) => (
         <div>
           Daftar di{' '}
-          <a 
-            href="https://academy.garuda-21.com/gemini2025" 
-            target="_blank" 
+          <a
+            href="https://academy.garuda-21.com/gemini2025"
+            target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:underline"
           >
@@ -205,9 +205,9 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
   }
 
   if (!program) {
-  return (
+    return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="text-center">
+        <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Program Tidak Ditemukan</h1>
           <Link href="/programs" className="text-primary-600 hover:underline">
             Kembali ke Daftar Program
@@ -223,17 +223,17 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
   return (
     <div className="min-h-screen bg-white">
       <PublicNav activeLink="programs" />
-      <ProgramStatisticsModal 
+      <ProgramStatisticsModal
         isOpen={showStatisticsModal}
         onClose={() => setShowStatisticsModal(false)}
         programId={params.id}
       />
-      
+
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <Link 
+            <Link
               href="/programs"
               className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
             >
@@ -251,7 +251,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                 </span>
                 <br />
                 <span className="text-gray-900">
-                  Mewujudkan Guru Cerdas, Indonesia Emas
+                  Mewujudkan Guru HEBAT, Indonesia Emas
                 </span>
               </h1>
             </div>
@@ -269,7 +269,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                   height={600}
                   className="w-full h-[500px] object-cover"
                 />
-                
+
                 {/* Overlay Icons - Puzzle Piece */}
                 <div className="absolute top-6 right-6 w-14 h-14 rounded-xl shadow-xl overflow-hidden" style={{
                   background: 'linear-gradient(135deg, #2563eb, #ec4899)',
@@ -297,7 +297,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
             {/* Content on Right */}
             <div className="order-1 lg:order-2">
               <p className="text-lg text-gray-700 leading-relaxed mb-8">
-                {program.title.includes('Gemini') 
+                {program.title.includes('Gemini')
                   ? 'Gemini untuk Pendidik adalah program pelatihan keterampilan AI untuk para pengajar. Pelatihan ini mengajarkan cara menggunakan AI generatif dengan aman serta memberikan panduan untuk meningkatkan kreativitas dan produktivitas pengajar dengan Gemini'
                   : program.description || `${program.title} adalah program pelatihan keterampilan AI untuk para pengajar. Pelatihan ini mengajarkan cara menggunakan AI generatif dengan aman serta memberikan panduan untuk meningkatkan kreativitas dan produktivitas pengajar dengan ${program.title}.`
                 }
@@ -355,7 +355,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
               Gunakan Gemini dengan aman untuk mengoptimalkan<br />
               pengajaran dan produktivitas Anda
             </h2>
-            
+
             {/* Pagination Control - Top Right */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
@@ -381,14 +381,14 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
           {/* Features Cards - Grid Layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {features.map((feature, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className="bg-gray-50 rounded-2xl p-8 shadow-sm"
               >
                 <div className="flex items-start gap-6">
                   {/* Large Gradient Number */}
                   <div className="flex-shrink-0">
-                    <div 
+                    <div
                       className="text-8xl font-bold leading-none"
                       style={{
                         background: `linear-gradient(to bottom, #3b82f6, #ec4899)`,
@@ -400,7 +400,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                       {feature.number}
                     </div>
                   </div>
-                  
+
                   {/* Text Content */}
                   <div className="flex-1 pt-2">
                     <p className="text-gray-800 leading-relaxed">
@@ -425,11 +425,10 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
               {features.map((_, idx) => (
                 <span
                   key={idx}
-                  className={`text-sm ${
-                    idx === featureCarouselIndex 
-                      ? 'text-gray-900 font-medium underline decoration-2 underline-offset-4' 
+                  className={`text-sm ${idx === featureCarouselIndex
+                      ? 'text-gray-900 font-medium underline decoration-2 underline-offset-4'
                       : 'text-gray-400'
-                  }`}
+                    }`}
                 >
                   {String(idx + 1).padStart(2, '0')}/{String(features.length).padStart(2, '0')}
                 </span>
@@ -582,18 +581,17 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                     {faq.question}
                   </span>
                   <ChevronRight
-                    className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
-                      expandedFaq === idx ? 'transform rotate-90' : ''
-                    }`}
+                    className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expandedFaq === idx ? 'transform rotate-90' : ''
+                      }`}
                   />
                 </button>
                 {expandedFaq === idx && (
                   <div className="pb-6 text-gray-700 leading-relaxed">
-                    {typeof faq.answer === 'string' 
-                      ? faq.answer 
+                    {typeof faq.answer === 'string'
+                      ? faq.answer
                       : typeof faq.answer === 'function'
-                      ? faq.answer(program.id)
-                      : faq.answer
+                        ? faq.answer(program.id)
+                        : faq.answer
                     }
                   </div>
                 )}

@@ -271,5 +271,6 @@ Jika ada pertanyaan atau butuh bantuan:
 
 **Built with ❤️ for Indonesian Tech Community**
 
-Terinspirasi dari [Microsoft Elevate Training Center](https://dicoding.elevaite.id/)
+Terinspirasi dari [GARUDA-21 Training Center](https://academy.garuda-21.com/)
+
 
