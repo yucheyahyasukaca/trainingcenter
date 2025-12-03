@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Upload, FileText, Lightbulb, CheckCircle2, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { submitExploration } from './actions'
@@ -106,6 +106,18 @@ export default function EksplorasiPage() {
             setIsSubmitting(false)
         }
     }
+
+    const [submissions, setSubmissions] = useState<any[]>([])
+
+    useEffect(() => {
+        const fetchSubmissions = async () => {
+            const { getExplorations } = await import('./actions')
+            const data = await getExplorations()
+            setSubmissions(data)
+        }
+        fetchSubmissions()
+    }, [])
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-indigo-50 p-6 md:p-12 font-sans">
@@ -317,6 +329,54 @@ export default function EksplorasiPage() {
                         </button>
                     </div>
                 </form>
+            </div>
+
+            {/* History Section */}
+            <div className="max-w-4xl mx-auto mt-12">
+                <h2 className="text-2xl font-bold text-slate-800 mb-6">Riwayat Laporan Anda</h2>
+                <div className="space-y-4">
+                    {submissions.length === 0 ? (
+                        <div className="text-center p-8 bg-white rounded-2xl border border-slate-200 text-slate-500">
+                            Belum ada laporan yang dikirim.
+                        </div>
+                    ) : (
+                        submissions.map((sub) => (
+                            <div key={sub.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${sub.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                            sub.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                            {sub.status === 'approved' ? 'Diterima' :
+                                                sub.status === 'rejected' ? 'Ditolak' : 'Menunggu Review'}
+                                        </span>
+                                        <span className="text-slate-400 text-sm">
+                                            {new Date(sub.created_at).toLocaleDateString('id-ID', {
+                                                day: 'numeric', month: 'long', year: 'numeric'
+                                            })}
+                                        </span>
+                                    </div>
+                                    <h3 className="font-bold text-slate-800 mb-1 line-clamp-1">{sub.solution}</h3>
+                                    <p className="text-slate-600 text-sm line-clamp-2">{sub.story}</p>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <div className="text-xs text-slate-500">Poin Didapatkan</div>
+                                        <div className="text-xl font-bold text-indigo-600">
+                                            {sub.status !== 'rejected' ? '+5 Poin' : '0 Poin'}
+                                        </div>
+                                    </div>
+                                    {sub.documentation_url && (
+                                        <a href={sub.documentation_url} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+                                            <FileText className="w-5 h-5 text-slate-600" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     )

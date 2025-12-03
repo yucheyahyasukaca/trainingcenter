@@ -42,6 +42,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: Users, label: 'Peserta', href: '/participants', roles: ['admin'] },
       { icon: UserCog, label: 'Trainer', href: '/admin/trainers', roles: ['admin'] },
       { icon: BookOpen, label: 'Modul HEBAT', href: '/admin/hebat/modules', roles: ['admin'] },
+      { icon: Award, label: 'Submisi HEBAT', href: '/admin/hebat/submissions', roles: ['admin'] },
       { icon: Calendar, label: 'Pendaftaran', href: '/enrollments', roles: ['admin'] },
       { icon: CreditCard, label: 'Pembayaran', href: '/payments', roles: ['admin'] },
       { icon: AlertTriangle, label: 'Konflik Pendaftaran', href: '/admin/enrollments/conflicts', roles: ['admin'] },

@@ -6,12 +6,10 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 const schema = z.object({
-    focus: z.enum(['A', 'B']),
-    story: z.string().min(50, 'Cerita minimal 50 karakter').max(1000, 'Cerita maksimal 1000 karakter'),
-    solution: z.string().max(200, 'Solusi maksimal 200 karakter'),
+    socialLink: z.string().url('Mohon masukkan URL yang valid'),
 })
 
-export async function submitExploration(formData: FormData) {
+export async function submitActualization(formData: FormData) {
     const supabase = createServerClient()
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -19,19 +17,17 @@ export async function submitExploration(formData: FormData) {
         return { error: 'Unauthorized' }
     }
 
-    const focus = formData.get('focus') as string
-    const story = formData.get('story') as string
-    const solution = formData.get('solution') as string
+    const socialLink = formData.get('socialLink') as string
     const file = formData.get('documentation') as File
 
     // Validation
-    const validation = schema.safeParse({ focus, story, solution })
+    const validation = schema.safeParse({ socialLink })
     if (!validation.success) {
         return { error: validation.error.issues[0].message }
     }
 
     if (!file || file.size === 0) {
-        return { error: 'Bukti dokumentasi wajib diunggah' }
+        return { error: 'Bukti screenshot wajib diunggah' }
     }
 
     // Get trainer ID
@@ -48,7 +44,7 @@ export async function submitExploration(formData: FormData) {
 
     // File upload
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`
+    const fileName = `aktualisasi/${user.id}/${Date.now()}.${fileExt}`
     const { error: uploadError } = await supabase.storage
         .from('hebat-submissions')
         .upload(fileName, file)
@@ -63,13 +59,20 @@ export async function submitExploration(formData: FormData) {
         .getPublicUrl(fileName)
 
     // Database insert
+    // Mapping:
+    // category: 'A' (Aktualisasi)
+    // focus: 'A' (Dummy)
+    // story: 'Aktualisasi Submission' (Dummy)
+    // solution: socialLink
+    // documentation_url: publicUrl (Screenshot)
     const { error: dbError } = await supabase
         .from('hebat_submissions')
         .insert({
             trainer_id: trainer.id,
-            focus,
-            story,
-            solution,
+            category: 'A',
+            focus: 'A',
+            story: 'Aktualisasi Submission',
+            solution: socialLink,
             documentation_url: publicUrl,
             status: 'pending'
         } as any)
@@ -83,7 +86,7 @@ export async function submitExploration(formData: FormData) {
     redirect('/trainer/dashboard?success=true')
 }
 
-export async function getExplorations() {
+export async function getActualizations() {
     const supabase = createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -101,7 +104,7 @@ export async function getExplorations() {
         .from('hebat_submissions')
         .select('*')
         .eq('trainer_id', trainer.id)
-        .eq('category', 'E')
+        .eq('category', 'A')
         .order('created_at', { ascending: false })
 
     return data || []

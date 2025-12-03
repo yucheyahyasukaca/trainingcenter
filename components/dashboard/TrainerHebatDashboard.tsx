@@ -116,7 +116,7 @@ export function TrainerHebatDashboard() {
             color: 'purple',
             points: points?.e_points || 0,
             target: null, // No limit
-            pointsLabel: '20 Poin / Submission',
+            pointsLabel: '5 Poin / Submission',
             action: 'Mulai Eksplorasi',
             href: '/trainer/hebat/eksplorasi'
         },
