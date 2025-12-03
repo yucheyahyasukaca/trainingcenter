@@ -8,10 +8,11 @@ import { MyEnrollments } from './MyEnrollments'
 import { AvailablePrograms } from './AvailablePrograms'
 import { TrainerProfile } from './TrainerProfile'
 import { MyCertificates } from './MyCertificates'
-import { 
-  GraduationCap, 
-  UserCheck, 
-  Award, 
+import { HebatAnnouncement } from './HebatAnnouncement'
+import {
+  GraduationCap,
+  UserCheck,
+  Award,
   BookOpen,
   Star,
   Clock,
@@ -101,7 +102,7 @@ export function UserDashboard() {
         if (!((userProfile as any)?.address || (participantInfo as any)?.address)) missing.push('Alamat')
         setMissingFields(missing)
         setProfileIncomplete(missing.length > 0)
-        
+
         // Get participant ID
         const { data: participant } = await supabase
           .from('participants')
@@ -196,31 +197,31 @@ export function UserDashboard() {
   ]
 
   const quickActions = [
-    { 
-      title: 'Daftar Program', 
-      icon: GraduationCap, 
-      href: '/programs', 
+    {
+      title: 'Daftar Program',
+      icon: GraduationCap,
+      href: '/programs',
       color: 'blue',
       description: 'Lihat dan daftar program pelatihan'
     },
-    { 
-      title: 'Jadi Trainer', 
-      icon: UserCheck, 
-      href: '/become-trainer', 
+    {
+      title: 'Jadi Trainer',
+      icon: UserCheck,
+      href: '/become-trainer',
       color: 'green',
       description: 'Daftar sebagai trainer'
     },
-    { 
-      title: 'Sertifikat Saya', 
-      icon: Award, 
-      href: '/certificates', 
+    {
+      title: 'Sertifikat Saya',
+      icon: Award,
+      href: '/certificates',
       color: 'purple',
       description: 'Lihat sertifikat yang diperoleh'
     },
-    { 
-      title: 'Profil Trainer', 
-      icon: Star, 
-      href: '/trainer-profile', 
+    {
+      title: 'Profil Trainer',
+      icon: Star,
+      href: '/trainer-profile',
       color: 'orange',
       description: 'Kelola profil trainer'
     }
@@ -228,6 +229,7 @@ export function UserDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100">
+      <HebatAnnouncement />
       {/* Header with modern gradient */}
       <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-700 to-red-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl">
         <div className="absolute inset-0 bg-black/10"></div>
@@ -244,11 +246,10 @@ export function UserDashboard() {
             </div>
             <div className="flex items-center justify-center sm:justify-end">
               <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
-                <div className={`w-4 h-4 rounded-full ${
-                  levelInfo.color === 'purple' ? 'bg-purple-400' :
-                  levelInfo.color === 'blue' ? 'bg-blue-400' :
-                  levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
-                }`}></div>
+                <div className={`w-4 h-4 rounded-full ${levelInfo.color === 'purple' ? 'bg-purple-400' :
+                    levelInfo.color === 'blue' ? 'bg-blue-400' :
+                      levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
+                  }`}></div>
                 <span className="text-white font-medium text-sm sm:text-base">{levelInfo.title}</span>
               </div>
             </div>
@@ -289,70 +290,68 @@ export function UserDashboard() {
       {/* User Stats - Modern Cards */}
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-12">
-        {statsLoading ? (
-          // Loading skeleton
-          Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-6">
-              <div className="animate-pulse">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-2xl"></div>
-                  <div className="text-left sm:text-right">
-                    <div className="h-8 bg-gray-300 rounded w-12 mb-2"></div>
-                    <div className="h-4 bg-gray-300 rounded w-20"></div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                    <div className="h-3 bg-gray-300 rounded w-8"></div>
-                  </div>
-                  <div className="h-3 bg-gray-300 rounded w-12"></div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          statsData.map((stat, index) => {
-          const Icon = stat.icon
-          return (
-            <Link key={index} href={stat.href} className="block">
-              <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 cursor-pointer">
-                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
-                <div className="relative z-10 p-5 sm:p-6">
+          {statsLoading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 sm:p-6">
+                <div className="animate-pulse">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
-                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
-                      stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                      stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                      stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                      stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
-                    }`}>
-                      <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                    </div>
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-300 rounded-2xl"></div>
                     <div className="text-left sm:text-right">
-                      <p className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
-                      <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
+                      <div className="h-8 bg-gray-300 rounded w-12 mb-2"></div>
+                      <div className="h-4 bg-gray-300 rounded w-20"></div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        stat.color === 'blue' ? 'bg-blue-500' :
-                        stat.color === 'green' ? 'bg-green-500' :
-                        stat.color === 'orange' ? 'bg-orange-500' :
-                        stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
-                      }`}></div>
-                      <span className="text-xs text-gray-500 font-medium">Aktif</span>
+                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                      <div className="h-3 bg-gray-300 rounded w-8"></div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />
+                    <div className="h-3 bg-gray-300 rounded w-12"></div>
                   </div>
                 </div>
-                {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
-            </Link>
-          )
-        })
-        )}
+            ))
+          ) : (
+            statsData.map((stat, index) => {
+              const Icon = stat.icon
+              return (
+                <Link key={index} href={stat.href} className="block">
+                  <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 cursor-pointer">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
+                    <div className="relative z-10 p-5 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
+                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                            stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                              stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                                stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
+                          }`}>
+                          <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-2xl sm:text-3xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
+                          <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1">{stat.title}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${stat.color === 'blue' ? 'bg-blue-500' :
+                              stat.color === 'green' ? 'bg-green-500' :
+                                stat.color === 'orange' ? 'bg-orange-500' :
+                                  stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
+                            }`}></div>
+                          <span className="text-xs text-gray-500 font-medium">Aktif</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all duration-300" />
+                      </div>
+                    </div>
+                    {/* Hover effect overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                </Link>
+              )
+            })
+          )}
         </div>
       </div>
 
