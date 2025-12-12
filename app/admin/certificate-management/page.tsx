@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
 import { CertificatePreviewModal } from '@/components/admin/CertificatePreviewModal'
-import { 
-  Plus, 
-  Upload, 
-  Edit, 
-  Trash2, 
-  Download, 
-  Eye, 
+import {
+  Plus,
+  Upload,
+  Edit,
+  Trash2,
+  Download,
+  Eye,
   FileText,
   Settings,
   Users,
@@ -71,13 +71,13 @@ export default function CertificateManagementPage() {
   const { profile } = useAuth()
   const toast = useToast()
   const [activeTab, setActiveTab] = useState<'templates' | 'requirements'>('templates')
-  
+
   // Templates state
   const [templates, setTemplates] = useState<CertificateTemplate[]>([])
-  
+
   // Requirements state
   const [requirements, setRequirements] = useState<CertificateRequirement[]>([])
-  
+
   // Common state
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
@@ -94,18 +94,24 @@ export default function CertificateManagementPage() {
     }
   }, [profile])
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession())
+    return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+  }
+
   const fetchTemplates = async () => {
     try {
       console.log('📥 Fetching certificate templates...')
+      const headers = await getAuthHeader()
       const response = await fetch('/api/admin/certificate-templates', {
-        credentials: 'include'
+        headers
       })
       console.log('📥 Response status:', response.status)
       console.log('📥 Response ok:', response.ok)
-      
+
       const result = await response.json()
       console.log('📥 Response data:', result)
-      
+
       if (response.ok) {
         setTemplates(result.data || [])
         console.log('✅ Templates loaded:', result.data?.length || 0)
@@ -122,15 +128,16 @@ export default function CertificateManagementPage() {
   const fetchRequirements = async () => {
     try {
       console.log('📥 Fetching certificate requirements...')
+      const headers = await getAuthHeader()
       const response = await fetch('/api/admin/certificate-requirements', {
-        credentials: 'include'
+        headers
       })
       console.log('📥 Response status:', response.status)
       console.log('📥 Response ok:', response.ok)
-      
+
       const result = await response.json()
       console.log('📥 Response data:', result)
-      
+
       if (response.ok) {
         setRequirements(result.data || [])
         console.log('✅ Requirements loaded:', result.data?.length || 0)
@@ -152,7 +159,7 @@ export default function CertificateManagementPage() {
         credentials: 'include'
       })
       const result = await response.json()
-      
+
       if (response.ok) {
         setPrograms(result.data || [])
       }
@@ -166,8 +173,10 @@ export default function CertificateManagementPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus template ini?')) return
 
     try {
+      const headers = await getAuthHeader()
       const response = await fetch(`/api/admin/certificate-templates?id=${templateId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
 
       if (response.ok) {
@@ -187,8 +196,10 @@ export default function CertificateManagementPage() {
     if (!confirm('Apakah Anda yakin ingin menghapus syarat ini?')) return
 
     try {
+      const headers = await getAuthHeader()
       const response = await fetch(`/api/admin/certificate-requirements?id=${requirementId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
 
       if (response.ok) {
@@ -274,22 +285,20 @@ export default function CertificateManagementPage() {
             <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('templates')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'templates'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'templates'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <FileText className="w-4 h-4 inline mr-2" />
                 Template Sertifikat
               </button>
               <button
                 onClick={() => setActiveTab('requirements')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'requirements'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'requirements'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 <Settings className="w-4 h-4 inline mr-2" />
                 Syarat Sertifikat

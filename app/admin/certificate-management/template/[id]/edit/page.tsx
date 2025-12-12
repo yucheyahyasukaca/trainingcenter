@@ -70,11 +70,23 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     }
   }, [profile, params.id])
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession())
+    const headers: HeadersInit = {}
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+    return headers
+  }
+
   const fetchTemplate = async () => {
     try {
-      const response = await fetch(`/api/admin/certificate-templates?id=${params.id}`)
+      const headers = await getAuthHeader()
+      const response = await fetch(`/api/admin/certificate-templates?id=${params.id}`, {
+        headers
+      })
       const result = await response.json()
-      
+
       if (response.ok && result.data) {
         setTemplate(result.data)
         setFormData({
@@ -106,9 +118,12 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
 
   const fetchSignatories = async () => {
     try {
-      const response = await fetch(`/api/admin/certificate-signatories?template_id=${params.id}`)
+      const headers = await getAuthHeader()
+      const response = await fetch(`/api/admin/certificate-signatories?template_id=${params.id}`, {
+        headers
+      })
       const result = await response.json()
-      
+
       if (response.ok && result.data) {
         setSignatories(result.data)
       }
@@ -119,9 +134,12 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
 
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('/api/programs')
+      const headers = await getAuthHeader()
+      const response = await fetch('/api/programs', {
+        headers
+      })
       const result = await response.json()
-      
+
       if (response.ok) {
         setPrograms(result.data || [])
       }
@@ -141,13 +159,16 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       formDataToSend.append('template_id', params.id)
       formDataToSend.append('signatory_name', newSignatory.name)
       formDataToSend.append('signatory_position', newSignatory.position)
-      
+
       if (newSignatory.signature) {
         formDataToSend.append('signature_file', newSignatory.signature)
       }
 
+      const headers = await getAuthHeader()
+      // Note: do not set Content-Type for FormData
       const response = await fetch('/api/admin/certificate-signatories', {
         method: 'POST',
+        headers,
         body: formDataToSend
       })
 
@@ -170,8 +191,10 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
     if (!confirm('Yakin ingin menghapus penandatangan ini?')) return
 
     try {
+      const headers = await getAuthHeader()
       const response = await fetch(`/api/admin/certificate-signatories?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
 
       const result = await response.json()
@@ -207,17 +230,20 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
       formDataToSend.append('completion_date_field', formData.completion_date_field)
       formDataToSend.append('trainer_name_field', formData.trainer_name_field)
       formDataToSend.append('trainer_level_field', formData.trainer_level_field)
-      
+
       if (templateFile) {
         formDataToSend.append('template_pdf_file', templateFile)
       }
-      
+
       if (signatureFile) {
         formDataToSend.append('signatory_signature_file', signatureFile)
       }
 
+      const headers = await getAuthHeader()
+      // Note: do not set Content-Type for FormData
       const response = await fetch(`/api/admin/certificate-templates?id=${template.id}`, {
         method: 'PUT',
+        headers,
         body: formDataToSend
       })
 
@@ -429,9 +455,9 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
               {signatureFile && (
                 <p className="mt-2 text-sm text-green-600">File baru dipilih: {signatureFile.name}</p>
               )}
-                             {!signatureFile && template.signatory_signature_url && (
-                 <p className="mt-2 text-sm text-gray-500">File saat ini: {template.signatory_signature_url?.split('/').pop()}</p>
-               )}
+              {!signatureFile && template.signatory_signature_url && (
+                <p className="mt-2 text-sm text-gray-500">File saat ini: {template.signatory_signature_url?.split('/').pop()}</p>
+              )}
             </div>
 
             {/* Section: Multiple Signatories */}
@@ -439,7 +465,7 @@ export default function EditTemplatePage({ params }: { params: { id: string } })
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Penandatangan Sertifikat (Multiple)
               </label>
-              
+
               {/* List existing signatories */}
               {signatories.length > 0 && (
                 <div className="space-y-2 mb-4">

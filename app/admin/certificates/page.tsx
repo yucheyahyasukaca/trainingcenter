@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
-import { 
-  Plus, 
-  Download, 
-  Eye, 
+import {
+  Plus,
+  Download,
+  Eye,
   FileText,
   Users,
   Calendar,
@@ -97,6 +97,11 @@ export default function CertificatesPage() {
     }
   }, [profile, currentPage, statusFilter, recipientTypeFilter, programFilter, classFilter])
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession())
+    return session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}
+  }
+
   const fetchCertificates = async () => {
     try {
       setLoading(true)
@@ -110,9 +115,12 @@ export default function CertificatesPage() {
       if (programFilter) params.append('program_id', programFilter)
       if (classFilter) params.append('class_id', classFilter)
 
-      const response = await fetch(`/api/admin/certificates?${params}`)
+      const headers = await getAuthHeader()
+      const response = await fetch(`/api/admin/certificates?${params}`, {
+        headers
+      })
       const result = await response.json()
-      
+
       if (response.ok) {
         setCertificates(result.data || [])
         setTotalPages(result.pagination?.totalPages || 1)
@@ -131,7 +139,7 @@ export default function CertificatesPage() {
     try {
       const response = await fetch('/api/programs')
       const result = await response.json()
-      
+
       if (response.ok) {
         setPrograms(result.data || [])
       }
@@ -144,7 +152,7 @@ export default function CertificatesPage() {
     try {
       const response = await fetch('/api/classes')
       const result = await response.json()
-      
+
       if (response.ok) {
         setClasses(result.data || [])
       }
@@ -156,10 +164,12 @@ export default function CertificatesPage() {
   const handleGeneratePDF = async (certificateId: string, certificateNumber: string) => {
     setGenerating(certificateId)
     try {
+      const authHeaders = await getAuthHeader()
       const response = await fetch('/api/admin/certificates/generate-pdf', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...authHeaders
         },
         body: JSON.stringify({
           certificate_id: certificateId,
@@ -185,8 +195,11 @@ export default function CertificatesPage() {
 
   const handleDownloadPDF = async (certificateNumber: string) => {
     try {
-      const response = await fetch(`/api/admin/certificates/download/${certificateNumber}`)
-      
+      const headers = await getAuthHeader()
+      const response = await fetch(`/api/admin/certificates/download/${certificateNumber}`, {
+        headers
+      })
+
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
@@ -209,9 +222,9 @@ export default function CertificatesPage() {
 
   const filteredCertificates = certificates.filter(certificate => {
     const matchesSearch = certificate.recipient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         certificate.certificate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         certificate.program_title.toLowerCase().includes(searchTerm.toLowerCase())
-    
+      certificate.certificate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      certificate.program_title.toLowerCase().includes(searchTerm.toLowerCase())
+
     return matchesSearch
   })
 
@@ -411,7 +424,7 @@ export default function CertificatesPage() {
                             {certificate.recipient_name}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {certificate.recipient_type === 'participant' ? 
+                            {certificate.recipient_type === 'participant' ?
                               `${certificate.recipient_company || 'N/A'} - ${certificate.recipient_position || 'N/A'}` :
                               certificate.trainer_level || 'Trainer'
                             }

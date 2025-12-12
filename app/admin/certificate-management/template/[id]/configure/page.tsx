@@ -40,7 +40,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
   const [zoom, setZoom] = useState(1)
   const [selectedField, setSelectedField] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, FieldConfig>>({})
-  
+
   // QR Code config
   const [qrCodeSize, setQrCodeSize] = useState(150)
   const [qrCodePosition, setQrCodePosition] = useState({ x: 100, y: 100 })
@@ -96,7 +96,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
       if (direction) {
         e.preventDefault()
         const step = e.shiftKey ? 1 : 10 // Shift + Arrow = fine movement (1px), normal = 10px
-        
+
         const deltaX = direction === 'left' ? -step : direction === 'right' ? step : 0
         const deltaY = direction === 'up' ? -step : direction === 'down' ? step : 0
 
@@ -112,7 +112,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
           setFields(prev => {
             const field = prev[selectedField]
             if (!field) return prev
-            
+
             return {
               ...prev,
               [selectedField]: {
@@ -141,7 +141,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
         const rect = canvasRef.current.getBoundingClientRect()
         const scaleX = rect.width / (842 * zoom)
         const scaleY = rect.height / (595 * zoom)
-        
+
         const deltaX = (e.clientX - dragStart.x) / scaleX / zoom
         const deltaY = (e.clientY - dragStart.y) / scaleY / zoom
 
@@ -215,7 +215,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
       setFields(prev => {
         const field = prev[currentSelectedField]
         if (!field) return prev
-        
+
         return {
           ...prev,
           [currentSelectedField]: {
@@ -230,22 +230,34 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
     }
   }, [selectedField, qrCodeSize])
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession())
+    const headers: HeadersInit = {}
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+    return headers
+  }
+
   const fetchTemplate = async () => {
     try {
-      const response = await fetch(`/api/admin/certificate-templates?id=${params.id}`)
+      const headers = await getAuthHeader()
+      const response = await fetch(`/api/admin/certificate-templates?id=${params.id}`, {
+        headers
+      })
       const result = await response.json()
-      
+
       console.log('Template data:', result.data)
       console.log('Template PDF URL:', result.data?.template_pdf_url)
-      
+
       if (response.ok && result.data) {
         setTemplate(result.data)
-        
+
         // Load existing fields config
         if (result.data.template_fields) {
           setFields(result.data.template_fields)
         }
-        
+
         // Load QR code config
         if (result.data.qr_code_size) {
           setQrCodeSize(result.data.qr_code_size)
@@ -273,9 +285,11 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
 
     setSaving(true)
     try {
+      const authHeaders = await getAuthHeader()
       const response = await fetch(`/api/admin/certificate-templates?id=${template.id}`, {
         method: 'PUT',
         headers: {
+          ...authHeaders, // Spread auth headers
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -416,9 +430,9 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
               </div>
 
               <div className="border border-gray-300 rounded-md overflow-auto bg-white" style={{ maxHeight: '80vh' }}>
-                <div 
+                <div
                   ref={canvasRef}
-                  className="relative bg-gray-100" 
+                  className="relative bg-gray-100"
                   style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: '842px', height: '595px' }}
                 > {/* A4 Landscape */}
                   {template.template_pdf_url && (
@@ -429,14 +443,14 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                       style={{ pointerEvents: 'none' }}
                     />
                   )}
-                  
+
                   {/* Preview Fields */}
                   {Object.entries(fields).map(([key, field]) => {
                     // Calculate text positioning based on alignment
                     const getTextPosition = () => {
                       const padding = 4
                       const textContent = field.value || `${key} placeholder`
-                      
+
                       if (field.align === 'center') {
                         return { justifyContent: 'center', paddingLeft: padding, paddingRight: padding }
                       } else if (field.align === 'right') {
@@ -445,9 +459,9 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                         return { justifyContent: 'flex-start', paddingLeft: padding, paddingRight: padding }
                       }
                     }
-                    
+
                     const textStyle = getTextPosition()
-                    
+
                     return (
                       <div
                         key={key}
@@ -625,7 +639,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
                 <h2 className="text-lg font-semibold mb-4">
                   Edit: {availableFields.find(f => f.name === selectedField)?.label || selectedField}
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Default Value</label>
@@ -798,7 +812,7 @@ export default function ConfigureTemplatePage({ params }: { params: { id: string
             {selectedField === 'qr_code' && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold mb-4">QR Code Configuration</h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Size (px)</label>

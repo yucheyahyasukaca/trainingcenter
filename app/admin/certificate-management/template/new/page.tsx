@@ -52,13 +52,23 @@ export default function CreateTemplatePage() {
     }
   }, [profile])
 
+  const getAuthHeader = async () => {
+    const { data: { session } } = await import('@/lib/supabase').then(m => m.supabase.auth.getSession())
+    const headers: HeadersInit = {}
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+    return headers
+  }
+
   const fetchPrograms = async () => {
     try {
+      const headers = await getAuthHeader()
       const response = await fetch('/api/programs', {
-        credentials: 'include'
+        headers
       })
       const result = await response.json()
-      
+
       if (response.ok) {
         setPrograms(result.data || [])
       }
@@ -71,12 +81,13 @@ export default function CreateTemplatePage() {
 
   const fetchWebinars = async () => {
     try {
+      const headers = await getAuthHeader()
       const res = await fetch('/api/webinars', {
-        credentials: 'include'
+        headers
       })
       const json = await res.json()
       setWebinars((json.webinars || []).map((w: any) => ({ id: w.id, title: w.title, slug: w.slug })))
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const addSignatory = () => {
@@ -133,14 +144,17 @@ export default function CreateTemplatePage() {
       formDataToSend.append('user_id', profile?.id || '')
       formDataToSend.append('target_type', targetType)
       formDataToSend.append('webinar_id', selectedWebinarId)
-      
+
       // Add signature file from first signatory if exists
       if (signatories[0]?.signature) {
         formDataToSend.append('signatory_signature_file', signatories[0].signature)
       }
 
+      const headers = await getAuthHeader()
+      // Note: do not set Content-Type for FormData, browser sets it with boundary
       const response = await fetch('/api/admin/certificate-templates', {
         method: 'POST',
+        headers,
         body: formDataToSend
       })
 
@@ -156,19 +170,22 @@ export default function CreateTemplatePage() {
               signatoryFormData.append('template_id', result.data.id)
               signatoryFormData.append('signatory_name', sig.name)
               signatoryFormData.append('signatory_position', sig.position)
-              
+
               if (sig.signature) {
                 signatoryFormData.append('signature_file', sig.signature)
               }
 
+              // Reuse headers from earlier (or simpler, just get it again, which is cheap since session is cached locally)
+              const headers = await getAuthHeader()
               await fetch('/api/admin/certificate-signatories', {
                 method: 'POST',
+                headers,
                 body: signatoryFormData
               })
             }
           }
         }
-        
+
         toast.success('Template sertifikat berhasil dibuat')
         router.push('/admin/certificate-management')
       } else {
@@ -221,35 +238,35 @@ export default function CreateTemplatePage() {
 
         {/* Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-          <form onSubmit={async (e)=>{ await handleSubmit(e); try { if (targetType==='webinar' && selectedWebinarId) { window.location.href = `/admin/webinars/${selectedWebinarId}/certificates` } } catch {} }} className="space-y-6">
+          <form onSubmit={async (e) => { await handleSubmit(e); try { if (targetType === 'webinar' && selectedWebinarId) { window.location.href = `/admin/webinars/${selectedWebinarId}/certificates` } } catch { } }} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Target</label>
                 <div className="flex items-center gap-4">
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="targetType"
-                    checked={targetType === 'program'}
-                    onChange={() => {
-                      setTargetType('program')
-                      setSelectedWebinarId('')
-                    }}
-                  />
-                  <span>Program</span>
-                </label>
-                <label className="inline-flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="targetType"
-                    checked={targetType === 'webinar'}
-                    onChange={() => {
-                      setTargetType('webinar')
-                      setFormData({ ...formData, program_id: '' })
-                    }}
-                  />
-                  <span>Webinar</span>
-                </label>
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="targetType"
+                      checked={targetType === 'program'}
+                      onChange={() => {
+                        setTargetType('program')
+                        setSelectedWebinarId('')
+                      }}
+                    />
+                    <span>Program</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="targetType"
+                      checked={targetType === 'webinar'}
+                      onChange={() => {
+                        setTargetType('webinar')
+                        setFormData({ ...formData, program_id: '' })
+                      }}
+                    />
+                    <span>Webinar</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -276,7 +293,7 @@ export default function CreateTemplatePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Webinar</label>
                   <select
                     value={selectedWebinarId}
-                    onChange={(e)=> setSelectedWebinarId(e.target.value)}
+                    onChange={(e) => setSelectedWebinarId(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Pilih Webinar</option>
