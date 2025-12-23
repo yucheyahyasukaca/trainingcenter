@@ -96,6 +96,7 @@ const getMenuItems = (role: string, trainerLevel?: string) => {
       { icon: BarChart3, label: 'Program', href: '/dashboard/programs', roles: ['trainer'] },
       { icon: Calendar, label: 'Webinar', href: '/my-webinars', roles: ['trainer'] },
       { icon: BookOpen, label: 'Pelatihan Saya', href: '/trainer/classes', roles: ['trainer'] },
+      { icon: Trophy, label: 'Leaderboard', href: '/trainer/leaderboard', roles: ['trainer'] },
       { icon: Gift, label: 'Referral', href: '/trainer/referral', roles: ['trainer'] },
       { icon: UserCheck, label: 'Profil Trainer', href: '/trainer-profile/view', roles: ['trainer'] },
       { icon: FileText, label: 'Sertifikat Saya', href: '/my-certificates', roles: ['trainer'] },
