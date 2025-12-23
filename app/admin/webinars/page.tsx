@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
-import { Plus, Edit, Trash2, Video, X, Calendar, Users, Award } from 'lucide-react'
+import { Plus, Edit, Trash2, Video, X, Calendar, Users, Award, CheckCircle, XCircle } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
@@ -30,6 +30,7 @@ export default function AdminWebinarsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [activeTab, setActiveTab] = useState<'pending' | 'published'>('pending')
   const [form, setForm] = useState<WebinarForm>({
     title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams', location: ''
   })
@@ -55,13 +56,15 @@ export default function AdminWebinarsPage() {
     return blob
   }
 
+  async function fetchWebinars() {
+    setLoading(true)
+    const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
+    setItems(data || [])
+    setLoading(false)
+  }
+
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('webinars').select('*').order('created_at', { ascending: false })
-      setItems(data || [])
-      setLoading(false)
-    }
-    load()
+    fetchWebinars()
   }, [])
 
   async function handleCreate(e: React.FormEvent) {
@@ -191,8 +194,8 @@ export default function AdminWebinarsPage() {
       title: data.title || '',
       slug: data.slug || '',
       description: data.description || '',
-      start_time: data.start_time ? new Date(data.start_time).toISOString().slice(0,16) : '',
-      end_time: data.end_time ? new Date(data.end_time).toISOString().slice(0,16) : '',
+      start_time: data.start_time ? new Date(data.start_time).toISOString().slice(0, 16) : '',
+      end_time: data.end_time ? new Date(data.end_time).toISOString().slice(0, 16) : '',
       is_published: !!data.is_published,
       recording_url: '',
       meeting_url: data.meeting_url || '',
@@ -242,13 +245,45 @@ export default function AdminWebinarsPage() {
     setSlugAvailable(false)
   }
 
+  async function handleApprove(id: string, title: string) {
+    if (!confirm(`Setujui webinar "${title}"?`)) return
+    try {
+      const { error } = await supabase.from('webinars')
+        .update({ status: 'published', is_published: true })
+        .eq('id', id)
+      if (error) throw error
+      await fetchWebinars()
+      addToast.success('Webinar disetujui', 'Berhasil')
+    } catch (error: any) {
+      addToast.error(error.message, 'Gagal')
+    }
+  }
+
+  async function handleReject(id: string, title: string) {
+    if (!confirm(`Tolak webinar "${title}"?`)) return
+    try {
+      const { error } = await supabase.from('webinars')
+        .update({ status: 'rejected', is_published: false })
+        .eq('id', id)
+      if (error) throw error
+      await fetchWebinars()
+      addToast.success('Webinar ditolak', 'Berhasil')
+    } catch (error: any) {
+      addToast.error(error.message, 'Gagal')
+    }
+  }
+
+  const pendingItems = items.filter(i => i.status === 'waiting_approval')
+  const publishedItems = items.filter(i => i.status !== 'waiting_approval')
+  const displayedItems = activeTab === 'pending' ? pendingItems : publishedItems
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Webinar</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola semua webinar</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola dan setujui webinar</p>
         </div>
         {!showForm && (
           <button
@@ -266,6 +301,35 @@ export default function AdminWebinarsPage() {
           </button>
         )}
       </div>
+
+      {/* Tabs */}
+      {!showForm && (
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'pending'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900'
+              }`}
+          >
+            Perlu Persetujuan
+            {pendingItems.length > 0 && (
+              <span className="ml-2 bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs">
+                {pendingItems.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('published')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'published'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900'
+              }`}
+          >
+            Diterbitkan / Arsip
+          </button>
+        </div>
+      )}
 
       {/* Form */}
       {showForm && (
@@ -285,21 +349,21 @@ export default function AdminWebinarsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Judul</label>
-              <input 
-                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
-                value={form.title} 
-                onChange={e=>setForm(f=>({...f,title:e.target.value}))} 
-                required 
+              <input
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-              <input 
-                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
-                value={form.slug} 
-                onChange={e=>{ setForm(f=>({...f,slug:e.target.value})); setSlugAvailable(null) }} 
-                onBlur={e=>checkSlugAvailability(e.target.value)}
-                required 
+              <input
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                value={form.slug}
+                onChange={e => { setForm(f => ({ ...f, slug: e.target.value })); setSlugAvailable(null) }}
+                onBlur={e => checkSlugAvailability(e.target.value)}
+                required
               />
               {slugAvailable === false && (
                 <div className="text-xs text-red-600 mt-1">Slug sudah dipakai</div>
@@ -318,30 +382,30 @@ export default function AdminWebinarsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mulai</label>
-              <input 
-                type="datetime-local" 
-                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
-                value={form.start_time} 
-                onChange={e=>setForm(f=>({...f,start_time:e.target.value}))} 
-                required 
+              <input
+                type="datetime-local"
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                value={form.start_time}
+                onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Selesai</label>
-              <input 
-                type="datetime-local" 
-                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm" 
-                value={form.end_time} 
-                onChange={e=>setForm(f=>({...f,end_time:e.target.value}))} 
-                required 
+              <input
+                type="datetime-local"
+                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                value={form.end_time}
+                onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                required
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Banner (opsional)</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={e=>setForm(f=>({...f,hero_image_file:e.target.files?.[0]}))}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => setForm(f => ({ ...f, hero_image_file: e.target.files?.[0] }))}
                 className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
             </div>
@@ -351,7 +415,7 @@ export default function AdminWebinarsPage() {
                 className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                 placeholder="https://... (YouTube, Vimeo, atau file)"
                 value={form.recording_url}
-                onChange={e=>setForm(f=>({...f,recording_url:e.target.value}))}
+                onChange={e => setForm(f => ({ ...f, recording_url: e.target.value }))}
               />
             </div>
             <div className="md:col-span-2">
@@ -360,7 +424,7 @@ export default function AdminWebinarsPage() {
                 className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                 placeholder="https://... (Zoom, Google Meet, Teams)"
                 value={form.meeting_url || ''}
-                onChange={e=>setForm(f=>({...f,meeting_url:e.target.value}))}
+                onChange={e => setForm(f => ({ ...f, meeting_url: e.target.value }))}
               />
             </div>
             <div>
@@ -368,7 +432,7 @@ export default function AdminWebinarsPage() {
               <select
                 className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                 value={form.platform || 'microsoft-teams'}
-                onChange={e=>setForm(f=>({...f,platform:e.target.value}))}
+                onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}
               >
                 <option value="microsoft-teams">Microsoft Teams</option>
                 <option value="google-meet">Google Meet</option>
@@ -383,16 +447,16 @@ export default function AdminWebinarsPage() {
                   className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                   placeholder="Contoh: Ruang Rapat A, Gedung X, Jl. ABC No. 123"
                   value={form.location || ''}
-                  onChange={e=>setForm(f=>({...f,location:e.target.value}))}
+                  onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                 />
               </div>
             )}
             <div className="flex items-center gap-2">
-              <input 
-                id="pub" 
-                type="checkbox" 
-                checked={form.is_published} 
-                onChange={e=>setForm(f=>({...f,is_published:e.target.checked}))}
+              <input
+                id="pub"
+                type="checkbox"
+                checked={form.is_published}
+                onChange={e => setForm(f => ({ ...f, is_published: e.target.checked }))}
                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
               <label htmlFor="pub" className="text-sm text-gray-700">Publish</label>
@@ -416,25 +480,25 @@ export default function AdminWebinarsPage() {
                       className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                       placeholder="Nama Pembicara"
                       value={sp.name}
-                      onChange={e=>{
-                        const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, name:v}: x))
+                      onChange={e => {
+                        const v = e.target.value; setSpeakers(s => s.map((x, i) => i === idx ? { ...x, name: v } : x))
                       }}
                     />
                     <input
                       className="w-full pl-3 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
                       placeholder="Jabatan / Title"
                       value={sp.title}
-                      onChange={e=>{
-                        const v = e.target.value; setSpeakers(s => s.map((x,i)=> i===idx? {...x, title:v}: x))
+                      onChange={e => {
+                        const v = e.target.value; setSpeakers(s => s.map((x, i) => i === idx ? { ...x, title: v } : x))
                       }}
                     />
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={e=>{
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
                           const file = e.target.files?.[0] || null
-                          setSpeakers(s => s.map((x,i)=> i===idx? {...x, avatar:file}: x))
+                          setSpeakers(s => s.map((x, i) => i === idx ? { ...x, avatar: file } : x))
                         }}
                         className="text-sm text-gray-600 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
                       />
@@ -443,7 +507,7 @@ export default function AdminWebinarsPage() {
                       )}
                       <button
                         type="button"
-                        onClick={() => setSpeakers(s => s.filter((_,i)=> i!==idx))}
+                        onClick={() => setSpeakers(s => s.filter((_, i) => i !== idx))}
                         className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
                       >
                         Hapus
@@ -454,15 +518,15 @@ export default function AdminWebinarsPage() {
               </div>
             </div>
             <div className="md:col-span-2 flex gap-3">
-              <button 
-                type="submit" 
-                disabled={submitting || slugAvailable === false} 
+              <button
+                type="submit"
+                disabled={submitting || slugAvailable === false}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {submitting ? 'Menyimpan...' : (editingId ? 'Simpan Perubahan' : 'Buat Webinar')}
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleCancelEdit}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
@@ -476,30 +540,36 @@ export default function AdminWebinarsPage() {
       {/* Webinars List */}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Daftar Webinar</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          {activeTab === 'pending' ? 'Daftar Menunggu Persetujuan' : 'Daftar Webinar'}
+        </h2>
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-20 bg-gray-200 animate-pulse rounded"></div>
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : displayedItems.length === 0 ? (
           <div className="text-center py-12">
             <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">Belum ada webinar</p>
-            <button
-              onClick={() => {
-                setShowForm(true)
-                setEditingId(null)
-                setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
-                setSpeakers([{ name: '', title: '', avatar: null }])
-                setSlugAvailable(null)
-              }}
-              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Buat Webinar Pertama
-            </button>
+            <p className="text-gray-600 mb-4">
+              {activeTab === 'pending' ? 'Tidak ada webinar yang menunggu persetujuan' : 'Belum ada webinar'}
+            </p>
+            {activeTab !== 'pending' && (
+              <button
+                onClick={() => {
+                  setShowForm(true)
+                  setEditingId(null)
+                  setForm({ title: '', slug: '', description: '', start_time: '', end_time: '', is_published: false, recording_url: '', meeting_url: '', platform: 'microsoft-teams' })
+                  setSpeakers([{ name: '', title: '', avatar: null }])
+                  setSlugAvailable(null)
+                }}
+                className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Buat Webinar Pertama
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -515,7 +585,7 @@ export default function AdminWebinarsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
+                  {displayedItems.map((it) => (
                     <tr key={it.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4 px-4">
                         <div>
@@ -530,16 +600,36 @@ export default function AdminWebinarsPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          it.is_published 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {it.is_published ? 'Diterbitkan' : 'Draft'}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${it.status === 'published' ? 'bg-green-100 text-green-800' :
+                          it.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            it.status === 'waiting_approval' ? 'bg-orange-100 text-orange-800' :
+                              'bg-gray-100 text-gray-800'
+                          }`}>
+                          {it.status === 'published' ? 'Diterbitkan' :
+                            it.status === 'rejected' ? 'Ditolak' :
+                              it.status === 'waiting_approval' ? 'Menunggu Approval' : 'Draft'}
                         </span>
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
+                          {activeTab === 'pending' ? (
+                            <>
+                              <button
+                                onClick={() => handleApprove(it.id, it.title)}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Setujui"
+                              >
+                                <CheckCircle className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleReject(it.id, it.title)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Tolak"
+                              >
+                                <XCircle className="w-5 h-5" />
+                              </button>
+                            </>
+                          ) : null}
                           <button
                             onClick={() => loadForEdit(it.id)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -547,20 +637,24 @@ export default function AdminWebinarsPage() {
                           >
                             <Edit className="w-4 h-4" />
                           </button>
-                          <a
-                            href={`/admin/webinars/${it.id}/participants`}
-                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                            title="Peserta"
-                          >
-                            <Users className="w-4 h-4" />
-                          </a>
-                          <a
-                            href={`/admin/webinars/${it.id}/certificates`}
-                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                            title="Sertifikat"
-                          >
-                            <Award className="w-4 h-4" />
-                          </a>
+                          {it.status === 'published' && (
+                            <>
+                              <a
+                                href={`/admin/webinars/${it.id}/participants`}
+                                className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Peserta"
+                              >
+                                <Users className="w-4 h-4" />
+                              </a>
+                              <a
+                                href={`/admin/webinars/${it.id}/certificates`}
+                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                title="Sertifikat"
+                              >
+                                <Award className="w-4 h-4" />
+                              </a>
+                            </>
+                          )}
                           <button
                             onClick={() => handleDelete(it.id, it.title)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -578,19 +672,21 @@ export default function AdminWebinarsPage() {
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
-              {items.map((it) => (
+              {displayedItems.map((it) => (
                 <div key={it.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-gray-900 mb-1 truncate">{it.title}</h3>
                       <p className="text-xs text-gray-500 mb-2">{it.slug}</p>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      it.is_published 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {it.is_published ? 'Diterbitkan' : 'Draft'}
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${it.status === 'published' ? 'bg-green-100 text-green-800' :
+                      it.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        it.status === 'waiting_approval' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
+                      }`}>
+                      {it.status === 'published' ? 'Diterbitkan' :
+                        it.status === 'rejected' ? 'Ditolak' :
+                          it.status === 'waiting_approval' ? 'Approval' : 'Draft'}
                     </span>
                   </div>
 
@@ -606,6 +702,24 @@ export default function AdminWebinarsPage() {
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
+                    {activeTab === 'pending' ? (
+                      <>
+                        <button
+                          onClick={() => handleApprove(it.id, it.title)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Setujui"
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => handleReject(it.id, it.title)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Tolak"
+                        >
+                          <XCircle className="w-5 h-5" />
+                        </button>
+                      </>
+                    ) : null}
                     <button
                       onClick={() => loadForEdit(it.id)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -613,20 +727,24 @@ export default function AdminWebinarsPage() {
                     >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <a
-                      href={`/admin/webinars/${it.id}/participants`}
-                      className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                      title="Peserta"
-                    >
-                      <Users className="w-4 h-4" />
-                    </a>
-                    <a
-                      href={`/admin/webinars/${it.id}/certificates`}
-                      className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
-                      title="Sertifikat"
-                    >
-                      <Award className="w-4 h-4" />
-                    </a>
+                    {it.status === 'published' && (
+                      <>
+                        <a
+                          href={`/admin/webinars/${it.id}/participants`}
+                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Peserta"
+                        >
+                          <Users className="w-4 h-4" />
+                        </a>
+                        <a
+                          href={`/admin/webinars/${it.id}/certificates`}
+                          className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                          title="Sertifikat"
+                        >
+                          <Award className="w-4 h-4" />
+                        </a>
+                      </>
+                    )}
                     <button
                       onClick={() => handleDelete(it.id, it.title)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
