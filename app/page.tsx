@@ -5,10 +5,10 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { getCurrentUser } from '@/lib/auth'
-import { 
-  Users, 
-  UserCog, 
-  BarChart3, 
+import {
+  Users,
+  UserCog,
+  BarChart3,
   Calendar,
   CheckCircle,
   ArrowRight,
@@ -33,6 +33,12 @@ import {
 export default function LandingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [dashboardStats, setDashboardStats] = useState({
+    enrollments: { value: '...', change: '...' },
+    programs: { value: '...', change: '...' },
+    trainers: { value: '...', change: '...' }
+  })
   const [scrolled, setScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -47,6 +53,22 @@ export default function LandingPage() {
       setLoading(false)
     }
     checkAuth()
+
+    // Fetch dashboard stats
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/admin/dashboard-stats')
+        if (res.ok) {
+          const data = await res.json()
+          setDashboardStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error)
+      } finally {
+        setStatsLoading(false)
+      }
+    }
+    fetchStats()
 
     // Handle scroll effect
     const handleScroll = () => {
@@ -135,27 +157,27 @@ export default function LandingPage() {
   ]
 
   const testimonialStats = [
-    { 
-      title: 'Total Pendaftaran Bulan Ini', 
-      value: '+247', 
-      change: '+12%',
-      icon: TrendingUp, 
+    {
+      title: 'Total Pendaftaran Bulan Ini',
+      value: dashboardStats.enrollments.value,
+      change: dashboardStats.enrollments.change,
+      icon: TrendingUp,
       color: 'bg-green-50 border-green-200',
       iconColor: 'text-green-600'
     },
-    { 
-      title: 'Program Aktif', 
-      value: '12', 
-      change: 'Baru 3',
-      icon: BarChart3, 
+    {
+      title: 'Program Aktif',
+      value: dashboardStats.programs.value.toString(),
+      change: dashboardStats.programs.change,
+      icon: BarChart3,
       color: 'bg-blue-50 border-blue-200',
       iconColor: 'text-blue-600'
     },
-    { 
-      title: 'Trainer Tersedia', 
-      value: '24', 
-      change: 'Expert',
-      icon: UserCog, 
+    {
+      title: 'Trainer Tersedia',
+      value: dashboardStats.trainers.value.toString(),
+      change: dashboardStats.trainers.change,
+      icon: UserCog,
       color: 'bg-purple-50 border-purple-200',
       iconColor: 'text-purple-600'
     },
@@ -164,11 +186,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
-          : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
-      }`}>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200'
+        : 'bg-white/80 backdrop-blur-md border-b border-gray-100'
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -190,75 +211,75 @@ export default function LandingPage() {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4 lg:space-x-6">
-               {/* Search Bar */}
-               <div className="flex items-center relative">
-                 <Search className="absolute left-3 w-4 h-4 text-gray-400" />
-                 <input
-                   type="text"
-                   placeholder="Cari program, trainer..."
-                   className="pl-10 pr-4 py-2 w-64 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                 />
-               </div>
+              {/* Search Bar */}
+              <div className="flex items-center relative">
+                <Search className="absolute left-3 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Cari program, trainer..."
+                  className="pl-10 pr-4 py-2 w-64 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                />
+              </div>
 
-               {/* Header Menu */}
-               <nav className="flex items-center space-x-6">
-                 <Link
-                   href="/webinars"
-                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                 >
-                   Webinar
-                 </Link>
-                 <Link
-                   href="/programs"
-                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                 >
-                   Program
-                 </Link>
-                 <Link
-                   href="/trainers"
-                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                 >
-                   Trainer
-                 </Link>
-                 <Link
-                   href="/about"
-                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                 >
-                   Tentang
-                 </Link>
-                 <Link
-                   href="/contact"
-                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                 >
-                   Kontak
-                 </Link>
-               </nav>
+              {/* Header Menu */}
+              <nav className="flex items-center space-x-6">
+                <Link
+                  href="/webinars"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Webinar
+                </Link>
+                <Link
+                  href="/programs"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Program
+                </Link>
+                <Link
+                  href="/trainers"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Trainer
+                </Link>
+                <Link
+                  href="/about"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Tentang
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Kontak
+                </Link>
+              </nav>
 
-               {/* Auth Buttons */}
-               <div className="flex items-center space-x-3 lg:space-x-4">
-                 <Link
-                   href="/login"
-                   className="inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
-                 >
-                   Masuk
-                 </Link>
-                 <Link
-                   href="/register"
-                   className="btn-primary text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
-                 >
-                   Daftar Sekarang
-                 </Link>
-               </div>
-             </div>
+              {/* Auth Buttons */}
+              <div className="flex items-center space-x-3 lg:space-x-4">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
+                >
+                  Masuk
+                </Link>
+                <Link
+                  href="/register"
+                  className="btn-primary text-sm shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all"
+                >
+                  Daftar Sekarang
+                </Link>
+              </div>
+            </div>
 
-             {/* Mobile Hamburger Button */}
-             <button
-               onClick={() => setIsMobileMenuOpen(true)}
-               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-               aria-label="Open menu"
-             >
-               <Menu className="w-6 h-6 text-gray-600" strokeWidth={2} />
-             </button>
+            {/* Mobile Hamburger Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6 text-gray-600" strokeWidth={2} />
+            </button>
           </div>
         </div>
       </nav>
@@ -266,99 +287,99 @@ export default function LandingPage() {
       {/* Mobile Menu Overlay - Outside nav to ensure solid background */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-[9999] bg-white overflow-y-auto overflow-x-hidden">
-            {/* Header with Search and Close */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 gap-3 max-w-full">
-              {/* Search Bar */}
-              <div className="flex-1 min-w-0">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Apa yang ingin Anda pelajari?"
-                    className="w-full pl-10 pr-3 py-3 text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    style={{ fontSize: '16px' }}
-                  />
-                </div>
+          {/* Header with Search and Close */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 gap-3 max-w-full">
+            {/* Search Bar */}
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Apa yang ingin Anda pelajari?"
+                  className="w-full pl-10 pr-3 py-3 text-base border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ fontSize: '16px' }}
+                />
               </div>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                aria-label="Close menu"
-              >
-                <X className="w-6 h-6 text-gray-600" strokeWidth={2} />
-              </button>
             </div>
 
-            {/* Action Buttons - Login & Register */}
-            <div className="flex gap-3 px-4 py-4 border-b border-gray-200 max-w-full">
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex-1 px-4 py-3.5 text-center text-base font-semibold text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Masuk
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex-1 px-4 py-3.5 text-center text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
-              >
-                Daftar
-              </Link>
-            </div>
-
-            {/* Navigation Links */}
-            <div className="px-4 py-3 max-w-full">
-              <nav className="space-y-2">
-                <Link
-                  href="/webinars"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-base">Webinar</span>
-                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </Link>
-                <Link
-                  href="/programs"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-base">Program</span>
-                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </Link>
-                
-                <Link
-                  href="/trainers"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-base">Trainer</span>
-                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </Link>
-                
-                <Link
-                  href="/about"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-base">Tentang</span>
-                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </Link>
-                
-                <Link
-                  href="/contact"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <span className="font-semibold text-base">Kontak</span>
-                  <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </Link>
-              </nav>
-            </div>
+            {/* Close Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Close menu"
+            >
+              <X className="w-6 h-6 text-gray-600" strokeWidth={2} />
+            </button>
           </div>
-        )}
+
+          {/* Action Buttons - Login & Register */}
+          <div className="flex gap-3 px-4 py-4 border-b border-gray-200 max-w-full">
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex-1 px-4 py-3.5 text-center text-base font-semibold text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Masuk
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex-1 px-4 py-3.5 text-center text-base font-semibold text-white bg-gradient-to-r from-primary-600 to-red-600 rounded-lg hover:from-primary-700 hover:to-red-700 transition-all shadow-sm"
+            >
+              Daftar
+            </Link>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="px-4 py-3 max-w-full">
+            <nav className="space-y-2">
+              <Link
+                href="/webinars"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-semibold text-base">Webinar</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              </Link>
+              <Link
+                href="/programs"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-semibold text-base">Program</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              </Link>
+
+              <Link
+                href="/trainers"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-semibold text-base">Trainer</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              </Link>
+
+              <Link
+                href="/about"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-semibold text-base">Tentang</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              </Link>
+
+              <Link
+                href="/contact"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-between w-full px-4 py-4 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <span className="font-semibold text-base">Kontak</span>
+                <ArrowUpRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-50 via-white to-red-50 relative overflow-hidden">
@@ -383,13 +404,13 @@ export default function LandingPage() {
                 <span className="relative inline-block">
                   <span className="text-primary-600">Hadirkan Dampak</span>
                   <svg className="absolute -bottom-2 left-0 w-full h-6 text-primary-300 opacity-50" viewBox="0 0 100 10" preserveAspectRatio="none">
-                    <path d="M0,5 Q50,0 100,5" fill="none" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M0,5 Q50,0 100,5" fill="none" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </span>
               </h1>
 
               <p className="text-xl text-gray-600 leading-relaxed max-w-2xl animate-fade-in animation-delay-200">
-                Program pelatihan eksklusif yang dirancang untuk profesional, akademisi, peneliti, dan pemimpin teknologi 
+                Program pelatihan eksklusif yang dirancang untuk profesional, akademisi, peneliti, dan pemimpin teknologi
                 yang ingin menguasai AI dan teknologi tingkat lanjut untuk menciptakan dampak nyata di era digital.
               </p>
 
@@ -433,7 +454,7 @@ export default function LandingPage() {
                   {/* Decorative background elements */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl translate-y-6 -translate-x-6"></div>
-                  
+
                   {/* New badge */}
                   <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
                     <div className="flex items-center space-x-1">
@@ -455,11 +476,11 @@ export default function LandingPage() {
                       </div>
                       <ArrowUpRight className="w-5 h-5 opacity-80 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     </div>
-                    
+
                     <p className="text-sm opacity-90 mb-4 line-clamp-2">
                       Pelatihan AI untuk meningkatkan kreativitas dan produktivitas pengajar
                     </p>
-                    
+
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center space-x-4 text-xs opacity-90">
                         <div className="flex items-center space-x-1">
@@ -484,8 +505,8 @@ export default function LandingPage() {
                   {stats.map((stat, index) => {
                     const Icon = stat.icon
                     return (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className="bg-gradient-to-br from-gray-50 to-primary-50 rounded-xl p-4 sm:p-6 border border-gray-100 hover:shadow-lg transition-all duration-300"
                       >
                         <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${stat.color} mb-2 sm:mb-3`} />
@@ -553,7 +574,7 @@ export default function LandingPage() {
                 Program Pelatihan Terbaik
               </h2>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Program pelatihan yang dirancang untuk membangun keterampilan nyata dan kapabilitas lanjutan 
+                Program pelatihan yang dirancang untuk membangun keterampilan nyata dan kapabilitas lanjutan
                 dalam memanfaatkan AI dan teknologi sebagai solusi masa depan
               </p>
 
@@ -597,7 +618,7 @@ export default function LandingPage() {
                   })}
                 </div>
               </div>
-              
+
               {/* Decorative elements */}
               <div className="absolute -z-10 top-8 left-8 w-full h-full bg-primary-200 rounded-2xl opacity-20 blur-2xl"></div>
             </div>
@@ -619,7 +640,7 @@ export default function LandingPage() {
             Mari Bergerak, Hadirkan Dampak!
           </h2>
           <p className="text-xl text-primary-100 mb-10 leading-relaxed max-w-2xl mx-auto">
-            Tingkatkan keahlian AI dan teknologi-mu lewat program pelatihan eksklusif dari Garuda Academy. 
+            Tingkatkan keahlian AI dan teknologi-mu lewat program pelatihan eksklusif dari Garuda Academy.
             Ambil kesempatanmu sekarang dan ciptakan dampak nyata!
           </p>
 
