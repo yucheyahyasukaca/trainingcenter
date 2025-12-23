@@ -9,6 +9,7 @@ import { AvailablePrograms } from './AvailablePrograms'
 import { TrainerProfile } from './TrainerProfile'
 import { MyCertificates } from './MyCertificates'
 import { HebatAnnouncement } from './HebatAnnouncement'
+import { TrainerHebatDashboard } from './TrainerHebatDashboard'
 import {
   GraduationCap,
   UserCheck,
@@ -353,6 +354,11 @@ export function UserDashboard() {
             })
           )}
         </div>
+      </div>
+
+      {/* Perjalanan HEBAT - Visible for all users */}
+      <div className="px-4 sm:px-6 lg:px-8 mb-8">
+        <TrainerHebatDashboard />
       </div>
 
       {/* Quick Actions removed as requested */}

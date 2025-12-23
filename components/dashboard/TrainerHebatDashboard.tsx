@@ -14,11 +14,16 @@ import {
     Lock
 } from 'lucide-react'
 import Link from 'next/link'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 export function TrainerHebatDashboard() {
     const { profile } = useAuth()
     const [points, setPoints] = useState<any>(null)
     const [loading, setLoading] = useState(true)
+    const [totalHimpunPoints, setTotalHimpunPoints] = useState(0)
+    const [showInfoModal, setShowInfoModal] = useState(false)
+
+    const isTrainer = (profile as any)?.role === 'trainer'
 
     useEffect(() => {
         const fetchPoints = async () => {
@@ -35,7 +40,9 @@ export function TrainerHebatDashboard() {
                     .single()
 
                 if (trainerError || !trainerData) {
-                    console.error('Error fetching trainer profile:', trainerError)
+                    // Start: Silent error for non-trainers or just no profile found
+                    // console.error('Error fetching trainer profile:', trainerError)
+                    // End: Silent error
                     setPoints({
                         h_points: 0,
                         e_points: 0,
@@ -52,7 +59,7 @@ export function TrainerHebatDashboard() {
                 const { data: pointsData, error: pointsError } = await supabase
                     .from('trainer_hebat_points')
                     .select('*')
-                    .eq('trainer_id', trainerData.id)
+                    .eq('trainer_id', (trainerData as any).id)
                     .single()
 
                 if (pointsError && pointsError.code !== 'PGRST116') {
@@ -80,7 +87,7 @@ export function TrainerHebatDashboard() {
                     .eq('category', 'HIMPUN')
 
                 if (modulesData) {
-                    const total = modulesData.reduce((sum, m) => sum + (m.points || 0), 0)
+                    const total = modulesData.reduce((sum, m: any) => sum + (m.points || 0), 0)
                     setTotalHimpunPoints(total)
                 }
 
@@ -94,7 +101,10 @@ export function TrainerHebatDashboard() {
         fetchPoints()
     }, [profile?.id])
 
-    const [totalHimpunPoints, setTotalHimpunPoints] = useState(0)
+    const handleNonTrainerClick = (e: any) => {
+        e.preventDefault()
+        setShowInfoModal(true)
+    }
 
     const hebatCards = [
         {
@@ -174,10 +184,13 @@ export function TrainerHebatDashboard() {
                     const Icon = card.icon
                     const isLocked = card.locked
 
+                    // Effective lock state: either intrinsically locked OR user is not a trainer
+                    const isEffectiveLocked = isLocked || !isTrainer
+
                     return (
                         <div
                             key={index}
-                            className={`relative bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 group ${isLocked ? 'opacity-75 bg-gray-50' : ''}`}
+                            className={`relative bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 group ${isEffectiveLocked ? 'opacity-75 bg-gray-50' : ''}`}
                         >
                             {/* Letter Badge */}
                             <div className={`absolute -top-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-300 ${card.color === 'blue' ? 'bg-blue-500' :
@@ -204,8 +217,15 @@ export function TrainerHebatDashboard() {
                             <p className="text-sm text-gray-600 mb-4 min-h-[60px]">{card.description}</p>
 
                             {/* Action Button */}
-                            {isLocked ? (
-                                <button disabled className="w-full py-2 px-4 bg-gray-100 text-gray-400 rounded-lg text-sm font-medium flex items-center justify-center cursor-not-allowed">
+                            {isEffectiveLocked ? (
+                                <button
+                                    onClick={isLocked ? undefined : handleNonTrainerClick}
+                                    disabled={isLocked} // Native disabled only if it's actually locked content-wise
+                                    className={`w-full py-2 px-4 rounded-lg text-sm font-medium flex items-center justify-center cursor-pointer ${isLocked
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                                        }`}
+                                >
                                     <Lock className="w-4 h-4 mr-2" />
                                     {card.action}
                                 </button>
@@ -227,6 +247,17 @@ export function TrainerHebatDashboard() {
                     )
                 })}
             </div>
+
+            <ConfirmationModal
+                isOpen={showInfoModal}
+                onClose={() => setShowInfoModal(false)}
+                onConfirm={() => setShowInfoModal(false)}
+                title="Akses Terbatas 🔒"
+                message="Perjalanan HEBAT hanya untuk trainer. Kamu bisa menjadi trainer dengan cara menyelesaikan program pelatihan untuk mengikuti perjalanan hebat dan point bisa dihitung."
+                confirmText="Mengerti"
+                variant="info"
+                cancelText="Tutup"
+            />
         </div>
     )
 }
