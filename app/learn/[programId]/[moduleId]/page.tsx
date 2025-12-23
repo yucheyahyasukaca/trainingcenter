@@ -6,8 +6,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 import { markdownToHtml } from '@/lib/utils'
-import { 
-  ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings, 
+import {
+  ChevronLeft, FileText, Pencil, CheckCircle, Search, Settings,
   Menu, ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, X,
   Video, File, HelpCircle, Play, Download, Share2, Copy, Info, Lock, Award
 } from 'lucide-react'
@@ -41,22 +41,23 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [contents, setContents] = useState<LearningContent[]>([])
   const [currentContent, setCurrentContent] = useState<LearningContent | null>(null)
   const [currentIndex, setCurrentIndex] = useState<number>(0)
-  const [progress, setProgress] = useState<{[key: string]: Progress}>({})
+  const [progress, setProgress] = useState<{ [key: string]: Progress }>({})
   const [overallProgress, setOverallProgress] = useState<number>(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [enrollment, setEnrollment] = useState<any>(null)
   const [program, setProgram] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [notification, setNotification] = useState<{type: 'success' | 'error', message: string} | null>(null)
+  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null)
   const [unlockedContents, setUnlockedContents] = useState<Set<string>>(new Set())
   const [hasReferralUsed, setHasReferralUsed] = useState<boolean>(false)
   const [userReferralCodes, setUserReferralCodes] = useState<any[]>([])
   const [hasLockedModules, setHasLockedModules] = useState<boolean>(false)
   const [certificateStatus, setCertificateStatus] = useState<'none' | 'generating' | 'generated' | 'error'>('none')
   const [certificateData, setCertificateData] = useState<any>(null)
+  const [certificateError, setCertificateError] = useState<string>('')
   const [autoCompleteDone, setAutoCompleteDone] = useState<boolean>(false)
-  
+
   const [readingSettings, setReadingSettings] = useState({
     theme: 'light',
     fontType: 'default',
@@ -101,18 +102,18 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   useEffect(() => {
     if (contents.length > 0 && currentContent && unlockedContents.size > 0) {
       // Check if current content is accessible using unlockedContents
-      const isCurrentAccessible = unlockedContents.has(currentContent.id) || 
+      const isCurrentAccessible = unlockedContents.has(currentContent.id) ||
         (currentContent.parent_id && unlockedContents.has(currentContent.parent_id))
-      
+
       // If current content is not accessible, find first accessible content
       if (!isCurrentAccessible) {
         // Find first accessible content
         let foundAccessible = false
         for (let i = 0; i < contents.length; i++) {
           const content = contents[i]
-          const isAccessible = unlockedContents.has(content.id) || 
+          const isAccessible = unlockedContents.has(content.id) ||
             (content.parent_id && unlockedContents.has(content.parent_id))
-          
+
           if (isAccessible) {
             setCurrentContent(content)
             setCurrentIndex(i)
@@ -120,7 +121,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             break
           }
         }
-        
+
         // If no accessible content found, at least show first material (should always be accessible)
         if (!foundAccessible && contents.length > 0) {
           setCurrentContent(contents[0])
@@ -134,7 +135,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   function organizeHierarchicalData(data: LearningContent[]): any[] {
     const mainMaterials: any[] = []
     const subMaterialsMap = new Map<string, LearningContent[]>()
-    
+
     // Separate main materials and sub materials
     data.forEach((item: any) => {
       if (item.material_type === 'main' || !item.parent_id) {
@@ -146,13 +147,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         subMaterialsMap.get(item.parent_id)!.push(item)
       }
     })
-    
+
     // Attach sub materials to their parents
     mainMaterials.forEach((main: any) => {
       const subMaterials = subMaterialsMap.get(main.id) || []
       main.sub_materials = subMaterials.sort((a, b) => a.order_index - b.order_index)
     })
-    
+
     // Sort main materials by order_index
     return mainMaterials.sort((a, b) => a.order_index - b.order_index)
   }
@@ -165,7 +166,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         .select('name')
         .eq('id', params.moduleId)
         .maybeSingle()
-      
+
       if (classData) setModuleTitle((classData as any).name)
 
       // Check enrollment - first get participant, then check enrollment
@@ -176,7 +177,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           .select('id')
           .eq('user_id', profile.id)
           .maybeSingle()
-        
+
         participantId = (participant as any)?.id
       }
 
@@ -189,12 +190,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           .eq('class_id', params.moduleId)
           .in('status', ['approved', 'completed']) // Accept both approved and completed
           .maybeSingle()
-        
+
         setEnrollment(enrollmentData)
         if (enrollmentData && (enrollmentData as any).programs) {
           setProgram((enrollmentData as any).programs)
         }
-        
+
         // Check if certificate already exists
         // Note: recipient_id in certificates table stores participant_id (not user_id)
         if (enrollmentData) {
@@ -206,7 +207,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             .eq('recipient_type', 'participant')
             .eq('recipient_id', (enrollmentData as any).participant_id)
             .maybeSingle()
-          
+
           if (existingCert) {
             setCertificateStatus('generated')
             setCertificateData(existingCert)
@@ -227,13 +228,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       if (contentsData && contentsData.length > 0) {
         // Organize content into hierarchical structure matching ContentManagement
         const organizedContents = organizeHierarchicalData(contentsData)
-        
+
         // Flatten hierarchical structure for display
         const flattenedContents: LearningContent[] = []
         organizedContents.forEach((mainContent: any) => {
           // Add main material
           flattenedContents.push(mainContent)
-          
+
           // Add sub materials if they exist
           if (mainContent.sub_materials && mainContent.sub_materials.length > 0) {
             mainContent.sub_materials.forEach((subMaterial: any) => {
@@ -241,13 +242,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             })
           }
         })
-        
+
         setContents(flattenedContents)
-        
+
         // Check if there's a specific content parameter in URL
         const urlParams = new URLSearchParams(window.location.search)
         const contentId = urlParams.get('content')
-        
+
         if (contentId) {
           const targetContentIndex = flattenedContents.findIndex(c => c.id === contentId)
           if (targetContentIndex !== -1) {
@@ -271,7 +272,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             .in('content_id', contentsData.map((c: any) => c.id))
 
           if (progressData) {
-            const progressMap: {[key: string]: Progress} = {}
+            const progressMap: { [key: string]: Progress } = {}
             progressData.forEach((p: any) => {
               progressMap[p.content_id] = {
                 id: p.id,
@@ -315,7 +316,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
     try {
       console.log('🔗 checkReferralUsage: Starting check for user_id:', profile.id)
-      
+
       console.log('🔗 CORRECT LOGIC: Checking if user\'s referral codes have been USED BY OTHERS (not if user used others\' codes)')
 
       // CORRECT LOGIC: Check if referral codes CREATED BY THIS USER have been used by others
@@ -376,14 +377,14 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       // Count confirmed referrals (someone else used user's code and it's confirmed)
       const confirmedReferrals = trackingData?.filter((r: any) => r.status === 'confirmed') || []
       const hasUsed = confirmedReferrals.length >= 1
-      
+
       console.log('🔗 Referral usage check (CORRECT LOGIC):', {
         userReferralCodesCount: userReferralCodes.length,
         trackingRecordsFound: trackingData?.length || 0,
         confirmedCount: confirmedReferrals.length,
         hasUsed: hasUsed ? '✅ User\'s referral codes have been used by others' : '❌ No one has used user\'s referral codes yet'
       })
-      
+
       setHasReferralUsed(hasUsed)
     } catch (error) {
       console.error('❌ Error checking referral usage:', error)
@@ -422,7 +423,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     try {
       // Check if progress exists
       const existing = progress[contentId]
-      
+
       if (existing && (existing as any).id) {
         // Update existing
         const { data, error } = await (supabase as any)
@@ -431,7 +432,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           .eq('id', (existing as any).id)
           .select()
           .single()
-        
+
         if (error) throw error
         if (data) {
           setProgress(prev => ({ ...prev, [contentId]: data }))
@@ -450,7 +451,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           })
           .select()
           .single()
-        
+
         if (error) throw error
         if (data) {
           setProgress(prev => ({ ...prev, [contentId]: data }))
@@ -467,23 +468,23 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   async function markAsComplete(contentId: string) {
     try {
       console.log('Marking as complete:', contentId)
-      
+
       if (!profile?.id) {
         throw new Error('User not authenticated')
       }
-      
+
       // First check if table exists by trying to select from it
       const { error: tableError } = await supabase
         .from('learning_progress')
         .select('id')
         .limit(1)
-      
+
       if (tableError) {
         console.error('Table learning_progress does not exist:', tableError)
         showNotification('error', 'Tabel progress belum tersedia. Silakan hubungi administrator.')
         return
       }
-      
+
       // Update progress in database
       const { data, error } = await supabase
         .from('enrollments')
@@ -502,10 +503,10 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       // Check both enrollmentData (filtered) and allEnrollments (all records)
       const enrollmentsWithReferral = enrollmentData || []
       const allEnrollmentsList = allEnrollments || []
-      
+
       // Check if any enrollment (approved or pending) has referral_code_id
       const enrollmentsWithReferralCode = allEnrollmentsList.filter((e: any) => e.referral_code_id != null)
-      
+
       console.log('🔍 Enrollment analysis:', {
         totalEnrollments: allEnrollmentsList.length,
         enrollmentsWithReferralCode: enrollmentsWithReferralCode.length,
@@ -515,18 +516,18 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           referral_code_id: e.referral_code_id
         }))
       })
-      
+
       if ((!trackingData || trackingData.length === 0) && enrollmentsWithReferralCode.length > 0) {
         console.log('⚠️ Found enrollments with referral_code_id but no tracking data')
         // Use enrollment as proxy - if enrollment exists with referral_code_id and is approved, count as used
         const approvedEnrollments = enrollmentsWithReferralCode.filter((e: any) => e.status === 'approved' && e.referral_code_id)
         const pendingEnrollments = enrollmentsWithReferralCode.filter((e: any) => e.status === 'pending' && e.referral_code_id)
-        
+
         console.log('🔍 Enrollment status breakdown:', {
           approved: approvedEnrollments.length,
           pending: pendingEnrollments.length
         })
-        
+
         // Count as used if approved enrollment has referral code
         // OR if pending enrollment has referral code (user has used referral during enrollment)
         if (approvedEnrollments.length > 0 || pendingEnrollments.length > 0) {
@@ -557,13 +558,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       // Count confirmed referrals
       const confirmedReferrals = trackingData?.filter((r: any) => r.status === 'confirmed') || []
       const hasUsed = confirmedReferrals.length >= 1
-      
+
       console.log('🔗 Referral usage check:', {
         totalRecords: trackingData?.length || 0,
         confirmedCount: confirmedReferrals.length,
         hasUsed: hasUsed ? '✅ Has used referral' : '❌ No referral used'
       })
-      
+
       setHasReferralUsed(hasUsed)
     } catch (error) {
       console.error('❌ Error checking referral usage:', error)
@@ -585,7 +586,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     try {
       // Check if progress exists
       const existing = progress[contentId]
-      
+
       if (existing && (existing as any).id) {
         // Update existing
         const { data, error } = await (supabase as any)
@@ -594,7 +595,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           .eq('id', (existing as any).id)
           .select()
           .single()
-        
+
         if (error) throw error
         if (data) {
           setProgress(prev => ({ ...prev, [contentId]: data }))
@@ -613,7 +614,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           })
           .select()
           .single()
-        
+
         if (error) throw error
         if (data) {
           setProgress(prev => ({ ...prev, [contentId]: data }))
@@ -630,23 +631,23 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   async function markAsComplete(contentId: string) {
     try {
       console.log('Marking as complete:', contentId)
-      
+
       if (!profile?.id) {
         throw new Error('User not authenticated')
       }
-      
+
       // First check if table exists by trying to select from it
       const { error: tableError } = await supabase
         .from('learning_progress')
         .select('id')
         .limit(1)
-      
+
       if (tableError) {
         console.error('Table learning_progress does not exist:', tableError)
         showNotification('error', 'Tabel progress belum tersedia. Silakan hubungi administrator.')
         return
       }
-      
+
       // Update progress in database
       const { data, error } = await supabase
         .from('learning_progress')
@@ -662,12 +663,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         })
         .select()
         .single()
-      
+
       if (error) {
         console.error('Database error:', error)
         throw error
       }
-      
+
       // Update local state immediately
       setProgress(prev => ({
         ...prev,
@@ -678,14 +679,14 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           completed_at: new Date().toISOString()
         }
       }))
-      
+
       // NOTE: Sub-materials should be completed independently by the user
       // We do NOT automatically mark sub-materials as completed when main material is completed
       // Each sub-material must be accessed and completed by the user individually
-      
+
       // Update overall progress
       updateOverallProgress()
-      
+
       // CRITICAL: Update unlocked contents after marking as complete
       // This ensures that the next material unlocks immediately after current one is completed
       // Force a re-render by updating a state, then call updateUnlockedContents
@@ -694,14 +695,14 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         // Force update unlocked contents after state has propagated
         updateUnlockedContents()
         console.log('🔄 updateUnlockedContents called after markAsComplete for:', contentId)
-        
+
         // Also log current progress to verify
         setTimeout(() => {
           console.log('🔍 Verifying unlocked contents after completion...')
           updateUnlockedContents()
         }, 200)
       }, 300)
-      
+
       // Show success notification
       const content = contents.find(c => c.id === contentId)
       if (content) {
@@ -717,16 +718,16 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   function updateOverallProgress() {
     // Count all contents (main + sub materials)
     const totalCount = contents.length
-    
+
     // Count completed contents
     const completedCount = contents.filter(content => {
       const contentProgress = progress[content.id]
       return contentProgress?.status === 'completed'
     }).length
-    
+
     const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
     setOverallProgress(percentage)
-    
+
     console.log('Progress calculation:', {
       totalCount,
       completedCount,
@@ -790,17 +791,19 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   }
 
   async function generateCertificate() {
+    // FALLBACK: If enrollment is not found, we still try to generate certificate
+    // The backend is now smart enough to find or create enrollment if we send programId and moduleId
     if (!enrollment?.id) {
-      showNotification('error', 'Enrollment tidak ditemukan')
-      return
+      console.log('⚠️ Enrollment not found client-side, attempting auto-resolution on backend...')
     }
 
     setCertificateStatus('generating')
-    
+    setCertificateError('')
+
     try {
       // Get session token for authorization
       const { data: { session } } = await supabase.auth.getSession()
-      
+
       if (!session) {
         throw new Error('Session tidak ditemukan. Silakan login ulang.')
       }
@@ -813,19 +816,21 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         },
         credentials: 'include', // Include cookies
         body: JSON.stringify({
-          enrollment_id: enrollment.id
+          enrollment_id: enrollment?.id, // Can be null/undefined now
+          program_id: params.programId, // Always send this as fallback
+          class_id: params.moduleId       // Always send this as fallback
         })
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Gagal generate sertifikat')
+        throw new Error(result.error || result.details || 'Gagal generate sertifikat')
       }
 
       setCertificateStatus('generated')
       setCertificateData(result.data)
-      
+
       if (program?.program_type === 'tot') {
         showNotification('success', 'Sertifikat berhasil digenerate! Anda sekarang menjadi Junior Trainer.')
       } else {
@@ -834,17 +839,19 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     } catch (error: any) {
       console.error('Error generating certificate:', error)
       setCertificateStatus('error')
-      showNotification('error', error.message || 'Gagal generate sertifikat')
+      const errorMsg = error.message || 'Gagal generate sertifikat'
+      setCertificateError(errorMsg)
+      showNotification('error', errorMsg)
     }
   }
 
   const updateUnlockedContents = useCallback(() => {
     const unlocked = new Set<string>()
-    
+
     // Filter only main materials (not sub-materials) for referral check
     // Main materials are those without parent_id
     const mainMaterials = contents.filter(c => !c.parent_id)
-    
+
     console.log('🔓 updateUnlockedContents called', {
       mainMaterialsCount: mainMaterials.length,
       progressKeys: Object.keys(progress).length,
@@ -856,16 +863,16 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         status: progress[m.id]?.status || 'not_started'
       }))
     })
-    
+
     if (mainMaterials.length > 0) {
       // Hanya materi pertama (index 0) yang selalu bisa diakses
       unlocked.add(mainMaterials[0].id)
       console.log('✅ Unlocked material 0:', mainMaterials[0].id, mainMaterials[0].title)
-      
+
       // Progressive unlocking: unlock materi berikutnya hanya jika materi sebelumnya selesai
       for (let i = 1; i < mainMaterials.length; i++) {
         const currentMaterial = mainMaterials[i]
-        
+
         // FIRST: Check if ALL previous materials are FULLY completed (sequential requirement)
         // This includes main material AND all sub-materials
         let allPreviousCompleted = true
@@ -873,7 +880,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         for (let j = 0; j < i; j++) {
           const prevContent = mainMaterials[j]
           const isPrevFullyCompleted = isMaterialFullyCompleted(prevContent.id)
-          
+
           if (!isPrevFullyCompleted) {
             allPreviousCompleted = false
             const prevMainProgress = progress[prevContent.id]
@@ -882,7 +889,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
               const subProgress = progress[sub.id]
               return subProgress?.status !== 'completed'
             })
-            
+
             if (prevMainProgress?.status !== 'completed') {
               const status = prevMainProgress?.status || 'not_started'
               incompleteMaterials.push(`${prevContent.title} (main: ${status})`)
@@ -893,13 +900,13 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             }
           }
         }
-        
+
         // If sequential requirement is NOT met, stop unlocking - lock semua materi berikutnya
         if (!allPreviousCompleted) {
           console.log(`🔒 Material ${i} (${currentMaterial.title}) LOCKED - Previous incomplete:`, incompleteMaterials)
           break
         }
-        
+
         // SECOND: If sequential requirement is met, check referral for index >= 2
         if (i >= 2) {
           // Material index >= 2 requires referral code to be used
@@ -917,7 +924,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           console.log(`✅ Unlocked material ${i}:`, mainMaterials[i].title, '(all previous completed)')
         }
       }
-      
+
       // Unlock sub-materials of unlocked main materials SEQUENTIALLY
       // Group sub-materials by parent
       const subMaterialsByParent = new Map<string, LearningContent[]>()
@@ -929,29 +936,29 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           subMaterialsByParent.get(content.parent_id)!.push(content)
         }
       })
-      
+
       // For each parent that is unlocked, unlock its sub-materials sequentially
       subMaterialsByParent.forEach((subMaterials, parentId) => {
         if (!unlocked.has(parentId)) {
           return // Skip if parent is not unlocked
         }
-        
+
         const parentProgress = progress[parentId]
         const isParentCompleted = parentProgress?.status === 'completed'
-        
+
         // Sort sub-materials by order_index to ensure sequential unlocking
         const sortedSubMaterials = [...subMaterials].sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
-        
+
         // First sub-material can be unlocked if parent is completed
         if (sortedSubMaterials.length > 0 && isParentCompleted) {
           // Unlock first sub-material
           unlocked.add(sortedSubMaterials[0].id)
           console.log(`✅ Unlocked first sub-material: ${sortedSubMaterials[0].title} (parent: ${parentId})`)
-          
+
           // Unlock subsequent sub-materials only if all previous sub-materials are completed
           for (let i = 1; i < sortedSubMaterials.length; i++) {
             let allPreviousSubCompleted = true
-            
+
             for (let j = 0; j < i; j++) {
               const prevSub = sortedSubMaterials[j]
               const prevSubProgress = progress[prevSub.id]
@@ -961,7 +968,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                 break
               }
             }
-            
+
             if (allPreviousSubCompleted) {
               unlocked.add(sortedSubMaterials[i].id)
               console.log(`✅ Unlocked sub-material ${i}: ${sortedSubMaterials[i].title}`)
@@ -972,10 +979,10 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           }
         }
       })
-      
+
       console.log('🔓 Final unlocked contents:', Array.from(unlocked))
     }
-    
+
     setUnlockedContents(unlocked)
   }, [contents, progress, hasReferralUsed])
 
@@ -988,18 +995,18 @@ export default function LearnPage({ params }: { params: { programId: string; mod
     // Check if main material itself is completed
     const mainProgress = progress[mainMaterialId]
     const isMainCompleted = mainProgress?.status === 'completed'
-    
+
     if (!isMainCompleted) {
       return false
     }
-    
+
     // Check if all sub-materials are completed
     const subMaterials = contents.filter(c => c.parent_id === mainMaterialId)
     if (subMaterials.length === 0) {
       // No sub-materials, so main material completion is enough
       return true
     }
-    
+
     // Check each sub-material
     for (const subMaterial of subMaterials) {
       const subProgress = progress[subMaterial.id]
@@ -1009,7 +1016,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         return false
       }
     }
-    
+
     return true
   }
 
@@ -1019,32 +1026,32 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       console.log('🚫 canAccessContent: content not found', contentId)
       return false
     }
-    
+
     // Filter main materials
     const mainMaterials = contents.filter(c => !c.parent_id)
     const isMainMaterial = !content.parent_id
-    
+
     if (isMainMaterial) {
       // Find the index of this material
       const materialIndex = mainMaterials.findIndex(m => m.id === contentId)
-      
+
       if (materialIndex === -1) {
         console.log('🚫 canAccessContent: material not found in mainMaterials', contentId)
         return false
       }
-      
+
       // Material index 0 is always accessible
       if (materialIndex === 0) {
         console.log(`✅ canAccessContent [${content.title}]: Always unlocked (index 0)`)
         return true
       }
-      
+
       // For material index >= 1, STRICTLY check if ALL previous materials are FULLY completed
       // (including main material AND all sub-materials)
       for (let i = 0; i < materialIndex; i++) {
         const prevContent = mainMaterials[i]
         const isPrevFullyCompleted = isMaterialFullyCompleted(prevContent.id)
-        
+
         if (!isPrevFullyCompleted) {
           const prevMainProgress = progress[prevContent.id]
           const prevSubMaterials = contents.filter(c => c.parent_id === prevContent.id)
@@ -1052,7 +1059,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             const subProgress = progress[sub.id]
             return subProgress?.status !== 'completed'
           })
-          
+
           if (prevMainProgress?.status !== 'completed') {
             console.log(`🔒 canAccessContent [${content.title}]: BLOCKED - Previous material "${prevContent.title}" main material not completed (status: ${prevMainProgress?.status || 'not_started'})`)
           } else if (incompleteSubs.length > 0) {
@@ -1061,7 +1068,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           return false
         }
       }
-      
+
       // If sequential requirement met, check referral requirement for index >= 2
       if (materialIndex >= 2) {
         if (!hasReferralUsed) {
@@ -1069,12 +1076,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           return false
         }
       }
-      
+
       // Sequential requirement met and referral requirement (if applicable) met
       console.log(`✅ canAccessContent [${content.title}]: Allowed (index ${materialIndex}, previous completed, ${materialIndex >= 2 ? 'referral used' : 'no referral required'})`)
       return true
     }
-    
+
     // For sub-materials, check parent is unlocked and parent is completed
     if (content.parent_id) {
       // First check if parent can be accessed
@@ -1083,7 +1090,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Parent not accessible`)
         return false
       }
-      
+
       // Check if parent is completed
       const parentProgress = progress[content.parent_id]
       const isParentCompleted = parentProgress?.status === 'completed'
@@ -1091,23 +1098,23 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Parent not completed`)
         return false
       }
-      
+
       // Find all sub-materials of this parent
       const subMaterials = contents.filter(c => c.parent_id === content.parent_id)
       const sortedSubMaterials = [...subMaterials].sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
       const subIndex = sortedSubMaterials.findIndex(s => s.id === contentId)
-      
+
       if (subIndex === -1) {
         console.log(`🔒 canAccessContent [SUB: ${content.title}]: BLOCKED - Sub-material not found`)
         return false
       }
-      
+
       // First sub-material is unlocked if parent is completed
       if (subIndex === 0) {
         console.log(`✅ canAccessContent [SUB: ${content.title}]: Allowed (first sub-material, parent completed)`)
         return true
       }
-      
+
       // For subsequent sub-materials, check if ALL previous sub-materials are completed
       for (let i = 0; i < subIndex; i++) {
         const prevSub = sortedSubMaterials[i]
@@ -1117,11 +1124,11 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           return false
         }
       }
-      
+
       console.log(`✅ canAccessContent [SUB: ${content.title}]: Allowed (previous sub-materials completed)`)
       return true
     }
-    
+
     console.log('🚫 canAccessContent: no parent_id and not main material', contentId)
     return false
   }
@@ -1133,16 +1140,16 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       setCurrentIndex(currentIndex - 1)
     } else if (direction === 'next' && currentIndex < contents.length - 1) {
       const nextContent = contents[currentIndex + 1]
-      
+
       // Check if current content is completed before allowing to move to next
       const currentContentProgress = progress[contents[currentIndex].id]
       const isCurrentCompleted = currentContentProgress?.status === 'completed'
-      
+
       if (!isCurrentCompleted) {
         showNotification('error', 'Harap selesaikan materi ini terlebih dahulu sebelum melanjutkan ke materi berikutnya.')
         return
       }
-      
+
       // Check if next content is accessible
       if (canAccessContent(nextContent.id)) {
         setCurrentContent(nextContent)
@@ -1151,12 +1158,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         // Check reason for blocking
         const mainMaterials = contents.filter(c => !c.parent_id)
         const nextMainIndex = mainMaterials.findIndex(c => c.id === nextContent.id || (nextContent.parent_id && c.id === nextContent.parent_id))
-        
+
         if (nextMainIndex === -1) {
           showNotification('error', 'Materi ini tidak dapat diakses.')
           return
         }
-        
+
         // Check if blocked due to sequential requirement
         let sequentialBlocked = false
         for (let i = 0; i < nextMainIndex; i++) {
@@ -1167,7 +1174,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
             break
           }
         }
-        
+
         if (sequentialBlocked) {
           showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu secara berurutan.')
         } else if (nextMainIndex >= 2 && !hasReferralUsed) {
@@ -1187,12 +1194,12 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       const mainIndex = mainMaterials.findIndex(c => {
         return c.id === content.id || (content.parent_id && c.id === content.parent_id)
       })
-      
+
       if (mainIndex === -1) {
         showNotification('error', 'Materi ini tidak dapat diakses.')
         return
       }
-      
+
       // Check if blocked due to sequential requirement
       let sequentialBlocked = false
       for (let i = 0; i < mainIndex; i++) {
@@ -1203,7 +1210,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           break
         }
       }
-      
+
       if (sequentialBlocked) {
         showNotification('error', 'Anda harus menyelesaikan materi sebelumnya terlebih dahulu secara berurutan.')
       } else if (mainIndex >= 2 && !hasReferralUsed) {
@@ -1213,7 +1220,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       }
       return
     }
-    
+
     setCurrentContent(content)
     setCurrentIndex(index)
     setDrawerOpen(false)
@@ -1278,323 +1285,321 @@ export default function LearnPage({ params }: { params: { programId: string; mod
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=OpenDyslexic:wght@400;700&display=swap');
       `}</style>
-      
+
       <div className="min-h-screen flex flex-col content-area" style={{
         backgroundColor: currentTheme.mainBg,
         color: currentTheme.text,
         transition: 'all 0.3s ease'
       }}>
-      {/* Header */}
-      <div className="sticky top-0 z-30 backdrop-blur border-b" style={{
-        backgroundColor: `${currentTheme.headerBg}f2`,
-        borderColor: currentTheme.borderColor,
-        transition: 'all 0.3s ease'
-      }}>
-        {/* Desktop Header */}
-        <div className="hidden md:block">
-          <div className="w-full px-3 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4 min-w-0 flex-1">
-              <Link href={`/programs/${params.programId}/classes`} className="inline-flex items-center text-sm whitespace-nowrap transition-colors" style={{ color: currentTheme.text, opacity: 0.7 }}>
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Kembali
-              </Link>
-              <span className="font-semibold truncate text-lg" style={{ color: currentTheme.text }}>{moduleTitle || 'Belajar Modul'}</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-lg border transition-colors" 
-                aria-label="Pengaturan"
-                style={{
-                  borderColor: currentTheme.borderColor,
-                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-                }}
-              >
-                <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
-              </button>
-              <button 
-                onClick={() => setDrawerOpen(true)} 
-                className="p-2 rounded-lg border transition-colors" 
-                aria-label="Menu"
-                style={{
-                  borderColor: currentTheme.borderColor,
-                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-                }}
-              >
-                <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Header */}
-        <div className="md:hidden w-full px-3 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <Link href={`/programs/${params.programId}/classes`} className="flex-shrink-0 p-2 rounded-lg transition-colors" style={{
-              backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-            }}>
-              <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
-            </Link>
-            <div className="flex-1 min-w-0 px-2">
-              <h1 className="text-sm font-semibold truncate text-center" style={{ color: currentTheme.text }}>
-                {moduleTitle || 'Belajar Modul'}
-              </h1>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button 
-                onClick={() => setSettingsOpen(true)}
-                className="p-2 rounded-lg transition-colors" 
-                style={{
-                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-                }}
-              >
-                <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
-              </button>
-              <button 
-                onClick={() => setDrawerOpen(true)} 
-                className="p-2 rounded-lg transition-colors" 
-                aria-label="Menu"
-                style={{
-                  backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
-                }}
-              >
-                <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content layout */}
-      <div className="max-w-4xl mx-auto w-full px-4 py-6 pb-20">
-        {/* Completion Message - Show when all materials are completed */}
-        {overallProgress === 100 && (
-          <div className="mb-8 p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl shadow-lg">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                <Award className="w-12 h-12 text-green-600" />
+        {/* Header */}
+        <div className="sticky top-0 z-30 backdrop-blur border-b" style={{
+          backgroundColor: `${currentTheme.headerBg}f2`,
+          borderColor: currentTheme.borderColor,
+          transition: 'all 0.3s ease'
+        }}>
+          {/* Desktop Header */}
+          <div className="hidden md:block">
+            <div className="w-full px-3 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <Link href={`/programs/${params.programId}/classes`} className="inline-flex items-center text-sm whitespace-nowrap transition-colors" style={{ color: currentTheme.text, opacity: 0.7 }}>
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Kembali
+                </Link>
+                <span className="font-semibold truncate text-lg" style={{ color: currentTheme.text }}>{moduleTitle || 'Belajar Modul'}</span>
               </div>
-              <h2 className="text-3xl font-bold text-green-900 mb-2">
-                Selamat! Pembelajaran Sudah Selesai
-              </h2>
-              <p className="text-lg text-green-700 mb-6">
-                Anda telah menyelesaikan semua materi pembelajaran dengan sempurna.
-              </p>
-              
-              {certificateStatus === 'none' && (
+              <div className="flex items-center gap-4">
                 <button
-                  onClick={generateCertificate}
-                  disabled={certificateStatus === 'generating'}
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setSettingsOpen(true)}
+                  className="p-2 rounded-lg border transition-colors"
+                  aria-label="Pengaturan"
+                  style={{
+                    borderColor: currentTheme.borderColor,
+                    backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                  }}
                 >
-                  {certificateStatus === 'generating' ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Menggenerate Sertifikat...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-6 h-6" />
-                      <span>Generate Sertifikat Kelulusan</span>
-                    </>
-                  )}
+                  <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
                 </button>
-              )}
-              
-              {certificateStatus === 'generated' && certificateData && (
-                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-800 rounded-lg">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-semibold">Sertifikat sudah digenerate</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-4">
-                    <Link
-                      href="/my-certificates"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                    >
-                      <Download className="w-5 h-5" />
-                      Lihat / Unduh Sertifikat
-                    </Link>
-                  </div>
-                  {program?.program_type === 'tot' && (
-                    <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <p className="text-sm text-purple-800">
-                        <strong>Selamat!</strong> Anda sekarang menjadi <strong>Junior Trainer</strong> karena menyelesaikan program Training of Trainers (TOT). Buat kelas pertama Anda, bagikan dan ajak rekan lain bergabung di kelas Anda untuk mengikuti program internasional Garuda Academy.
-                      </p>
-                    </div>
-                  )}
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="p-2 rounded-lg border transition-colors"
+                  aria-label="Menu"
+                  style={{
+                    borderColor: currentTheme.borderColor,
+                    backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                  }}
+                >
+                  <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Header */}
+          <div className="md:hidden w-full px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <Link href={`/programs/${params.programId}/classes`} className="flex-shrink-0 p-2 rounded-lg transition-colors" style={{
+                backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+              }}>
+                <ArrowLeft className="w-5 h-5" style={{ color: currentTheme.text }} />
+              </Link>
+              <div className="flex-1 min-w-0 px-2">
+                <h1 className="text-sm font-semibold truncate text-center" style={{ color: currentTheme.text }}>
+                  {moduleTitle || 'Belajar Modul'}
+                </h1>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                  }}
+                >
+                  <Settings className="w-5 h-5" style={{ color: currentTheme.text }} />
+                </button>
+                <button
+                  onClick={() => setDrawerOpen(true)}
+                  className="p-2 rounded-lg transition-colors"
+                  aria-label="Menu"
+                  style={{
+                    backgroundColor: readingSettings.theme === 'light' ? 'transparent' : currentTheme.contentBg
+                  }}
+                >
+                  <Menu className="w-5 h-5" style={{ color: currentTheme.text }} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content layout */}
+        <div className="max-w-4xl mx-auto w-full px-4 py-6 pb-20">
+          {/* Completion Message - Show when all materials are completed */}
+          {overallProgress === 100 && (
+            <div className="mb-8 p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl shadow-lg">
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                  <Award className="w-12 h-12 text-green-600" />
                 </div>
-              )}
-              
-              {certificateStatus === 'error' && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800">
-                    Gagal generate sertifikat. Silakan coba lagi atau hubungi administrator.
-                  </p>
+                <h2 className="text-3xl font-bold text-green-900 mb-2">
+                  Selamat! Pembelajaran Sudah Selesai
+                </h2>
+                <p className="text-lg text-green-700 mb-6">
+                  Anda telah menyelesaikan semua materi pembelajaran dengan sempurna.
+                </p>
+
+                {certificateStatus === 'none' && (
                   <button
                     onClick={generateCertificate}
-                    className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                    disabled={certificateStatus === 'generating'}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Coba Lagi
+                    {certificateStatus === 'generating' ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        <span>Menggenerate Sertifikat...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-6 h-6" />
+                        <span>Generate Sertifikat Kelulusan</span>
+                      </>
+                    )}
                   </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {currentContent && (
-          <ContentRenderer
-            content={currentContent}
-            theme={currentTheme}
-            readingSettings={readingSettings}
-            progress={progress[currentContent.id]}
-            onComplete={() => markAsComplete(currentContent.id)}
-            onUpdateProgress={(updates) => updateProgress(currentContent.id, updates)}
-          />
-        )}
+                )}
 
-        {/* Referral Banner - Show when modules are locked due to referral requirement */}
-        {hasLockedModules && !hasReferralUsed && userReferralCodes.length > 0 && (
-          <div className="mt-6 p-4 md:p-5 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950">
-            <div className="flex items-start gap-3 md:gap-4">
-              <div className="flex-shrink-0 mt-0.5">
-                <Info className="w-5 h-5 md:w-6 md:h-6 text-blue-700 dark:text-blue-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
-                  Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
-                </p>
-                <div className="space-y-2">
-                  {userReferralCodes.slice(0, 2).map((refCode: any) => {
-                    const referralUrl = typeof window !== 'undefined' 
-                      ? `${window.location.origin}/referral/${refCode.code}`
-                      : `/referral/${refCode.code}`
-                    return (
-                      <button
-                        key={refCode.id}
-                        onClick={() => {
-                          navigator.clipboard.writeText(referralUrl).then(() => {
-                            showNotification('success', 'Link referral berhasil disalin! Bagikan ke teman/rekan Anda.')
-                          }).catch(() => {
-                            showNotification('error', 'Gagal menyalin link referral')
-                          })
-                        }}
-                        className="w-full text-left group"
+                {certificateStatus === 'generated' && certificateData && (
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-800 rounded-lg">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-semibold">Sertifikat sudah digenerate</span>
+                    </div>
+                    <div className="flex items-center justify-center gap-4">
+                      <Link
+                        href="/my-certificates"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                       >
-                        <div className="flex items-center gap-2 p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-blue-300 dark:border-blue-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Link Referral Anda</p>
-                            <p className="text-sm md:text-base font-semibold text-blue-700 dark:text-blue-400 break-all group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors underline decoration-2 underline-offset-2">
-                              {referralUrl}
-                            </p>
-                          </div>
-                          <div className="flex-shrink-0">
-                            <Copy className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors" />
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p className="text-xs font-medium text-gray-800 dark:text-gray-200 mt-3 flex items-center gap-1.5">
-                  <span>💡</span>
-                  <span>Klik link di atas untuk menyalin, lalu bagikan via WhatsApp, email, atau media sosial</span>
-                </p>
+                        <Download className="w-5 h-5" />
+                        Lihat / Unduh Sertifikat
+                      </Link>
+                    </div>
+                    {program?.program_type === 'tot' && (
+                      <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <p className="text-sm text-purple-800">
+                          <strong>Selamat!</strong> Anda sekarang menjadi <strong>Junior Trainer</strong> karena menyelesaikan program Training of Trainers (TOT). Buat kelas pertama Anda, bagikan dan ajak rekan lain bergabung di kelas Anda untuk mengikuti program internasional Garuda Academy.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {certificateStatus === 'error' && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      {certificateError || notification?.message || 'Gagal generate sertifikat. Silakan coba lagi atau hubungi administrator.'}
+                    </p>
+                    <button
+                      onClick={generateCertificate}
+                      className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                    >
+                      Coba Lagi
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Referral Banner - Show when user has no referral codes yet */}
-        {hasLockedModules && !hasReferralUsed && userReferralCodes.length === 0 && (
-          <div className="mt-6 p-4 md:p-5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950">
-            <div className="flex items-start gap-3 md:gap-4">
-              <div className="flex-shrink-0 mt-0.5">
-                <Info className="w-5 h-5 md:w-6 md:h-6 text-amber-700 dark:text-amber-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
-                  Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
-                </p>
-                <div className="p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-amber-300 dark:border-amber-700">
-                  <p className="text-sm text-gray-900 dark:text-gray-100 font-medium flex items-start gap-2">
-                    <span className="text-amber-700 dark:text-amber-300">⚠️</span>
-                    <span>Anda belum memiliki kode referral. Silakan hubungi administrator untuk mendapatkan kode referral Anda.</span>
+          {currentContent && (
+            <ContentRenderer
+              content={currentContent}
+              theme={currentTheme}
+              readingSettings={readingSettings}
+              progress={progress[currentContent.id]}
+              onComplete={() => markAsComplete(currentContent.id)}
+              onUpdateProgress={(updates) => updateProgress(currentContent.id, updates)}
+            />
+          )}
+
+          {/* Referral Banner - Show when modules are locked due to referral requirement */}
+          {hasLockedModules && !hasReferralUsed && userReferralCodes.length > 0 && (
+            <div className="mt-6 p-4 md:p-5 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950">
+              <div className="flex items-start gap-3 md:gap-4">
+                <div className="flex-shrink-0 mt-0.5">
+                  <Info className="w-5 h-5 md:w-6 md:h-6 text-blue-700 dark:text-blue-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
+                    Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
+                  </p>
+                  <div className="space-y-2">
+                    {userReferralCodes.slice(0, 2).map((refCode: any) => {
+                      const referralUrl = typeof window !== 'undefined'
+                        ? `${window.location.origin}/referral/${refCode.code}`
+                        : `/referral/${refCode.code}`
+                      return (
+                        <button
+                          key={refCode.id}
+                          onClick={() => {
+                            navigator.clipboard.writeText(referralUrl).then(() => {
+                              showNotification('success', 'Link referral berhasil disalin! Bagikan ke teman/rekan Anda.')
+                            }).catch(() => {
+                              showNotification('error', 'Gagal menyalin link referral')
+                            })
+                          }}
+                          className="w-full text-left group"
+                        >
+                          <div className="flex items-center gap-2 p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-blue-300 dark:border-blue-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wide">Link Referral Anda</p>
+                              <p className="text-sm md:text-base font-semibold text-blue-700 dark:text-blue-400 break-all group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors underline decoration-2 underline-offset-2">
+                                {referralUrl}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <Copy className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-800 dark:group-hover:text-blue-300 transition-colors" />
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs font-medium text-gray-800 dark:text-gray-200 mt-3 flex items-center gap-1.5">
+                    <span>💡</span>
+                    <span>Klik link di atas untuk menyalin, lalu bagikan via WhatsApp, email, atau media sosial</span>
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Adaptive Reading Settings Modal */}
-      <AdaptiveReadingModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={readingSettings}
-        onUpdate={updateReadingSettings}
-      />
+          {/* Referral Banner - Show when user has no referral codes yet */}
+          {hasLockedModules && !hasReferralUsed && userReferralCodes.length === 0 && (
+            <div className="mt-6 p-4 md:p-5 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950">
+              <div className="flex items-start gap-3 md:gap-4">
+                <div className="flex-shrink-0 mt-0.5">
+                  <Info className="w-5 h-5 md:w-6 md:h-6 text-amber-700 dark:text-amber-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm md:text-base text-gray-900 dark:text-gray-100 mb-3 leading-relaxed">
+                    Untuk mengakses modul selanjutnya, <strong className="font-semibold">bagikan link referral</strong> Anda ke teman/rekan dan ajak mereka bergabung. Setelah mereka mendaftar menggunakan link Anda, modul akan terbuka otomatis.
+                  </p>
+                  <div className="p-3 md:p-4 rounded-lg bg-white dark:bg-gray-900 border-2 border-amber-300 dark:border-amber-700">
+                    <p className="text-sm text-gray-900 dark:text-gray-100 font-medium flex items-start gap-2">
+                      <span className="text-amber-700 dark:text-amber-300">⚠️</span>
+                      <span>Anda belum memiliki kode referral. Silakan hubungi administrator untuk mendapatkan kode referral Anda.</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-      {/* Slide-out drawer for content list */}
-      <ContentDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        contents={contents}
-        progress={progress}
-        overallProgress={overallProgress}
-        currentContentId={currentContent?.id || ''}
-        onSelectContent={selectContent}
-        getContentIcon={getContentIcon}
-        isContentUnlocked={isContentUnlocked}
-        canAccessContent={canAccessContent}
-      />
+        {/* Adaptive Reading Settings Modal */}
+        <AdaptiveReadingModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          settings={readingSettings}
+          onUpdate={updateReadingSettings}
+        />
 
-      {/* Bottom navigation */}
-      <BottomNavigation
-        currentIndex={currentIndex}
-        totalContents={contents.length}
-        currentContent={currentContent}
-        onNavigate={navigateToContent}
-        theme={currentTheme}
-        readingSettings={readingSettings}
-        contents={contents}
-        progress={progress}
-        canAccessContent={canAccessContent}
-      />
+        {/* Slide-out drawer for content list */}
+        <ContentDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          contents={contents}
+          progress={progress}
+          overallProgress={overallProgress}
+          currentContentId={currentContent?.id || ''}
+          onSelectContent={selectContent}
+          getContentIcon={getContentIcon}
+          isContentUnlocked={isContentUnlocked}
+          canAccessContent={canAccessContent}
+        />
 
-      {/* Notification */}
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm">
-          <div className={`p-4 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ${
-            notification.type === 'success' 
-              ? 'bg-green-50 border-green-500 text-green-800' 
+        {/* Bottom navigation */}
+        <BottomNavigation
+          currentIndex={currentIndex}
+          totalContents={contents.length}
+          currentContent={currentContent}
+          onNavigate={navigateToContent}
+          theme={currentTheme}
+          readingSettings={readingSettings}
+          contents={contents}
+          progress={progress}
+          canAccessContent={canAccessContent}
+        />
+
+        {/* Notification */}
+        {notification && (
+          <div className="fixed top-4 right-4 z-50 max-w-sm">
+            <div className={`p-4 rounded-lg shadow-lg border-l-4 transform transition-all duration-300 ${notification.type === 'success'
+              ? 'bg-green-50 border-green-500 text-green-800'
               : 'bg-red-50 border-red-500 text-red-800'
-          }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
               }`}>
-                {notification.type === 'success' ? (
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                ) : (
-                  <X className="w-4 h-4 text-red-600" />
-                )}
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                  {notification.type === 'success' ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <X className="w-4 h-4 text-red-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{notification.message}</p>
+                </div>
+                <button
+                  onClick={() => setNotification(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{notification.message}</p>
-              </div>
-              <button
-                onClick={() => setNotification(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </>
   )
@@ -1632,11 +1637,11 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
     <div className="reading-content" style={{
       backgroundColor: theme.contentBg,
       color: theme.text,
-      fontFamily: readingSettings.fontType === 'serif' ? 'Georgia, "Times New Roman", serif' : 
-                 readingSettings.fontType === 'dyslexic' ? 'OpenDyslexic, Arial, sans-serif' : 
-                 'Inter, system-ui, sans-serif',
-      fontSize: readingSettings.fontSize === 'small' ? '14px' : 
-               readingSettings.fontSize === 'large' ? '18px' : '16px',
+      fontFamily: readingSettings.fontType === 'serif' ? 'Georgia, "Times New Roman", serif' :
+        readingSettings.fontType === 'dyslexic' ? 'OpenDyslexic, Arial, sans-serif' :
+          'Inter, system-ui, sans-serif',
+      fontSize: readingSettings.fontSize === 'small' ? '14px' :
+        readingSettings.fontSize === 'large' ? '18px' : '16px',
       maxWidth: readingSettings.readingWidth === 'medium' ? '800px' : '900px',
       margin: '0 auto',
       padding: '3rem 2rem',
@@ -1682,7 +1687,7 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
           </button>
         </div>
       )}
-      
+
       {/* For assignments: Show info that task must be submitted first */}
       {progress?.status !== 'completed' && content.content_type === 'assignment' && (
         <div className="mt-12 flex justify-center">
@@ -1699,7 +1704,7 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
 // Video Content Component
 function VideoContent({ content, progress, onUpdateProgress }: any) {
   const videoData = content.content_data || {}
-  
+
   useEffect(() => {
     // Mark as in progress when video is viewed
     if (!progress || progress.status === 'not_started') {
@@ -1734,7 +1739,7 @@ function VideoContent({ content, progress, onUpdateProgress }: any) {
           <p className="text-gray-600">Video URL tidak valid</p>
         </div>
       )}
-      
+
       {videoData.duration && (
         <p className="text-sm text-gray-600">Durasi: {Math.floor(videoData.duration / 60)} menit</p>
       )}
@@ -1830,7 +1835,7 @@ function QuizContent({ content, progress, onComplete }: any) {
 // Document Content Component
 function DocumentContent({ content }: any) {
   const docData = content.content_data || {}
-  
+
   return (
     <div className="space-y-6">
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
@@ -1855,7 +1860,7 @@ function DocumentContent({ content }: any) {
           )}
         </div>
       </div>
-      
+
       {docData.file_url && docData.file_type === 'pdf' && (
         <div className="w-full h-[800px]">
           <iframe
@@ -1882,8 +1887,8 @@ function AssignmentContent({ content, onComplete }: any) {
   const [currentSubmissionId, setCurrentSubmissionId] = useState<string | null>(null)
   const [currentAttemptNumber, setCurrentAttemptNumber] = useState<number>(1)
   const [isLoadingSubmission, setIsLoadingSubmission] = useState(true)
-  const [submitMessage, setSubmitMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
-  
+  const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+
   // Load existing submission on mount and reset state when content changes
   useEffect(() => {
     // Reset all state when content changes
@@ -1897,12 +1902,12 @@ function AssignmentContent({ content, onComplete }: any) {
     setCurrentSubmissionId(null)
     setCurrentAttemptNumber(1)
     setIsLoadingSubmission(true)
-    
+
     if (!profile) {
       setIsLoadingSubmission(false)
       return
     }
-    
+
     async function loadExistingSubmission() {
       try {
         const { data, error } = await supabase
@@ -1913,12 +1918,12 @@ function AssignmentContent({ content, onComplete }: any) {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
-        
+
         if (error && error.code !== 'PGRST116') { // PGRST116 = not found
           console.error('Error loading submission:', error)
           return
         }
-        
+
         if (data) {
           setIsSubmitted(true)
           setIsEditing(false)
@@ -1933,10 +1938,10 @@ function AssignmentContent({ content, onComplete }: any) {
         setIsLoadingSubmission(false)
       }
     }
-    
+
     loadExistingSubmission()
   }, [profile, content.id])
-  
+
   // Image compression function
   const compressImage = async (
     file: File,
@@ -2004,7 +2009,7 @@ function AssignmentContent({ content, onComplete }: any) {
   // Universal file compression function
   const compressFile = async (file: File): Promise<{ file: Blob; fileName: string; contentType: string; wasCompressed: boolean; originalSize: number; compressedSize: number }> => {
     const originalSize = file.size
-    
+
     // For images, use image compression
     if (file.type.startsWith('image/')) {
       try {
@@ -2014,7 +2019,7 @@ function AssignmentContent({ content, onComplete }: any) {
           quality: 0.8,
           mimeType: 'image/jpeg'
         })
-        
+
         return {
           file: compressed,
           fileName: `${Date.now()}.jpg`,
@@ -2035,7 +2040,7 @@ function AssignmentContent({ content, onComplete }: any) {
         }
       }
     }
-    
+
     // For non-image files larger than 500KB, use gzip compression
     if (file.size > 500 * 1024) {
       try {
@@ -2046,16 +2051,16 @@ function AssignmentContent({ content, onComplete }: any) {
           // @ts-ignore - CompressionStream is a browser API available in modern browsers
           const compressionStream = new CompressionStream('gzip')
           const compressedStream = fileStream.pipeThrough(compressionStream)
-          
+
           const chunks: Uint8Array[] = []
           const reader = compressedStream.getReader()
-          
+
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
             chunks.push(value)
           }
-          
+
           // Combine chunks
           const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
           const combined = new Uint8Array(totalLength)
@@ -2064,9 +2069,9 @@ function AssignmentContent({ content, onComplete }: any) {
             combined.set(chunk, offset)
             offset += chunk.length
           }
-          
+
           const compressedBlob = new Blob([combined], { type: 'application/gzip' })
-          
+
           // Only use compressed if it's actually smaller
           if (compressedBlob.size < file.size * 0.9) {
             const fileExt = file.name.split('.').pop() || 'file'
@@ -2084,13 +2089,13 @@ function AssignmentContent({ content, onComplete }: any) {
         console.warn('Gzip compression failed or not available, using original:', error)
       }
     }
-    
+
     // No compression applied
     const normalizedFileName = file.name
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .replace(/\s+/g, '_')
       .toLowerCase()
-    
+
     return {
       file,
       fileName: `${Date.now()}.${normalizedFileName.split('.').pop()}`,
@@ -2106,153 +2111,153 @@ function AssignmentContent({ content, onComplete }: any) {
     if (file) {
       // Check file size (10MB max - we'll compress anyway)
       if (file.size > 10 * 1024 * 1024) {
-        setSubmitMessage({type: 'error', text: 'File terlalu besar. Maksimal 10MB'})
+        setSubmitMessage({ type: 'error', text: 'File terlalu besar. Maksimal 10MB' })
         return
       }
-      
+
       setSelectedFile(file)
       setUploadedFileUrl(null)
-      
+
       setIsUploading(true)
       setSubmitMessage(null)
-      
+
       try {
         // Show compression message
         if (file.type.startsWith('image/')) {
-          setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+          setSubmitMessage({ type: 'success', text: 'Mengompress gambar...' })
         } else if (file.size > 500 * 1024) {
-          setSubmitMessage({type: 'success', text: 'Mengompress file...'})
+          setSubmitMessage({ type: 'success', text: 'Mengompress file...' })
         }
-        
+
         // Compress file using universal compression
         const { file: fileToUpload, fileName, contentType, wasCompressed, originalSize, compressedSize } = await compressFile(file)
-        
+
         if (wasCompressed) {
           const originalSizeKB = (originalSize / 1024).toFixed(2)
           const compressedSizeKB = (compressedSize / 1024).toFixed(2)
           const savings = ((1 - compressedSize / originalSize) * 100).toFixed(0)
-          
+
           console.log(`📦 Kompresi: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`)
-          setSubmitMessage({type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`})
+          setSubmitMessage({ type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)` })
         }
-        
+
         // Upload to Supabase Storage
         const filePath = `${profile?.id}/${fileName}`
-        
+
         const { error: uploadError } = await supabase.storage
           .from('forum-attachments')
           .upload(filePath, fileToUpload, {
             contentType: contentType,
             upsert: false
           })
-        
+
         if (uploadError) throw uploadError
-        
+
         // Use public URL directly
         setUploadedFileUrl(`https://supabase.garuda-21.com/storage/v1/object/public/forum-attachments/${filePath}`)
-        setSubmitMessage({type: 'success', text: 'File berhasil diupload'})
+        setSubmitMessage({ type: 'success', text: 'File berhasil diupload' })
       } catch (error: any) {
         console.error('Upload error:', error)
-        setSubmitMessage({type: 'error', text: error.message || 'Gagal mengupload file'})
+        setSubmitMessage({ type: 'error', text: error.message || 'Gagal mengupload file' })
       } finally {
         setIsUploading(false)
       }
     }
   }
-  
+
   const handleUpload = async () => {
     if (!selectedFile) {
-      setSubmitMessage({type: 'error', text: 'Pilih file terlebih dahulu'})
+      setSubmitMessage({ type: 'error', text: 'Pilih file terlebih dahulu' })
       return
     }
-    
+
     setIsUploading(true)
     setSubmitMessage(null)
-    
+
     try {
       // Show compression message
       if (selectedFile.type.startsWith('image/')) {
-        setSubmitMessage({type: 'success', text: 'Mengompress gambar...'})
+        setSubmitMessage({ type: 'success', text: 'Mengompress gambar...' })
       } else if (selectedFile.size > 500 * 1024) {
-        setSubmitMessage({type: 'success', text: 'Mengompress file...'})
+        setSubmitMessage({ type: 'success', text: 'Mengompress file...' })
       }
-      
+
       // Compress file using universal compression
       const { file: fileToUpload, fileName, contentType, wasCompressed, originalSize, compressedSize } = await compressFile(selectedFile)
-      
+
       if (wasCompressed) {
         const originalSizeKB = (originalSize / 1024).toFixed(2)
         const compressedSizeKB = (compressedSize / 1024).toFixed(2)
         const savings = ((1 - compressedSize / originalSize) * 100).toFixed(0)
-        
+
         console.log(`📦 Kompresi: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`)
-        setSubmitMessage({type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)`})
+        setSubmitMessage({ type: 'success', text: `Dikompres: ${originalSizeKB}KB → ${compressedSizeKB}KB (hemat ${savings}%)` })
       }
-      
+
       // Upload to assignments bucket
       const filePath = `${profile?.id}/${fileName}`.replace(/\s+/g, '_')
-      
+
       console.log('Uploading to:', `assignments/${filePath}`)
-      
+
       const { error: uploadError } = await supabase.storage
         .from('assignments')
         .upload(filePath, fileToUpload, {
           contentType: contentType,
           upsert: false
         })
-      
+
       if (uploadError) throw uploadError
-      
+
       // Use public URL directly (like payment-proofs)
       const publicUrl = `https://supabase.garuda-21.com/storage/v1/object/public/assignments/${filePath}`
-      
+
       setUploadedFileUrl(publicUrl)
-      setSubmitMessage({type: 'success', text: 'File berhasil diupload'})
+      setSubmitMessage({ type: 'success', text: 'File berhasil diupload' })
     } catch (error: any) {
       console.error('Upload error:', error)
-      setSubmitMessage({type: 'error', text: error.message || 'Gagal mengupload file'})
+      setSubmitMessage({ type: 'error', text: error.message || 'Gagal mengupload file' })
     } finally {
       setIsUploading(false)
     }
   }
-  
+
   const handleRevision = () => {
     setIsEditing(true)
     setIsSubmitted(false)
     setSubmitMessage(null)
   }
-  
+
   const handleSubmit = async () => {
     if (!profile) {
-      setSubmitMessage({type: 'error', text: 'Anda harus login untuk mengirim tugas'})
+      setSubmitMessage({ type: 'error', text: 'Anda harus login untuk mengirim tugas' })
       return
     }
-    
+
     if (!isEditing && isSubmitted) {
-      setSubmitMessage({type: 'error', text: 'Tugas sudah dikirim. Klik "Revisi" untuk mengubah.'})
+      setSubmitMessage({ type: 'error', text: 'Tugas sudah dikirim. Klik "Revisi" untuk mengubah.' })
       return
     }
-    
+
     if (!answer && !uploadedFileUrl) {
-      setSubmitMessage({type: 'error', text: 'Tulis jawaban atau upload file terlebih dahulu'})
+      setSubmitMessage({ type: 'error', text: 'Tulis jawaban atau upload file terlebih dahulu' })
       return
     }
-    
+
     // Validate text answer: if contains text, must be at least 20 words
     if (answer && answer.trim().length > 0) {
       const wordCount = answer.trim().split(/\s+/).filter(word => word.length > 0).length
       if (wordCount < 20) {
-        setSubmitMessage({type: 'error', text: `Jawaban harus minimal 20 kata. Saat ini: ${wordCount} kata.`})
+        setSubmitMessage({ type: 'error', text: `Jawaban harus minimal 20 kata. Saat ini: ${wordCount} kata.` })
         return
       }
     }
-    
+
     setIsSubmitting(true)
     setSubmitMessage(null)
-    
+
     try {
       let data, error
-      
+
       // If editing existing submission, update it or create new attempt
       if (isEditing && currentSubmissionId) {
         // Try to update existing submission first
@@ -2267,7 +2272,7 @@ function AssignmentContent({ content, onComplete }: any) {
           .eq('id', currentSubmissionId)
           .select()
           .single()
-        
+
         if (updateResult.error && updateResult.error.code !== '42501') { // Ignore RLS errors, try insert instead
           // If update fails (maybe due to RLS), create new attempt
           const newAttemptNumber = currentAttemptNumber + 1
@@ -2283,10 +2288,10 @@ function AssignmentContent({ content, onComplete }: any) {
             })
             .select()
             .single()
-          
+
           data = insertResult.data
           error = insertResult.error
-          
+
           if (!error && data) {
             setCurrentAttemptNumber(newAttemptNumber)
             setCurrentSubmissionId(data.id)
@@ -2309,31 +2314,31 @@ function AssignmentContent({ content, onComplete }: any) {
           })
           .select()
           .single()
-        
+
         data = insertResult.data
         error = insertResult.error
-        
+
         if (!error && data) {
           setCurrentSubmissionId(data.id)
           setCurrentAttemptNumber(1)
         }
       }
-      
+
       if (error) {
         console.error('Submit error:', error)
         throw new Error(error.message || 'Gagal menyimpan submission ke database')
       }
-      
+
       if (!data) {
         throw new Error('Submission tidak berhasil disimpan')
       }
-      
+
       // Only mark as submitted and complete after successful save
       const wasEditing = isEditing // Capture before state change
       setIsSubmitted(true)
       setIsEditing(false)
-      setSubmitMessage({type: 'success', text: wasEditing ? 'Revisi tugas berhasil dikirim' : 'Tugas berhasil dikirim'})
-      
+      setSubmitMessage({ type: 'success', text: wasEditing ? 'Revisi tugas berhasil dikirim' : 'Tugas berhasil dikirim' })
+
       // Automatically mark content as completed only if submission is valid
       // For assignments, validation must pass before marking as complete
       if (onComplete) {
@@ -2341,21 +2346,21 @@ function AssignmentContent({ content, onComplete }: any) {
       }
     } catch (error: any) {
       console.error('Submit error:', error)
-      setSubmitMessage({type: 'error', text: error.message || 'Gagal mengirim tugas'})
+      setSubmitMessage({ type: 'error', text: error.message || 'Gagal mengirim tugas' })
     } finally {
       setIsSubmitting(false)
     }
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
         <h3 className="text-xl font-bold text-orange-900 mb-4">Instruksi Tugas</h3>
-        <div 
+        <div
           className="text-orange-800 whitespace-pre-wrap"
           dangerouslySetInnerHTML={{ __html: assignmentData.instructions?.replace(/\n/g, '<br />') || '' }}
         />
-        
+
         {assignmentData.deadline && (
           <div className="mt-4 pt-4 border-t border-orange-200">
             <p className="text-sm text-orange-700">
@@ -2363,7 +2368,7 @@ function AssignmentContent({ content, onComplete }: any) {
             </p>
           </div>
         )}
-        
+
         {assignmentData.max_score && (
           <div className="mt-2">
             <p className="text-sm text-orange-700">
@@ -2372,7 +2377,7 @@ function AssignmentContent({ content, onComplete }: any) {
           </div>
         )}
       </div>
-      
+
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h4 className="font-bold text-gray-900 mb-4">Submit Tugas Anda</h4>
         {isLoadingSubmission ? (
@@ -2382,92 +2387,90 @@ function AssignmentContent({ content, onComplete }: any) {
         ) : (
           <>
             <textarea
-              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                isSubmitted && !isEditing ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''
-              }`}
+              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 ${isSubmitted && !isEditing ? 'bg-gray-50 cursor-not-allowed opacity-75' : ''
+                }`}
               rows={6}
               placeholder="Tulis jawaban Anda di sini..."
               value={answer}
               onChange={(e) => !isSubmitted || isEditing ? setAnswer(e.target.value) : undefined}
               readOnly={isSubmitted && !isEditing}
             />
-        
-        {/* File Upload Section */}
-        {selectedFile && !uploadedFileUrl && (
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <File className="w-5 h-5 text-blue-600" />
-              <span className="text-sm text-blue-900">{selectedFile.name}</span>
-            </div>
-            <button
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isUploading ? 'Uploading...' : 'Upload File'}
-            </button>
-          </div>
-        )}
-        
-        {uploadedFileUrl && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <span className="text-sm text-green-900">File berhasil diupload</span>
-            </div>
-              {(!isSubmitted || isEditing) && (
-              <button
-                onClick={() => {
-                  setSelectedFile(null)
-                  setUploadedFileUrl(null)
-                }}
-                className="text-sm text-green-700 hover:text-green-900"
-              >
-                Remove
-              </button>
+
+            {/* File Upload Section */}
+            {selectedFile && !uploadedFileUrl && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <File className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm text-blue-900">{selectedFile.name}</span>
+                </div>
+                <button
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isUploading ? 'Uploading...' : 'Upload File'}
+                </button>
+              </div>
             )}
-          </div>
-        )}
-        
-        {/* Message Display */}
-        {submitMessage && (
-          <div className={`mt-4 p-3 rounded-lg ${
-            submitMessage.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-900' 
-              : 'bg-red-50 border border-red-200 text-red-900'
-          }`}>
-            {submitMessage.text}
-          </div>
-        )}
-        
-        <div className="mt-4 flex items-center gap-3 flex-wrap">
-          <button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || (isSubmitted && !isEditing) || (!answer && !uploadedFileUrl)}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Mengirim...' : isEditing ? 'Kirim Revisi' : isSubmitted ? 'Sudah Dikirim' : 'Submit'}
-          </button>
-          {isSubmitted && !isEditing && (
-            <button
-              onClick={handleRevision}
-              className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-            >
-              Revisi Tugas
-            </button>
-          )}
-          {(!isSubmitted || isEditing) && (
-            <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <input 
-                type="file"
-                className="hidden" 
-                onChange={handleFileSelect}
-                disabled={isSubmitted && !isEditing}
-              />
-              Pilih File
-            </label>
-          )}
-        </div>
+
+            {uploadedFileUrl && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-green-900">File berhasil diupload</span>
+                </div>
+                {(!isSubmitted || isEditing) && (
+                  <button
+                    onClick={() => {
+                      setSelectedFile(null)
+                      setUploadedFileUrl(null)
+                    }}
+                    className="text-sm text-green-700 hover:text-green-900"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Message Display */}
+            {submitMessage && (
+              <div className={`mt-4 p-3 rounded-lg ${submitMessage.type === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-900'
+                : 'bg-red-50 border border-red-200 text-red-900'
+                }`}>
+                {submitMessage.text}
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center gap-3 flex-wrap">
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || (isSubmitted && !isEditing) || (!answer && !uploadedFileUrl)}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Mengirim...' : isEditing ? 'Kirim Revisi' : isSubmitted ? 'Sudah Dikirim' : 'Submit'}
+              </button>
+              {isSubmitted && !isEditing && (
+                <button
+                  onClick={handleRevision}
+                  className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+                >
+                  Revisi Tugas
+                </button>
+              )}
+              {(!isSubmitted || isEditing) && (
+                <label className="cursor-pointer px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    disabled={isSubmitted && !isEditing}
+                  />
+                  Pilih File
+                </label>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -2509,29 +2512,29 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
             </h3>
             <div className="grid grid-cols-1 gap-4">
               {[
-                { 
-                  key: 'light', 
-                  label: 'Terang', 
+                {
+                  key: 'light',
+                  label: 'Terang',
                   description: 'Tema standar yang nyaman',
-                  bgColor: '#ffffff', 
+                  bgColor: '#ffffff',
                   textColor: '#000000',
                   icon: '☀️',
                   gradient: 'from-yellow-400 to-orange-500'
                 },
-                { 
-                  key: 'warm', 
-                  label: 'Hangat', 
+                {
+                  key: 'warm',
+                  label: 'Hangat',
                   description: 'Nyaman untuk mata, mengurangi kelelahan',
-                  bgColor: '#FFF8E7', 
+                  bgColor: '#FFF8E7',
                   textColor: '#4A3520',
                   icon: '🌅',
                   gradient: 'from-amber-400 to-yellow-500'
                 },
-                { 
-                  key: 'dark', 
-                  label: 'Gelap', 
+                {
+                  key: 'dark',
+                  label: 'Gelap',
                   description: 'Ideal untuk membaca di malam hari',
-                  bgColor: '#1f1f1f', 
+                  bgColor: '#1f1f1f',
                   textColor: '#ffffff',
                   icon: '🌙',
                   gradient: 'from-slate-600 to-slate-800'
@@ -2540,11 +2543,10 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={theme.key}
                   onClick={() => onUpdate('theme', theme.key)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${
-                    settings.theme === theme.key 
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg scale-[1.02]' 
-                      : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01] bg-white'
-                  }`}
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.theme === theme.key
+                    ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg scale-[1.02]'
+                    : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01] bg-white'
+                    }`}
                 >
                   {settings.theme === theme.key && (
                     <div className="absolute top-4 right-4 w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
@@ -2558,7 +2560,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                     <div className="flex-1 text-left">
                       <h4 className="text-lg font-bold text-gray-900 mb-1">{theme.label}</h4>
                       <p className="text-sm text-gray-600 mb-3">{theme.description}</p>
-                      <div 
+                      <div
                         className="w-full h-12 border border-gray-200 rounded-xl flex items-center justify-center shadow-sm"
                         style={{ backgroundColor: theme.bgColor, color: theme.textColor }}
                       >
@@ -2579,23 +2581,23 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
             </h3>
             <div className="grid grid-cols-1 gap-3">
               {[
-                { 
-                  key: 'default', 
-                  label: 'Inter (Default)', 
+                {
+                  key: 'default',
+                  label: 'Inter (Default)',
                   description: 'Font modern dan mudah dibaca',
                   fontFamily: 'Inter, system-ui, sans-serif',
                   icon: '🔤'
                 },
-                { 
-                  key: 'serif', 
-                  label: 'Georgia (Serif)', 
+                {
+                  key: 'serif',
+                  label: 'Georgia (Serif)',
                   description: 'Font klasik untuk bacaan panjang',
                   fontFamily: 'Georgia, "Times New Roman", serif',
                   icon: '📚'
                 },
-                { 
-                  key: 'dyslexic', 
-                  label: 'Open Dyslexic', 
+                {
+                  key: 'dyslexic',
+                  label: 'Open Dyslexic',
                   description: 'Dirancang khusus untuk disleksia',
                   fontFamily: 'OpenDyslexic, Arial, sans-serif',
                   icon: '♿'
@@ -2604,11 +2606,10 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={font.key}
                   onClick={() => onUpdate('fontType', font.key)}
-                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 group ${
-                    settings.fontType === font.key 
-                      ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg scale-[1.02]' 
-                      : 'border-gray-200 hover:border-green-300 hover:shadow-md hover:scale-[1.01] bg-white'
-                  }`}
+                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 group ${settings.fontType === font.key
+                    ? 'border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 shadow-lg scale-[1.02]'
+                    : 'border-gray-200 hover:border-green-300 hover:shadow-md hover:scale-[1.01] bg-white'
+                    }`}
                 >
                   {settings.fontType === font.key && (
                     <div className="absolute top-3 right-3 w-7 h-7 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
@@ -2622,7 +2623,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                     <div className="flex-1 text-left">
                       <h4 className="text-base font-bold text-gray-900 mb-1">{font.label}</h4>
                       <p className="text-sm text-gray-600 mb-2">{font.description}</p>
-                      <div 
+                      <div
                         className="text-sm font-medium text-gray-700"
                         style={{ fontFamily: font.fontFamily }}
                       >
@@ -2650,11 +2651,10 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={size.key}
                   onClick={() => onUpdate('fontSize', size.key)}
-                  className={`relative p-4 rounded-2xl border-2 transition-all duration-300 group ${
-                    settings.fontSize === size.key 
-                      ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-red-50 shadow-lg scale-105' 
-                      : 'border-gray-200 hover:border-orange-300 hover:shadow-md hover:scale-105 bg-white'
-                  }`}
+                  className={`relative p-4 rounded-2xl border-2 transition-all duration-300 group ${settings.fontSize === size.key
+                    ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-red-50 shadow-lg scale-105'
+                    : 'border-gray-200 hover:border-orange-300 hover:shadow-md hover:scale-105 bg-white'
+                    }`}
                 >
                   {settings.fontSize === size.key && (
                     <div className="absolute top-2 right-2 w-6 h-6 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center">
@@ -2662,7 +2662,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                     </div>
                   )}
                   <div className="text-center">
-                    <div 
+                    <div
                       className="text-4xl font-bold text-gray-900 mb-2"
                       style={{ fontSize: size.size }}
                     >
@@ -2683,16 +2683,16 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { 
-                  key: 'medium', 
-                  label: 'Medium', 
+                {
+                  key: 'medium',
+                  label: 'Medium',
                   description: 'Lebar optimal untuk fokus',
                   width: '60%',
                   icon: '📖'
                 },
-                { 
-                  key: 'full', 
-                  label: 'Full-width', 
+                {
+                  key: 'full',
+                  label: 'Full-width',
                   description: 'Menggunakan seluruh lebar layar',
                   width: '100%',
                   icon: '📄'
@@ -2701,11 +2701,10 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={width.key}
                   onClick={() => onUpdate('readingWidth', width.key)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${
-                    settings.readingWidth === width.key 
-                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg scale-[1.02]' 
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md hover:scale-[1.01] bg-white'
-                  }`}
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.readingWidth === width.key
+                    ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg scale-[1.02]'
+                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md hover:scale-[1.01] bg-white'
+                    }`}
                 >
                   {settings.readingWidth === width.key && (
                     <div className="absolute top-3 right-3 w-7 h-7 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -2717,7 +2716,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                     <h4 className="text-base font-bold text-gray-900 mb-1">{width.label}</h4>
                     <p className="text-xs text-gray-600 mb-3">{width.description}</p>
                     <div className="w-full bg-gray-200 rounded-lg h-3 relative">
-                      <div 
+                      <div
                         className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg h-3 transition-all duration-300"
                         style={{ width: width.width }}
                       ></div>
@@ -2775,9 +2774,9 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
           </div>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-500" 
-                style={{ width: `${overallProgress}%` }} 
+              <div
+                className="h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-500"
+                style={{ width: `${overallProgress}%` }}
               />
             </div>
             <div className="text-xs text-gray-500">
@@ -2803,26 +2802,24 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                   <button
                     onClick={() => canAccess ? onSelectContent(content, index) : null}
                     disabled={!canAccess}
-                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 group ${
-                      !canAccess
-                        ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-60'
-                        : isCompleted
+                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 group ${!canAccess
+                      ? 'border-gray-200 bg-gray-100 cursor-not-allowed opacity-60'
+                      : isCompleted
                         ? 'border-green-300 bg-green-50 hover:bg-green-100'
-                        : isCurrent 
-                        ? 'border-blue-500 bg-blue-50 shadow-md' 
-                        : 'border-gray-200 hover:border-blue-300 hover:shadow-sm bg-white'
-                    }`}
+                        : isCurrent
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-blue-300 hover:shadow-sm bg-white'
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-1.5 rounded-md ${
-                        !canAccess
-                          ? 'bg-gray-200 text-gray-400'
-                          : isCompleted 
-                          ? 'bg-green-100 text-green-600' 
-                          : isCurrent 
-                          ? 'bg-blue-100 text-blue-600' 
-                          : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
-                      }`}>
+                      <div className={`p-1.5 rounded-md ${!canAccess
+                        ? 'bg-gray-200 text-gray-400'
+                        : isCompleted
+                          ? 'bg-green-100 text-green-600'
+                          : isCurrent
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
+                        }`}>
                         {!canAccess ? (
                           <X className="w-4 h-4" />
                         ) : (
@@ -2831,15 +2828,14 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className={`font-medium text-sm ${
-                            !canAccess
-                              ? 'text-gray-500'
-                              : isCompleted 
-                              ? 'text-green-900' 
-                              : isCurrent 
-                              ? 'text-blue-900' 
-                              : 'text-gray-900 group-hover:text-blue-900'
-                          }`}>
+                          <h4 className={`font-medium text-sm ${!canAccess
+                            ? 'text-gray-500'
+                            : isCompleted
+                              ? 'text-green-900'
+                              : isCurrent
+                                ? 'text-blue-900'
+                                : 'text-gray-900 group-hover:text-blue-900'
+                            }`}>
                             {content.title}
                           </h4>
                           {!canAccess && (
@@ -2897,35 +2893,32 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
                             key={subContent.id}
                             onClick={() => canAccessSub ? onSelectContent(subContent, contents.indexOf(subContent)) : null}
                             disabled={!canAccessSub}
-                            className={`w-full text-left p-2 rounded-md border transition-all duration-200 group ${
-                              !canAccessSub
-                                ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
-                                : isSubCompleted
+                            className={`w-full text-left p-2 rounded-md border transition-all duration-200 group ${!canAccessSub
+                              ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                              : isSubCompleted
                                 ? 'border-green-300 bg-green-50 hover:bg-green-100'
-                                : isSubCurrent 
-                                ? 'border-blue-300 bg-blue-50' 
-                                : 'border-gray-100 hover:border-blue-200 hover:bg-blue-25'
-                            }`}
+                                : isSubCurrent
+                                  ? 'border-blue-300 bg-blue-50'
+                                  : 'border-gray-100 hover:border-blue-200 hover:bg-blue-25'
+                              }`}
                           >
                             <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                !canAccessSub
-                                  ? 'bg-gray-300'
-                                  : isSubCompleted 
-                                  ? 'bg-green-600' 
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!canAccessSub
+                                ? 'bg-gray-300'
+                                : isSubCompleted
+                                  ? 'bg-green-600'
                                   : 'bg-blue-600'
-                              }`}></div>
+                                }`}></div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
-                                  <h5 className={`text-xs font-medium ${
-                                    !canAccessSub
-                                      ? 'text-gray-400'
-                                      : isSubCompleted 
-                                      ? 'text-green-900' 
-                                      : isSubCurrent 
-                                      ? 'text-blue-900' 
-                                      : 'text-gray-700 group-hover:text-blue-900'
-                                  }`}>
+                                  <h5 className={`text-xs font-medium ${!canAccessSub
+                                    ? 'text-gray-400'
+                                    : isSubCompleted
+                                      ? 'text-green-900'
+                                      : isSubCurrent
+                                        ? 'text-blue-900'
+                                        : 'text-gray-700 group-hover:text-blue-900'
+                                    }`}>
                                     {subContent.title}
                                   </h5>
                                   {!canAccessSub && (
@@ -2973,13 +2966,13 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
   // Check if current content is completed
   const currentContentProgress = progress[currentContent?.id]
   const isCurrentCompleted = currentContentProgress?.status === 'completed'
-  
+
   // Check if next content exists and is accessible
   const hasNext = currentIndex < totalContents - 1
   const nextContent = hasNext ? contents[currentIndex + 1] : null
   const canAccessNext = nextContent ? canAccessContent(nextContent.id) : false
   const isNextDisabled = !hasNext || !isCurrentCompleted || !canAccessNext
-  
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 backdrop-blur border-t" style={{
       backgroundColor: `${theme.headerBg}f2`,
@@ -2989,7 +2982,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
       {/* Desktop Footer */}
       <div className="hidden md:block">
         <div className="w-full px-3 py-4 grid grid-cols-3 gap-4">
-          <button 
+          <button
             onClick={() => onNavigate('prev')}
             disabled={currentIndex === 0}
             className={`text-left rounded-lg p-3 transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`}
@@ -3005,7 +2998,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
               {currentContent?.title || ''}
             </div>
           </div>
-          <button 
+          <button
             onClick={() => onNavigate('next')}
             disabled={isNextDisabled}
             className={`text-right rounded-lg p-3 transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-100'}`}
@@ -3022,7 +3015,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
       {/* Mobile Footer */}
       <div className="md:hidden w-full px-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <button 
+          <button
             onClick={() => onNavigate('prev')}
             disabled={currentIndex === 0}
             className={`flex-shrink-0 p-2 rounded-lg transition-colors ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
@@ -3034,7 +3027,7 @@ function BottomNavigation({ currentIndex, totalContents, currentContent, onNavig
               {currentContent?.title || ''}
             </div>
           </div>
-          <button 
+          <button
             onClick={() => onNavigate('next')}
             disabled={isNextDisabled}
             className={`flex-shrink-0 p-2 rounded-lg transition-colors ${isNextDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}

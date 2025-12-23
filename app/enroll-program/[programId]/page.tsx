@@ -300,24 +300,10 @@ export default function EnrollProgramPage({ params }: { params: { programId: str
         throw enrollmentError
       }
 
-      // Create referral tracking if referral code exists
+      // Referral tracking is now handled automatically by database trigger 'trigger_auto_create_referral_tracking'
+      // based on the referral_code_id present in the enrollment record.
       if (referralCode && referralData) {
-        const { error: trackingError } = await (supabase as any)
-          .from('referral_tracking')
-          .insert({
-            referral_code_id: referralData.id,
-            trainer_id: referralData.trainer_id,
-            participant_id: participantId,
-            enrollment_id: enrollment.id,
-            program_id: program.id,
-            discount_applied: program.price - calculateFinalPrice(),
-            commission_earned: 0, // Will be calculated later
-            status: 'pending'
-          })
-
-        if (trackingError) {
-          console.error('Error creating referral tracking:', trackingError)
-        }
+        console.log('Referral tracking should be created automatically by trigger')
       }
 
       addNotification({

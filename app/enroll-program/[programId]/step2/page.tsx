@@ -297,6 +297,24 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
       // Check if program is free
       const isFree = enrollmentData.final_price === 0 || program.price === 0
 
+      // Get referral code ID if referral code exists
+      let referralCodeId = null
+      let referralDiscount = 0
+
+      if (enrollmentData.referral_code) {
+        const { data: referralCodeData, error: referralError } = await supabase
+          .from('referral_codes')
+          .select('id')
+          .eq('code', enrollmentData.referral_code)
+          .eq('is_active', true)
+          .single()
+
+        if (!referralError && referralCodeData) {
+          referralCodeId = (referralCodeData as any).id
+          referralDiscount = program.price - enrollmentData.final_price
+        }
+      }
+
       // Create enrollment record
       const enrollmentRecord = {
         program_id: programId,
@@ -304,7 +322,10 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
         status: isFree ? 'approved' : 'pending',
         payment_status: isFree ? 'paid' : 'unpaid',
         amount_paid: 0,
-        notes: enrollmentData.referral_code ? `Referral Code: ${enrollmentData.referral_code}` : ''
+        notes: enrollmentData.referral_code ? `Referral Code: ${enrollmentData.referral_code}` : '',
+        referral_code_id: referralCodeId,
+        referral_discount: referralDiscount,
+        final_price: enrollmentData.final_price
       }
 
       const { data: enrollment, error: enrollmentError } = await (supabase as any)
@@ -321,39 +342,10 @@ export default function EnrollProgramStep2Page({ params }: { params: { programId
       const enrollmentStatus = (enrollment as any).status
       const isEnrollmentApproved = enrollmentStatus === 'approved'
 
-      // Create referral tracking if referral code exists
-      if (enrollmentData.referral_code) {
-        // Get referral code data
-        const { data: referralCodeData, error: referralError } = await supabase
-          .from('referral_codes')
-          .select('*')
-          .eq('code', enrollmentData.referral_code)
-          .eq('program_id', programId)
-          .single()
-
-        if (!referralError && referralCodeData) {
-          // If enrollment is approved (free program or auto-approved), referral should be confirmed
-          const referralTrackingStatus = isEnrollmentApproved ? 'confirmed' : 'pending'
-
-          const { error: trackingError } = await (supabase as any)
-            .from('referral_tracking')
-            .insert({
-              referral_code_id: (referralCodeData as any).id,
-              trainer_id: (referralCodeData as any).trainer_id,
-              participant_id: enrollmentData.participant_id,
-              enrollment_id: enrollment.id,
-              program_id: programId,
-              discount_applied: program.price - enrollmentData.final_price,
-              commission_earned: 0, // Will be calculated later
-              status: referralTrackingStatus
-            })
-
-          if (trackingError) {
-            console.error('Error creating referral tracking:', trackingError)
-          } else if (isEnrollmentApproved) {
-            console.log('Referral tracking created with confirmed status (free program auto-approved)')
-          }
-        }
+      // Referral tracking is now handled automatically by database trigger 'trigger_auto_create_referral_tracking'
+      // based on the referral_code_id present in the enrollment record.
+      if (referralCodeId && isEnrollmentApproved) {
+        console.log('Referral tracking should be created automatically by trigger')
       }
 
       // Send welcome email
