@@ -23,6 +23,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
     experience_years: 0,
     certification: '',
     status: 'active' as 'active' | 'inactive',
+    avatarUrl: '',
   })
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
         experience_years: (data as any).experience_years || 0,
         certification: (data as any).certification || '',
         status: (data as any).status || 'active',
+        avatarUrl: (data as any).avatar_url || '',
       })
     } catch (error: any) {
       console.error('Error fetching trainer:', error)
@@ -82,8 +84,8 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
       if (fetchError) throw fetchError
 
       // 2. Determine trainer level based on experience
-      const trainerLevel = formData.experience_years >= 10 ? 'master_trainer' :
-                          formData.experience_years >= 5 ? 'trainer_l2' : 'trainer_l1'
+      const trainerLevel = formData.experience_years >= 10 ? 'master' :
+        formData.experience_years >= 5 ? 'expert' : 'junior'
 
       // 3. Update user_profiles if user_id exists
       if ((currentTrainer as any)?.user_id) {
@@ -149,7 +151,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
       console.log('Data to update:', updateData)
 
       // Check if there are actual changes before updating
-      const hasActualChanges = 
+      const hasActualChanges =
         existingTrainer.name !== updateData.name ||
         existingTrainer.email !== updateData.email ||
         existingTrainer.phone !== updateData.phone ||
@@ -167,7 +169,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
 
       // Update trainer record
       console.log('🔄 Executing update query...')
-      
+
       // Try update with .select('id') first to get confirmation
       let updateResult: any = null
       let trainerError: any = null
@@ -214,13 +216,13 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
         addToast.error('Update berhasil tapi verifikasi gagal: ' + verifyError.message, 'Warning')
       } else {
         console.log('Verified trainer data after update:', verifyData)
-        
+
         // Compare old data with new data
         const nameChanged = verifyData.name !== existingTrainer.name
         const emailChanged = verifyData.email !== updateData.email
         const phoneChanged = verifyData.phone !== updateData.phone
         const specializationChanged = verifyData.specialization !== updateData.specialization
-        
+
         console.log('Change check:', {
           name: { old: existingTrainer.name, new: verifyData.name, changed: nameChanged },
           email: { old: existingTrainer.email, new: verifyData.email, changed: emailChanged },
@@ -239,7 +241,7 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
           console.log('✅ Changes verified successfully')
           addToast.success('Trainer berhasil diupdate!', 'Berhasil')
         }
-        
+
         // Add small delay to ensure toast is visible, then redirect with cache refresh
         setTimeout(() => {
           // Use window.location to force full page reload
@@ -287,6 +289,21 @@ export default function EditTrainerPage({ params }: { params: { id: string } }) 
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-3xl">
         <div className="space-y-6">
+          {/* Avatar Display */}
+          {(formData as any).avatarUrl && (
+            <div className="flex flex-col items-center mb-6">
+              <img
+                src={(formData as any).avatarUrl}
+                alt={formData.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-gray-100 shadow-sm"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=random`
+                }}
+              />
+              <p className="text-sm text-gray-500 mt-2">Foto Profil Saat Ini</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
