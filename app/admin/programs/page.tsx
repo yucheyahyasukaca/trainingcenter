@@ -77,9 +77,9 @@ export default function AdminProgramsPage() {
     const matchesSearch = program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    
+
     const matchesStatus = statusFilter === 'all' || program.status === statusFilter
-    
+
     return matchesSearch && matchesStatus
   })
 
@@ -121,8 +121,8 @@ export default function AdminProgramsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Program</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola semua program training</p>
         </div>
-        <Link 
-          href="/programs/new" 
+        <Link
+          href="/programs/new"
           className="inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-primary-700 transition-colors flex-shrink-0 whitespace-nowrap shadow-sm"
         >
           <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -146,41 +146,37 @@ export default function AdminProgramsPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                statusFilter === 'all'
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'all'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-              }`}
+                }`}
             >
               Semua
             </button>
             <button
               onClick={() => setStatusFilter('draft')}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                statusFilter === 'draft'
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'draft'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-              }`}
+                }`}
             >
               Draft
             </button>
             <button
               onClick={() => setStatusFilter('published')}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                statusFilter === 'published'
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'published'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-              }`}
+                }`}
             >
               Published
             </button>
             <button
               onClick={() => setStatusFilter('archived')}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                statusFilter === 'archived'
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'archived'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-              }`}
+                }`}
             >
               Archived
             </button>
@@ -200,8 +196,8 @@ export default function AdminProgramsPage() {
           <div className="text-center py-12">
             <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Belum ada program</p>
-            <Link 
-              href="/programs/new" 
+            <Link
+              href="/programs/new"
               className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -218,7 +214,7 @@ export default function AdminProgramsPage() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Program</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Kategori</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Harga</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Kelas</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Program Pelatihan</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Dibuat</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Aksi</th>
@@ -245,7 +241,7 @@ export default function AdminProgramsPage() {
                       </td>
                       <td className="py-4 px-4">
                         <p className="text-sm text-gray-600">
-                          {program.classes?.length || 0} kelas
+                          {program.classes?.length || 0} program pelatihan
                         </p>
                       </td>
                       <td className="py-4 px-4">
@@ -261,7 +257,7 @@ export default function AdminProgramsPage() {
                           <Link
                             href={`/admin/programs/${program.id}/classes`}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                            title="Lihat Kelas"
+                            title="Lihat Program Pelatihan"
                           >
                             <BookOpen className="w-4 h-4" />
                           </Link>
@@ -324,9 +320,9 @@ export default function AdminProgramsPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Kelas:</span>
+                      <span className="text-gray-600">Program Pelatihan:</span>
                       <span className="text-gray-900">
-                        {program.classes?.length || 0} kelas
+                        {program.classes?.length || 0} program pelatihan
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">

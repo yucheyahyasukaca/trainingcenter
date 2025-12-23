@@ -87,10 +87,11 @@ export default function AmplifyDashboard() {
             }
 
             // 2. Get Points from trainer_hebat_points
+            // FIX: Use currentTrainerId (Trainer UUID) instead of profile.id (User ID)
             const { data: pointsData, error: pointsError } = await supabase
                 .from('trainer_hebat_points')
                 .select('b_points')
-                .eq('trainer_id', profile?.id)
+                .eq('trainer_id', currentTrainerId || profile?.id)
                 .single()
 
             // 3. Get Referral Stats from referral_tracking

@@ -247,8 +247,8 @@ export function UserDashboard() {
             <div className="flex items-center justify-center sm:justify-end">
               <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
                 <div className={`w-4 h-4 rounded-full ${levelInfo.color === 'purple' ? 'bg-purple-400' :
-                    levelInfo.color === 'blue' ? 'bg-blue-400' :
-                      levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
+                  levelInfo.color === 'blue' ? 'bg-blue-400' :
+                    levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
                   }`}></div>
                 <span className="text-white font-medium text-sm sm:text-base">{levelInfo.title}</span>
               </div>
@@ -322,9 +322,9 @@ export function UserDashboard() {
                     <div className="relative z-10 p-5 sm:p-6">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-5 space-y-4 sm:space-y-0">
                         <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${stat.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                            stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
-                              stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
-                                stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
+                          stat.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                            stat.color === 'orange' ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+                              stat.color === 'purple' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-gray-500 to-gray-600'
                           }`}>
                           <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                         </div>
@@ -336,9 +336,9 @@ export function UserDashboard() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <div className={`w-2 h-2 rounded-full ${stat.color === 'blue' ? 'bg-blue-500' :
-                              stat.color === 'green' ? 'bg-green-500' :
-                                stat.color === 'orange' ? 'bg-orange-500' :
-                                  stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
+                            stat.color === 'green' ? 'bg-green-500' :
+                              stat.color === 'orange' ? 'bg-orange-500' :
+                                stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
                             }`}></div>
                           <span className="text-xs text-gray-500 font-medium">Aktif</span>
                         </div>
@@ -361,7 +361,7 @@ export function UserDashboard() {
       <div className="space-y-6 mb-8">
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-1 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
-          <h2 className="text-2xl font-bold text-gray-900">Kelas Terdaftar</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Program Pelatihan Terdaftar</h2>
         </div>
         <MyEnrollments />
       </div>

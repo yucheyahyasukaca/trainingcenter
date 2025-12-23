@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
 import { Program } from '@/types'
-import { 
+import {
   ArrowLeft,
   Plus,
   BookOpen,
@@ -42,13 +42,13 @@ export default function NewClassPage() {
       'expert': 3,
       'master': 4
     }
-    
-    return (levelHierarchy[trainerLevel as keyof typeof levelHierarchy] || 0) >= 
-           (levelHierarchy[programMinLevel as keyof typeof levelHierarchy] || 0)
+
+    return (levelHierarchy[trainerLevel as keyof typeof levelHierarchy] || 0) >=
+      (levelHierarchy[programMinLevel as keyof typeof levelHierarchy] || 0)
   }
 
   // Filter programs that trainer can create classes for
-  const availablePrograms = programs.filter(program => 
+  const availablePrograms = programs.filter(program =>
     canCreateClassForProgram(program.min_trainer_level || 'junior')
   )
 
@@ -107,11 +107,11 @@ export default function NewClassPage() {
       if (!insertedClass || !insertedClass[0] || !insertedClass[0].id) {
         throw new Error('Class ID is missing')
       }
-      
+
       if (!trainerId) {
         throw new Error('Trainer ID is missing')
       }
-      
+
       // Assign trainer to class (trainer automatically becomes primary trainer)
       const classTrainerData = {
         class_id: insertedClass[0].id,
@@ -119,7 +119,7 @@ export default function NewClassPage() {
         role: 'instructor', // Use 'instructor' as it's most common
         is_primary: true
       }
-      
+
       console.log('🔄 Inserting class trainer data:', classTrainerData)
       console.log('🔄 Data validation:', {
         class_id_valid: !!classTrainerData.class_id,
@@ -127,7 +127,7 @@ export default function NewClassPage() {
         role_valid: classTrainerData.role === 'instructor',
         is_primary_valid: classTrainerData.is_primary === true
       })
-      
+
       const { error: trainerError } = await (supabase as any)
         .from('class_trainers')
         .insert([classTrainerData])
@@ -143,11 +143,11 @@ export default function NewClassPage() {
         throw trainerError
       }
 
-      alert('Kelas berhasil dibuat!')
+      alert('Program Pelatihan berhasil dibuat!')
       router.push('/trainer/classes')
     } catch (error) {
       console.error('Error creating class:', error)
-      alert('Gagal membuat kelas: ' + (error as Error).message)
+      alert('Gagal membuat program pelatihan: ' + (error as Error).message)
     } finally {
       setLoading(false)
     }
@@ -193,15 +193,15 @@ export default function NewClassPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-6 rounded-xl shadow-sm">
         <div className="flex items-center space-x-4">
-          <Link 
-            href="/trainer/classes" 
+          <Link
+            href="/trainer/classes"
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Buat Kelas Baru</h1>
-            <p className="text-gray-600 mt-1">Buat kelas pelatihan baru</p>
+            <h1 className="text-3xl font-bold text-gray-900">Buat Program Pelatihan Baru</h1>
+            <p className="text-gray-600 mt-1">Buat program pelatihan baru</p>
           </div>
         </div>
       </div>
@@ -225,10 +225,10 @@ export default function NewClassPage() {
                   <option value="">Pilih Program</option>
                   {availablePrograms.map(program => (
                     <option key={program.id} value={program.id}>
-                      {program.title} 
-                      {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' &&                                                           
-                        ` (Min: ${(program as any).min_trainer_level === 'senior' ? 'Senior' :                                                                   
-                          (program as any).min_trainer_level === 'expert' ? 'Expert' : 'Master'})`                                                               
+                      {program.title}
+                      {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' &&
+                        ` (Min: ${(program as any).min_trainer_level === 'senior' ? 'Senior' :
+                          (program as any).min_trainer_level === 'expert' ? 'Expert' : 'Master'})`
                       }
                     </option>
                   ))}
@@ -243,7 +243,7 @@ export default function NewClassPage() {
               {/* Class Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Kelas <span className="text-red-500">*</span>
+                  Nama Program Pelatihan <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -252,7 +252,7 @@ export default function NewClassPage() {
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  placeholder="Masukkan nama kelas"
+                  placeholder="Masukkan nama program pelatihan"
                 />
               </div>
 
@@ -267,7 +267,7 @@ export default function NewClassPage() {
                   onChange={handleChange}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  placeholder="Deskripsi kelas (opsional)"
+                  placeholder="Deskripsi program pelatihan (opsional)"
                 />
               </div>
 
@@ -332,7 +332,7 @@ export default function NewClassPage() {
                     value={formData.location}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Lokasi kelas"
+                    placeholder="Lokasi program pelatihan"
                   />
                 </div>
                 <div>
@@ -372,7 +372,7 @@ export default function NewClassPage() {
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Simpan Kelas</span>
+                    <span>Simpan Program Pelatihan</span>
                   </>
                 )}
               </button>

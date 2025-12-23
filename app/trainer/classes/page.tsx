@@ -182,12 +182,12 @@ export default function TrainerClassesPage() {
 
       const { error } = await supabase.from('classes').delete().eq('id', deleteModal.classId)
       if (error) throw error
-      toast.success('Berhasil', 'Kelas berhasil dihapus')
+      toast.success('Berhasil', 'Program Pelatihan berhasil dihapus')
       setClasses(prev => prev.filter(c => c.id !== deleteModal.classId))
       setDeleteModal({ isOpen: false, classId: null, loading: false })
     } catch (error) {
       console.error('Error deleting class:', error)
-      toast.error('Gagal', 'Gagal menghapus kelas')
+      toast.error('Gagal', 'Gagal menghapus program pelatihan')
       setDeleteModal(prev => ({ ...prev, loading: false }))
     }
   }
@@ -441,8 +441,8 @@ export default function TrainerClassesPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Pelatihan Saya</h1>
-                <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola kelas dan webinar Anda</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Program Pelatihan Saya</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola program pelatihan dan webinar Anda</p>
               </div>
             </div>
             {activeTab === 'classes' ? (
@@ -451,7 +451,7 @@ export default function TrainerClassesPage() {
                 className="flex-shrink-0 inline-flex items-center justify-center px-4 py-2.5 bg-primary-600 text-white text-sm sm:text-base font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Buat Kelas Baru
+                Buat Program Pelatihan Baru
               </Link>
             ) : (
               <button
@@ -478,7 +478,7 @@ export default function TrainerClassesPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
             >
-              Kelas
+              Program Pelatihan
             </button>
             <button
               onClick={() => setActiveTab('webinars')}
@@ -502,7 +502,7 @@ export default function TrainerClassesPage() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Cari kelas..."
+                    placeholder="Cari program pelatihan..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
@@ -526,7 +526,7 @@ export default function TrainerClassesPage() {
 
               {/* Results count */}
               <div className="mt-4 text-sm text-gray-600">
-                Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredClasses.length)} dari {filteredClasses.length} kelas
+                Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredClasses.length)} dari {filteredClasses.length} program pelatihan
               </div>
             </div>
 
@@ -541,8 +541,8 @@ export default function TrainerClassesPage() {
                 <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4 text-sm sm:text-base">
                   {searchQuery || statusFilter !== 'all'
-                    ? 'Tidak ada kelas yang sesuai dengan filter'
-                    : 'Belum ada kelas yang ditugaskan kepada Anda'
+                    ? 'Tidak ada program pelatihan yang sesuai dengan filter'
+                    : 'Belum ada program pelatihan yang ditugaskan kepada Anda'
                   }
                 </p>
                 <Link
@@ -550,7 +550,7 @@ export default function TrainerClassesPage() {
                   className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  Buat Kelas Pertama
+                  Buat Program Pelatihan Pertama
                 </Link>
               </div>
             ) : (
@@ -622,7 +622,7 @@ export default function TrainerClassesPage() {
                           <button
                             onClick={() => deleteClass(classItem.id)}
                             className="col-span-1 inline-flex items-center justify-center px-2 py-2 bg-red-100 text-red-600 text-xs sm:text-sm font-medium rounded-lg hover:bg-red-200 transition-colors border border-red-200"
-                            title="Hapus Kelas"
+                            title="Hapus Program Pelatihan"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

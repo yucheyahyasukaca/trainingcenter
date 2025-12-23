@@ -103,7 +103,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
       // Fetch class trainers separately for each class
       const classIds = (classesData || []).map((cls: any) => cls.id)
       console.log('🔍 Class IDs to fetch trainers for:', classIds)
-      
+
       let classTrainersMap = new Map()
       if (classIds.length > 0) {
         const { data: trainersData, error: trainersError } = await supabase
@@ -131,7 +131,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
           // Fetch trainer details - try both user_profiles and trainers tables
           const trainerIds = [...new Set(trainersData?.map((ct: any) => ct.trainer_id).filter(Boolean) || [])]
           console.log('🔍 Trainer IDs to fetch:', trainerIds)
-          
+
           if (trainerIds.length > 0) {
             // Try user_profiles first (most common case)
             const { data: trainerDetailsFromUserProfiles, error: userProfilesError } = await supabase
@@ -153,14 +153,14 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
 
             // Build trainer map from both sources
             const trainerMap = new Map()
-            
+
             // Add from user_profiles
             if (trainerDetailsFromUserProfiles) {
               trainerDetailsFromUserProfiles.forEach((t: any) => {
                 trainerMap.set(t.id, { id: t.id, name: t.full_name, email: t.email })
               })
             }
-            
+
             // Add from trainers table (if not already in map)
             if (trainerDetailsFromTrainers) {
               trainerDetailsFromTrainers.forEach((t: any) => {
@@ -171,7 +171,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
             }
 
             console.log('🔍 Final trainer map:', Array.from(trainerMap.entries()))
-            
+
             // Attach trainer details to class trainers
             classTrainersMap.forEach((trainers, classId) => {
               trainers.forEach((ct: any) => {
@@ -209,7 +209,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
                 classParticipantCounts.set(enrollment.class_id, currentCount + 1)
               }
             })
-            
+
             console.log('Participant counts:', Array.from(classParticipantCounts.entries()))
             console.log('Total enrollments found:', enrollmentsData.length)
           }
@@ -373,8 +373,8 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <Link 
-          href="/admin/programs" 
+        <Link
+          href="/admin/programs"
           className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4 text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -382,7 +382,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Kelas</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Manajemen Program Pelatihan</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
               {program?.title || 'Program'}
             </p>
@@ -405,7 +405,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
       {/* All Classes List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Semua Kelas Program</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Semua Program Pelatihan Program</h2>
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-600">
               Total: {filteredClasses.length} dari {classes.length} kelas
@@ -415,7 +415,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Cari kelas..."
+                placeholder="Cari program pelatihan..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm w-64"
@@ -427,9 +427,9 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
         {classes.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">Belum ada kelas untuk program ini</p>
+            <p className="text-gray-600 mb-4">Belum ada program pelatihan untuk program ini</p>
             <p className="text-sm text-gray-500 mb-4">
-              Trainer dapat membuat kelas melalui halaman Trainer Classes, atau Anda dapat menambah kelas menggunakan form di atas.
+              Trainer dapat membuat program pelatihan melalui halaman Program Pelatihan Saya, atau Anda dapat menambah program pelatihan menggunakan form di atas.
             </p>
             <button
               onClick={() => {
@@ -438,7 +438,7 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
               className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Tambah Kelas
+              Tambah Program Pelatihan
             </button>
           </div>
         ) : filteredClasses.length === 0 ? (
@@ -453,102 +453,102 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {currentClasses.map((classItem) => (
-              <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <span className={getStatusBadge(classItem.status)}>
-                    {getStatusText(classItem.status)}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <Link
-                      href={`/programs/${params.id}/classes/${classItem.id}/content`}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Kelola Materi"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </Link>
-                    <Link
-                      href={`#class-${classItem.id}`}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        // Scroll to ClassManagement section
-                        document.getElementById('class-management-section')?.scrollIntoView({ behavior: 'smooth' })
-                        // Note: User can click edit button in ClassManagement component
-                      }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit Kelas (gunakan tombol edit di bagian Manajemen Kelas di atas)"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => openDeleteModal(classItem.id, classItem.name)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Hapus Kelas"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
-                {classItem.description && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
-                )}
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span>
-                  </div>
-                  {classItem.start_time && classItem.end_time && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span>
-                    </div>
-                  )}
-                  {classItem.location && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>{classItem.location}{classItem.room && ` - ${classItem.room}`}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Peserta</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {classItem.current_participants} / {classItem.max_participants || 'Tidak Terbatas'}
+                <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className={getStatusBadge(classItem.status)}>
+                      {getStatusText(classItem.status)}
                     </span>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      <span>Pelatih:</span>
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        href={`/programs/${params.id}/classes/${classItem.id}/content`}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Kelola Materi"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        href={`#class-${classItem.id}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          // Scroll to ClassManagement section
+                          document.getElementById('class-management-section')?.scrollIntoView({ behavior: 'smooth' })
+                          // Note: User can click edit button in ClassManagement component
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Kelas (gunakan tombol edit di bagian Manajemen Kelas di atas)"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Link>
+                      <button
+                        onClick={() => openDeleteModal(classItem.id, classItem.name)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Hapus Kelas"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    {classItem.trainers && classItem.trainers.length > 0 ? (
-                      <div className="space-y-1">
-                        {classItem.trainers.map((ct) => (
-                          <div key={ct.id} className="flex items-center justify-between">
-                            <span className="text-xs text-gray-700">
-                              {ct.trainer?.name || ct.trainer_id || 'Pelatih tidak ditemukan'}
-                            </span>
-                            {ct.is_primary && (
-                              <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
-                                Utama
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                  </div>
+
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
+                  {classItem.description && (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
+                  )}
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span>
+                    </div>
+                    {classItem.start_time && classItem.end_time && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock className="w-4 h-4 mr-2" />
+                        <span>{formatTime(classItem.start_time)} - {formatTime(classItem.end_time)}</span>
                       </div>
-                    ) : (
-                      <div className="text-xs text-gray-500 italic">
-                        Belum ada pelatih yang ditugaskan
+                    )}
+                    {classItem.location && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        <span>{classItem.location}{classItem.room && ` - ${classItem.room}`}</span>
                       </div>
                     )}
                   </div>
+
+                  <div className="pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Peserta</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {classItem.current_participants} / {classItem.max_participants || 'Tidak Terbatas'}
+                      </span>
+                    </div>
+
+                    <div className="mt-2">
+                      <div className="flex items-center text-sm text-gray-600 mb-1">
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        <span>Pelatih:</span>
+                      </div>
+                      {classItem.trainers && classItem.trainers.length > 0 ? (
+                        <div className="space-y-1">
+                          {classItem.trainers.map((ct) => (
+                            <div key={ct.id} className="flex items-center justify-between">
+                              <span className="text-xs text-gray-700">
+                                {ct.trainer?.name || ct.trainer_id || 'Pelatih tidak ditemukan'}
+                              </span>
+                              {ct.is_primary && (
+                                <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+                                  Utama
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 italic">
+                          Belum ada pelatih yang ditugaskan
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
               ))}
             </div>
 
@@ -578,11 +578,10 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
                           <button
                             key={page}
                             onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                              currentPage === page
+                            className={`px-3 py-1 rounded-lg text-sm transition-colors ${currentPage === page
                                 ? 'bg-primary-600 text-white'
                                 : 'border border-gray-300 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
@@ -612,8 +611,8 @@ export default function AdminProgramClassesPage({ params }: { params: { id: stri
         isOpen={deleteModal.isOpen}
         onClose={closeDeleteModal}
         onConfirm={confirmDeleteClass}
-        title="Hapus Kelas"
-        message={`Apakah Anda yakin ingin menghapus kelas "${deleteModal.className}"? Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait kelas ini.`}
+        title="Hapus Program Pelatihan"
+        message={`Apakah Anda yakin ingin menghapus program pelatihan "${deleteModal.className}"? Tindakan ini tidak dapat dibatalkan dan akan menghapus semua data terkait program pelatihan ini.`}
         confirmText="Ya, Hapus"
         cancelText="Batal"
         variant="danger"

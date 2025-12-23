@@ -61,7 +61,7 @@ export default function ProgramsPage() {
         console.error('❌ Error fetching programs:', error)
         throw error
       }
-      
+
       console.log('✅ Programs fetched:', data?.length || 0)
       setPrograms(data || [])
     } catch (error) {
@@ -96,11 +96,11 @@ export default function ProgramsPage() {
         .eq('participant_id', (participant as any).id)
 
       setUserEnrollments(data || [])
-      
+
       const map: Record<string, string> = {}
-      ;(data || []).forEach((e: any) => {
-        map[String(e?.program_id || '')] = e.status
-      })
+        ; (data || []).forEach((e: any) => {
+          map[String(e?.program_id || '')] = e.status
+        })
       setEnrollmentMap(map)
     } catch (error) {
       console.error('Error fetching user enrollments:', error)
@@ -120,9 +120,9 @@ export default function ProgramsPage() {
     const matchesSearch = program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.description.toLowerCase().includes(searchQuery.toLowerCase())
-    
+
     const matchesCategory = filterCategory === 'all' || program.category === filterCategory
-    
+
     return matchesSearch && matchesCategory
   })
 
@@ -140,7 +140,7 @@ export default function ProgramsPage() {
     }
 
     const enrollmentStatus = enrollmentMap[String(program.id)] || getUserEnrollmentStatus(program.id)
-    
+
     if (enrollmentStatus === 'approved') {
       return (
         <Link
@@ -148,11 +148,11 @@ export default function ProgramsPage() {
           className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors cursor-pointer"
         >
           <Award className="w-4 h-4 mr-2" />
-          Akses Kelas
+          Akses Program Pelatihan
         </Link>
       )
     }
-    
+
     if (enrollmentStatus === 'completed') {
       return (
         <Link
@@ -164,7 +164,7 @@ export default function ProgramsPage() {
         </Link>
       )
     }
-    
+
     if (enrollmentStatus === 'pending') {
       return (
         <div className="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
@@ -225,11 +225,10 @@ export default function ProgramsPage() {
             <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={() => setFilterCategory('all')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  filterCategory === 'all'
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === 'all'
                     ? 'bg-primary-600 text-white'
                     : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                }`}
+                  }`}
               >
                 Semua Kategori
               </button>
@@ -237,11 +236,10 @@ export default function ProgramsPage() {
                 <button
                   key={category}
                   onClick={() => setFilterCategory(category)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    filterCategory === category
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === category
                       ? 'bg-primary-600 text-white'
                       : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
-                  }`}
+                    }`}
                 >
                   {category}
                 </button>
@@ -278,8 +276,8 @@ export default function ProgramsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPrograms.map((program) => (
-                <div 
-                  key={program.id} 
+                <div
+                  key={program.id}
                   className="group bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
                 >
                   {/* Program Image */}
@@ -324,7 +322,7 @@ export default function ProgramsPage() {
                       {program.classes && program.classes.length > 0 && (
                         <div className="flex items-center text-sm text-gray-600">
                           <BookOpen className="w-4 h-4 mr-2 text-primary-600" />
-                          <span>{program.classes.length} kelas tersedia</span>
+                          <span>{program.classes.length} program pelatihan tersedia</span>
                         </div>
                       )}
                     </div>

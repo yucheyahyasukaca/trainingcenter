@@ -50,13 +50,13 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       if (classesError) throw classesError
 
       setProgram(programData)
-      
+
       // Calculate progress for each class if user is enrolled
       let classesWithProgress = classesData || []
       if (profile?.id && classesWithProgress.length > 0) {
         // Get user progress for all learning contents in these classes
         const classIds = classesWithProgress.map((c: any) => c.id)
-        
+
         const { data: learningContents } = await supabase
           .from('learning_contents')
           .select('id, class_id')
@@ -66,7 +66,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
 
         if (learningContents && learningContents.length > 0) {
           const contentIds = learningContents.map((lc: any) => lc.id)
-          
+
           const { data: progressData } = await supabase
             .from('learning_progress')
             .select('content_id, status')
@@ -77,7 +77,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           classesWithProgress = classesWithProgress.map((classItem: any) => {
             const classContents = learningContents.filter((lc: any) => lc.class_id === classItem.id)
             const totalContents = classContents.length
-            
+
             if (totalContents === 0) {
               return { ...classItem, progress: 0 }
             }
@@ -171,52 +171,52 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           }
         }
       } else {
-          // Regular user - find participant first, then check enrollment
-          console.log('🔍 Looking for participant for user:', profile?.id)
-          
-          const { data: participant, error: participantError } = await supabase
-            .from('participants')
-            .select('id, user_id, email, name')
-            .eq('user_id', profile?.id || '')
-            .maybeSingle()
+        // Regular user - find participant first, then check enrollment
+        console.log('🔍 Looking for participant for user:', profile?.id)
 
-          const typedParticipant = participant as any
+        const { data: participant, error: participantError } = await supabase
+          .from('participants')
+          .select('id, user_id, email, name')
+          .eq('user_id', profile?.id || '')
+          .maybeSingle()
 
-          console.log('👤 Participant lookup result:', { 
-            found: !!typedParticipant, 
-            participantId: typedParticipant?.id, 
-            email: typedParticipant?.email,
-            error: participantError 
-          })
+        const typedParticipant = participant as any
 
-          if (participantError || !typedParticipant) {
-            console.log('❌ No participant record found for user:', profile?.id, participantError)
-            setEnrollment(null)
-            return
-          }
+        console.log('👤 Participant lookup result:', {
+          found: !!typedParticipant,
+          participantId: typedParticipant?.id,
+          email: typedParticipant?.email,
+          error: participantError
+        })
 
-          console.log('✅ Participant found:', typedParticipant.id)
+        if (participantError || !typedParticipant) {
+          console.log('❌ No participant record found for user:', profile?.id, participantError)
+          setEnrollment(null)
+          return
+        }
 
-          // Now check enrollment for this participant
-          const { data: enrollmentData, error: enrollmentError } = await supabase
-            .from('enrollments')
-            .select(`
+        console.log('✅ Participant found:', typedParticipant.id)
+
+        // Now check enrollment for this participant
+        const { data: enrollmentData, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .select(`
               *,
               class:classes(*)
             `)
-            .eq('participant_id', typedParticipant.id)
-            .eq('program_id', params.id)
-            .maybeSingle()
+          .eq('participant_id', typedParticipant.id)
+          .eq('program_id', params.id)
+          .maybeSingle()
 
-          console.log('📋 Enrollment query result:', { 
-            enrollmentData, 
-            enrollmentError,
-            participantId: typedParticipant.id,
-            programId: params.id
-          })
+        console.log('📋 Enrollment query result:', {
+          enrollmentData,
+          enrollmentError,
+          participantId: typedParticipant.id,
+          programId: params.id
+        })
 
         const typedEnrollment = enrollmentData as any
-        
+
         // Check if enrollment exists and is approved or completed
         const normalizedStatus = (typedEnrollment?.status ?? '').toString().trim().toLowerCase()
 
@@ -227,11 +227,11 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           // If enrollment exists but not approved/completed, check if program is free
           if ((programData as any).price === 0) {
             console.log('Free program with pending enrollment - auto-approving...')
-            
+
             const { error: updateError } = await (supabase as any)
               .from('enrollments')
-              .update({ 
-                status: 'approved', 
+              .update({
+                status: 'approved',
                 payment_status: 'paid',
                 amount_paid: 0
               })
@@ -321,18 +321,18 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
         addNotification({
           type: 'warning',
           title: 'Kelas Tidak Ditemukan',
-          message: 'Tidak dapat menemukan kelas untuk menampilkan sesi tatap muka.',
+          message: 'Tidak dapat menemukan program pelatihan untuk menampilkan sesi tatap muka.',
           duration: 5000
         })
       }
     } else if (resourceType === 'module') {
       // Get module URL from class
-      const targetClass = classId 
-        ? classes.find(c => c.id === classId) 
+      const targetClass = classId
+        ? classes.find(c => c.id === classId)
         : (enrollment?.class || (classes.length > 0 ? classes[0] : null))
-      
+
       const moduleUrl = (targetClass as any)?.module_url
-      
+
       if (moduleUrl) {
         window.open(moduleUrl, '_blank')
       } else {
@@ -388,9 +388,9 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
           <span className="hidden sm:inline">Kembali ke Daftar Program</span>
           <span className="sm:hidden">Kembali</span>
         </Link>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Kelas Program</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Program Pelatihan</h1>
         <p className="text-gray-600 mt-1 text-sm md:text-base">
-          {program.title} - Kelas: {enrollment.class?.name || (classes.length > 0 ? classes[0].name : 'Tidak ada kelas')}
+          {program.title} - Program Pelatihan: {enrollment.class?.name || (classes.length > 0 ? classes[0].name : 'Tidak ada program pelatihan')}
         </p>
       </div>
 
@@ -403,9 +403,9 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             <div>
               <p className="text-sm text-gray-600">Tanggal Mulai</p>
               <p className="font-medium">
-                {enrollment.class?.start_date 
+                {enrollment.class?.start_date
                   ? formatDate(enrollment.class.start_date)
-                  : classes.length > 0 
+                  : classes.length > 0
                     ? formatDate(classes[0].start_date)
                     : formatDate(program.start_date)
                 }
@@ -422,9 +422,9 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             <div>
               <p className="text-sm text-gray-600">Tanggal Selesai</p>
               <p className="font-medium">
-                {enrollment.class?.end_date 
+                {enrollment.class?.end_date
                   ? formatDate(enrollment.class.end_date)
-                  : classes.length > 0 
+                  : classes.length > 0
                     ? formatDate(classes[0].end_date)
                     : formatDate(program.end_date)
                 }
@@ -441,11 +441,10 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             <div>
               <p className="text-sm text-gray-600">Tipe Program</p>
               <p className="font-medium">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  (program as any).program_type === 'tot' 
-                    ? 'bg-purple-100 text-purple-800' 
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${(program as any).program_type === 'tot'
+                    ? 'bg-purple-100 text-purple-800'
                     : 'bg-blue-100 text-blue-800'
-                }`}>
+                  }`}>
                   {(program as any).program_type === 'tot' ? 'TOT' : 'Regular'}
                 </span>
               </p>
@@ -470,7 +469,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-purple-900 mb-4">Program Training of Trainers (TOT)</h3>
-              
+
               <div className="space-y-6">
                 {/* Syarat Kelulusan */}
                 <div>
@@ -528,11 +527,11 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       {/* Learning Modules */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-900">Materi Belajar</h2>
-        
+
         {classes.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Belum ada kelas yang tersedia</p>
+            <p className="text-gray-600">Belum ada program pelatihan yang tersedia</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -540,7 +539,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               // Determine status badge based on progress and class status
               const progress = Math.min(100, Math.max(0, (classItem as any).progress || 0))
               let statusBadge = { text: 'Akan Datang', class: 'bg-gray-100 text-gray-800' }
-              
+
               if (progress === 100 || classItem.status === 'completed') {
                 statusBadge = { text: 'Selesai', class: 'bg-green-100 text-green-800' }
               } else if (progress > 0 && progress < 100) {
@@ -550,56 +549,56 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
               } else if (classItem.status === 'scheduled') {
                 statusBadge = { text: 'Akan Datang', class: 'bg-gray-100 text-gray-800' }
               }
-              
+
               return (
-              <div key={classItem.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusBadge.class}`}>{statusBadge.text}</span>
-                </div>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
-
-                {/* Module progress */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                    <span>Progress Modul</span>
-                    <span>{Math.min(100, Math.max(0, (classItem as any).progress || 0))}%</span>
+                <div key={classItem.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900">{classItem.name}</h3>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusBadge.class}`}>{statusBadge.text}</span>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(100, Math.max(0, (classItem as any).progress || 0))}%` }} />
-                  </div>
-                </div>
 
-                {/* Materials list */}
-                <div className="space-y-2 mb-5">
-                  <p className="text-sm font-medium text-gray-700">Materi dalam modul:</p>
-                  {((classItem as any).materials_needed || classItem.materials_needed || ['Pendahuluan', 'Materi Inti', 'Kuis']).map((m: string, idx: number) => (
-                    <div key={idx} className="flex items-center text-sm text-gray-600">
-                      <FileText className="w-4 h-4 mr-2" />
-                      <span className="truncate">{m}</span>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{classItem.description}</p>
+
+                  {/* Module progress */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                      <span>Progress Modul</span>
+                      <span>{Math.min(100, Math.max(0, (classItem as any).progress || 0))}%</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary-600 rounded-full" style={{ width: `${Math.min(100, Math.max(0, (classItem as any).progress || 0))}%` }} />
+                    </div>
+                  </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" /><span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span></div>
-                  <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span></div>
-                </div>
+                  {/* Materials list */}
+                  <div className="space-y-2 mb-5">
+                    <p className="text-sm font-medium text-gray-700">Materi dalam modul:</p>
+                    {((classItem as any).materials_needed || classItem.materials_needed || ['Pendahuluan', 'Materi Inti', 'Kuis']).map((m: string, idx: number) => (
+                      <div key={idx} className="flex items-center text-sm text-gray-600">
+                        <FileText className="w-4 h-4 mr-2" />
+                        <span className="truncate">{m}</span>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="space-y-2">
-                  <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">
-                    Lanjut Belajar
-                  </Link>
-                  <Link 
-                    href={`/programs/${params.id}/classes/${classItem.id}/forum`} 
-                    className="w-full inline-flex px-4 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors items-center justify-center"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Forum Diskusi
-                  </Link>
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                    <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" /><span>{formatDate(classItem.start_date)} - {formatDate(classItem.end_date)}</span></div>
+                    <div className="hidden sm:flex items-center"><Clock className="w-4 h-4 mr-2" /><span>{formatTime(classItem.start_time || '')} - {formatTime(classItem.end_time || '')}</span></div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Link href={`/learn/${params.id}/${classItem.id}`} className="w-full inline-flex px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors items-center justify-center">
+                      Lanjut Belajar
+                    </Link>
+                    <Link
+                      href={`/programs/${params.id}/classes/${classItem.id}/forum`}
+                      className="w-full inline-flex px-4 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors items-center justify-center"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Forum Diskusi
+                    </Link>
+                  </div>
                 </div>
-              </div>
               )
             })}
           </div>
@@ -610,7 +609,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Materi dan Sumber Daya</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div 
+          <div
             onClick={() => handleResourceClick('module')}
             className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           >
@@ -621,7 +620,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             </div>
             <ExternalLink className="w-4 h-4 text-gray-400" />
           </div>
-          <div 
+          <div
             onClick={() => handleResourceClick('face_to_face')}
             className="flex items-center space-x-3 p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer border-2 border-red-200"
           >
@@ -638,7 +637,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
             </div>
             <LinkIcon className="w-4 h-4 text-gray-400" />
           </div>
-          <div 
+          <div
             onClick={() => handleResourceClick('certificate')}
             className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           >
@@ -668,7 +667,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-6">
               {faceToFaceSessions.length === 0 ? (
                 <div className="text-center py-12">
@@ -692,7 +691,7 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                       microsoft_teams: 'Microsoft Teams',
                       other: 'Platform Lain'
                     }
-                    
+
                     return (
                       <div key={session.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-3">
@@ -724,19 +723,18 @@ export default function ProgramClassesPage({ params }: { params: { id: string } 
                               </div>
                             </div>
                           </div>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            session.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            session.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
-                            session.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${session.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              session.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+                                session.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
                             {session.status === 'completed' ? 'Selesai' :
-                             session.status === 'ongoing' ? 'Berlangsung' :
-                             session.status === 'cancelled' ? 'Dibatalkan' :
-                             'Terjadwal'}
+                              session.status === 'ongoing' ? 'Berlangsung' :
+                                session.status === 'cancelled' ? 'Dibatalkan' :
+                                  'Terjadwal'}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2 mb-3">
                           <a
                             href={session.meeting_link}

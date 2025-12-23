@@ -44,7 +44,7 @@ export default function DashboardProgramsPage() {
         console.error('❌ Error fetching programs:', error)
         throw error
       }
-      
+
       console.log('✅ Programs fetched:', data?.length || 0)
       setPrograms(data || [])
     } catch (error) {
@@ -57,7 +57,7 @@ export default function DashboardProgramsPage() {
 
   async function fetchUserEnrollments() {
     console.log('🔍 fetchUserEnrollments called, profile.id:', profile?.id)
-    
+
     if (!profile?.id) {
       console.log('❌ No profile ID, skipping enrollment fetch')
       return
@@ -65,7 +65,7 @@ export default function DashboardProgramsPage() {
 
     try {
       setEnrollmentsLoading(true)
-      
+
       const { data: participant, error: participantError } = await supabase
         .from('participants')
         .select('id')
@@ -99,15 +99,15 @@ export default function DashboardProgramsPage() {
       }
 
       setUserEnrollments(data || [])
-      
+
       const map: Record<string, string> = {}
-      ;(data || []).forEach((e: any) => {
-        if (e?.program_id && e?.status) {
-          console.log(`📌 Mapping: ${e.program_id} → ${e.status}`)
-          map[String(e.program_id)] = e.status
-        }
-      })
-      
+        ; (data || []).forEach((e: any) => {
+          if (e?.program_id && e?.status) {
+            console.log(`📌 Mapping: ${e.program_id} → ${e.status}`)
+            map[String(e.program_id)] = e.status
+          }
+        })
+
       console.log('🗺️ Final enrollment map:', map)
       setEnrollmentMap(map)
     } catch (error) {
@@ -128,9 +128,9 @@ export default function DashboardProgramsPage() {
     const matchesSearch = program.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       program.description.toLowerCase().includes(searchQuery.toLowerCase())
-    
+
     const matchesCategory = filterCategory === 'all' || program.category === filterCategory
-    
+
     return matchesSearch && matchesCategory
   })
 
@@ -153,7 +153,7 @@ export default function DashboardProgramsPage() {
       hasInMap: !!enrollmentMap[String(program.id)],
       mapKeys: Object.keys(enrollmentMap)
     })
-    
+
     if (enrollmentStatus === 'approved') {
       return (
         <Link
@@ -161,11 +161,11 @@ export default function DashboardProgramsPage() {
           className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors cursor-pointer"
         >
           <Award className="w-4 h-4 mr-2" />
-          Akses Kelas
+          Akses Program Pelatihan
         </Link>
       )
     }
-    
+
     if (enrollmentStatus === 'completed') {
       return (
         <Link
@@ -177,7 +177,7 @@ export default function DashboardProgramsPage() {
         </Link>
       )
     }
-    
+
     if (enrollmentStatus === 'pending') {
       return (
         <div className="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-medium">
@@ -230,11 +230,10 @@ export default function DashboardProgramsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilterCategory('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              filterCategory === 'all'
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === 'all'
                 ? 'bg-primary-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Semua Kategori
           </button>
@@ -242,11 +241,10 @@ export default function DashboardProgramsPage() {
             <button
               key={category}
               onClick={() => setFilterCategory(category)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filterCategory === category
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === category
                   ? 'bg-primary-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {category}
             </button>
@@ -280,8 +278,8 @@ export default function DashboardProgramsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrograms.map((program) => (
-              <div 
-                key={program.id} 
+              <div
+                key={program.id}
                 className="group bg-white rounded-xl border border-gray-200 hover:border-primary-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
               >
                 {/* Program Image */}
@@ -326,7 +324,7 @@ export default function DashboardProgramsPage() {
                     {program.classes && program.classes.length > 0 && (
                       <div className="flex items-center text-sm text-gray-600">
                         <BookOpen className="w-4 h-4 mr-2 text-primary-600" />
-                        <span>{program.classes.length} kelas tersedia</span>
+                        <span>{program.classes.length} program pelatihan tersedia</span>
                       </div>
                     )}
                   </div>

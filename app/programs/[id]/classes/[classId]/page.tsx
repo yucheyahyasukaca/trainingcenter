@@ -8,10 +8,10 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import { formatDate, formatTime } from '@/lib/utils'
 
-export default function ClassDetailPage({ 
-  params 
-}: { 
-  params: { id: string; classId: string } 
+export default function ClassDetailPage({
+  params
+}: {
+  params: { id: string; classId: string }
 }) {
   const router = useRouter()
   const { profile, loading: authLoading } = useAuth()
@@ -28,7 +28,7 @@ export default function ClassDetailPage({
   async function fetchClassData() {
     try {
       setLoading(true)
-      
+
       // Fetch class data
       const { data: classInfo, error: classError } = await supabase
         .from('classes')
@@ -80,9 +80,9 @@ export default function ClassDetailPage({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-gray-700">Kelas tidak ditemukan</p>
-          <Link 
-            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`} 
+          <p className="text-xl text-gray-700">Program Pelatihan tidak ditemukan</p>
+          <Link
+            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}`}
             className="text-primary-600 hover:underline mt-4 inline-block"
           >
             Kembali
@@ -102,7 +102,7 @@ export default function ClassDetailPage({
             <span className="text-gray-400">/</span>
             {(profile as any)?.role === 'trainer' ? (
               <>
-                <Link href="/trainer/classes" className="hover:text-primary-600">Kelas Saya</Link>
+                <Link href="/trainer/classes" className="hover:text-primary-600">Program Pelatihan Saya</Link>
                 <span className="text-gray-400">/</span>
                 <span className="text-gray-900 font-medium">{classData.name}</span>
               </>
@@ -127,9 +127,9 @@ export default function ClassDetailPage({
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            {(profile as any)?.role === 'trainer' ? 'Kembali ke Kelas Saya' : 'Kembali ke Kelas'}
+            {(profile as any)?.role === 'trainer' ? 'Kembali ke Program Pelatihan Saya' : 'Kembali ke Program Pelatihan'}
           </Link>
-          
+
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start gap-4">
               <div className="p-3 bg-primary-100 rounded-lg">
@@ -147,15 +147,14 @@ export default function ClassDetailPage({
                 )}
               </div>
               <div className="text-right">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                  classData.status === 'ongoing' 
-                    ? 'bg-green-100 text-green-800' 
-                    : classData.status === 'scheduled' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {classData.status === 'ongoing' ? 'Berlangsung' : 
-                   classData.status === 'scheduled' ? 'Dijadwalkan' : 'Selesai'}
+                <span className={`px-3 py-1 text-sm font-medium rounded-full ${classData.status === 'ongoing'
+                    ? 'bg-green-100 text-green-800'
+                    : classData.status === 'scheduled'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                  {classData.status === 'ongoing' ? 'Berlangsung' :
+                    classData.status === 'scheduled' ? 'Dijadwalkan' : 'Selesai'}
                 </span>
               </div>
             </div>
@@ -167,7 +166,7 @@ export default function ClassDetailPage({
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Info */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Informasi Kelas</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Informasi Program Pelatihan</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center text-gray-600">
                   <Calendar className="w-5 h-5 mr-3" />
@@ -195,9 +194,9 @@ export default function ClassDetailPage({
                   <div>
                     <p className="text-sm font-medium">Waktu</p>
                     <p className="text-sm">
-                      {classData.start_time && classData.end_time 
+                      {classData.start_time && classData.end_time
                         ? `${formatTime(classData.start_time)} - ${formatTime(classData.end_time)}`
-                        : classData.start_time 
+                        : classData.start_time
                           ? `${formatTime(classData.start_time)}`
                           : 'TBA'}
                     </p>

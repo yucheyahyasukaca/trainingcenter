@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
-import { 
-  Calendar, 
-  Clock, 
-  CheckCircle, 
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
   AlertCircle,
   BookOpen,
   Award,
@@ -69,7 +69,7 @@ export function MyEnrollments() {
         setEnrollments([])
       } else {
         const finalEnrollments = data || []
-        
+
         console.log('Enrollments to display:', finalEnrollments)
 
         const statusPriority: Record<string, number> = {
@@ -123,7 +123,7 @@ export function MyEnrollments() {
           .slice(0, 3)
 
         console.log('Unique enrollments after removing duplicates:', uniqueEnrollments)
-        
+
         // Calculate progress for each enrollment
         const enrollmentsWithProgress = await Promise.all(
           uniqueEnrollments.map(async (enrollment: any) => {
@@ -217,12 +217,12 @@ export function MyEnrollments() {
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-lg font-bold text-gray-900">Kelas Terdaftar</h3>
+              <h3 className="text-lg font-bold text-gray-900">Program Pelatihan Terdaftar</h3>
               <p className="text-sm text-gray-600">Program yang sedang Anda ikuti</p>
             </div>
           </div>
-          <Link 
-            href="/my-enrollments" 
+          <Link
+            href="/my-enrollments"
             className="group flex items-center justify-center space-x-2 px-4 py-2 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 text-green-600 hover:text-green-700 font-medium text-sm flex-shrink-0"
           >
             <span>Lihat Semua</span>
@@ -232,128 +232,128 @@ export function MyEnrollments() {
       </div>
       <div className="p-6">
 
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6">
-              <div className="animate-pulse">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-gray-300 rounded-xl"></div>
-                  <div className="flex-1">
-                    <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-6">
+                <div className="animate-pulse">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="w-12 h-12 bg-gray-300 rounded-xl"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                    </div>
                   </div>
+                  <div className="h-3 bg-gray-300 rounded w-1/4 mb-3"></div>
+                  <div className="h-3 bg-gray-300 rounded w-1/3"></div>
                 </div>
-                <div className="h-3 bg-gray-300 rounded w-1/4 mb-3"></div>
-                <div className="h-3 bg-gray-300 rounded w-1/3"></div>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : enrollments.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <BookOpen className="w-10 h-10 text-gray-400" />
+            ))}
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada kelas terdaftar</h3>
-          <p className="text-gray-600 mb-6">Mulai perjalanan belajar Anda dengan mendaftar program yang menarik!</p>
-          <Link 
-            href="/programs" 
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl hover:from-green-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            Lihat Program Tersedia
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {enrollments.map((enrollment) => {
-            const statusInfo = getStatusInfo(enrollment.status)
-            const StatusIcon = statusInfo.icon
+        ) : enrollments.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada program pelatihan terdaftar</h3>
+            <p className="text-gray-600 mb-6">Mulai perjalanan belajar Anda dengan mendaftar program yang menarik!</p>
+            <Link
+              href="/programs"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl hover:from-green-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Lihat Program Tersedia
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {enrollments.map((enrollment) => {
+              const statusInfo = getStatusInfo(enrollment.status)
+              const StatusIcon = statusInfo.icon
 
-            return (
-              <div key={enrollment.id} className="group bg-gradient-to-r from-white to-gray-50 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-200">
-                <div className="flex items-start space-x-3 sm:space-x-4 mb-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              return (
+                <div key={enrollment.id} className="group bg-gradient-to-r from-white to-gray-50 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-200">
+                  <div className="flex items-start space-x-3 sm:space-x-4 mb-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-base sm:text-lg group-hover:text-green-600 transition-colors mb-2">{enrollment.program?.title}</h4>
+                      <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed mb-2">{enrollment.program?.description}</p>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}>
+                        <StatusIcon className="w-3 h-3 mr-1" />
+                        {statusInfo.label}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-900 text-base sm:text-lg group-hover:text-green-600 transition-colors mb-2">{enrollment.program?.title}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed mb-2">{enrollment.program?.description}</p>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${statusInfo.color}`}>
-                      <StatusIcon className="w-3 h-3 mr-1" />
-                      {statusInfo.label}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Calendar className="w-4 h-4 text-blue-500" />
-                    <span className="font-medium">
-                      {(enrollment.program as any)?.registration_type === 'lifetime' || 
-                       (enrollment.program?.start_date === enrollment.program?.end_date)
-                        ? 'Lifetime' 
-                        : `${formatDate(enrollment.program?.start_date)} - ${formatDate(enrollment.program?.end_date)}`
-                      }
-                    </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium">
+                        {(enrollment.program as any)?.registration_type === 'lifetime' ||
+                          (enrollment.program?.start_date === enrollment.program?.end_date)
+                          ? 'Lifetime'
+                          : `${formatDate(enrollment.program?.start_date)} - ${formatDate(enrollment.program?.end_date)}`
+                        }
+                      </span>
+                    </div>
+                    {enrollment.program?.category && (
+                      <div className="flex items-center space-x-2 text-green-600">
+                        <BookOpen className="w-4 h-4" />
+                        <span className="font-medium">{enrollment.program.category}</span>
+                      </div>
+                    )}
                   </div>
-                  {enrollment.program?.category && (
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <BookOpen className="w-4 h-4" />
-                      <span className="font-medium">{enrollment.program.category}</span>
+
+                  {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-100">
+                      <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
+                        <span>Progress Pembelajaran</span>
+                        <span className="text-green-600">{Math.min(100, Math.max(0, enrollment.progress || 0))}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${Math.min(100, Math.max(0, enrollment.progress || 0))}%` }}
+                        ></div>
+                      </div>
                     </div>
                   )}
-                </div>
 
-                {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
-                  <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border border-green-100">
-                    <div className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
-                      <span>Progress Pembelajaran</span>
-                      <span className="text-green-600">{Math.min(100, Math.max(0, enrollment.progress || 0))}%</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
+                        <Link
+                          href={`/programs/${enrollment.program?.id}/classes`}
+                          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                        >
+                          Akses Program Pelatihan
+                        </Link>
+                      )}
+                      {enrollment.status === 'pending' && (
+                        <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium">
+                          Menunggu Persetujuan
+                        </div>
+                      )}
+                      {enrollment.status === 'rejected' && (
+                        <div className="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-medium">
+                          Daftar Ulang
+                        </div>
+                      )}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${Math.min(100, Math.max(0, enrollment.progress || 0))}%` }}
-                      ></div>
-                    </div>
+                    <Link
+                      href="/my-enrollments"
+                      className="text-gray-600 hover:text-gray-800 text-sm"
+                    >
+                      Detail
+                    </Link>
                   </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {(enrollment.status === 'approved' || enrollment.status === 'completed') && (
-                      <Link
-                        href={`/programs/${enrollment.program?.id}/classes`}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                      >
-                        Akses Kelas
-                      </Link>
-                    )}
-                    {enrollment.status === 'pending' && (
-                      <div className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium">
-                        Menunggu Persetujuan
-                      </div>
-                    )}
-                    {enrollment.status === 'rejected' && (
-                      <div className="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm font-medium">
-                        Daftar Ulang
-                      </div>
-                    )}
-                  </div>
-                  <Link 
-                    href="/my-enrollments" 
-                    className="text-gray-600 hover:text-gray-800 text-sm"
-                  >
-                    Detail
-                  </Link>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
