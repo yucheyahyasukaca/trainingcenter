@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { TECH_SUPPORT_KNOWLEDGE } from "@/lib/knowledge/tech-support-data";
+import { getAppBaseUrl } from "@/lib/url-utils";
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -123,7 +125,7 @@ const functions: any = {
         try {
             // Instead of calling Supabase directly (which fails due to SMTP config),
             // we call the existing local API endpoint that handles manual reset + custom email sending.
-            const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/reset-password`, {
+            const response = await fetch(`${getAppBaseUrl()}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -165,23 +167,26 @@ const functions: any = {
                 <p><em>Please contact this lead immediately regarding the "Garuda-21" promo.</em></p>
             `;
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/email/send`, {
+            `;
+
+            const response = await fetch(`${ getAppBaseUrl() } /api/email / send`, {
+                method: 'POST',
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: salesEmail,
-                    subject: `HOT LEAD: ${school} - ${pic}`,
+                    subject: `HOT LEAD: ${ school } - ${ pic } `,
                     html: emailHtml,
                     useQueue: false
                 })
             });
 
             // Log for debugging/dashboard
-            console.log(`[Sales Agent] Lead Notification Sent to ${salesEmail}`);
+            console.log(`[Sales Agent] Lead Notification Sent to ${ salesEmail } `);
 
             return {
                 success: true,
-                message: `Data berhasil dikirim ke Tim Sales. WhatsApp notifikasi telah dikirim ke nomor 628112666456 (via Email Gateway).`
+                message: `Data berhasil dikirim ke Tim Sales.WhatsApp notifikasi telah dikirim ke nomor 628112666456(via Email Gateway).`
             };
         } catch (e: any) {
             console.error("[Tool Error] Failed to submit lead:", e);
@@ -189,7 +194,7 @@ const functions: any = {
         }
     },
     getWebinars: async ({ status = 'upcoming' }: { status?: 'upcoming' | 'past' }) => {
-        console.log(`[Tool] Fetching ${status} webinars...`);
+        console.log(`[Tool] Fetching ${ status } webinars...`);
         try {
             const supabase = getSupabaseAdmin();
             const now = new Date().toISOString();
@@ -236,9 +241,9 @@ const functions: any = {
             const formattedWebinars = webinars.map(w => ({
                 title: w.title,
                 date: new Date(w.start_time).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                time: `${new Date(w.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${new Date(w.end_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+                time: `${ new Date(w.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${ new Date(w.end_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) } WIB`,
                 description: w.description,
-                link: `${process.env.NEXT_PUBLIC_SITE_URL}/webinars/${w.slug || ''}`
+                link: `${ getAppBaseUrl() } /webinars/${ w.slug || '' } `
             }));
 
             return {
@@ -252,7 +257,7 @@ const functions: any = {
         }
     },
     getTrainingPrograms: async ({ query, category }: { query?: string, category?: string }) => {
-        console.log(`[Tool] Fetching training programs... Query: ${query}, Category: ${category}`);
+        console.log(`[Tool] Fetching training programs...Query: ${ query }, Category: ${ category } `);
         try {
             const supabase = getSupabaseAdmin();
 
@@ -269,7 +274,7 @@ const functions: any = {
 
             if (query) {
                 // Simple ILIKE search on title or description
-                dbQuery = dbQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+                dbQuery = dbQuery.or(`title.ilike.% ${ query }%, description.ilike.% ${ query }% `);
             }
 
             const { data, error } = await dbQuery;
@@ -291,9 +296,9 @@ const functions: any = {
             const formattedPrograms = data.map((p: any) => ({
                 title: p.title,
                 category: p.category,
-                price: p.price === 0 ? "Gratis" : `Rp ${p.price.toLocaleString('id-ID')}`,
+                price: p.price === 0 ? "Gratis" : `Rp ${ p.price.toLocaleString('id-ID') } `,
                 description: p.description?.substring(0, 150) + "...", // Truncate description
-                link: `${process.env.NEXT_PUBLIC_SITE_URL}/programs/${p.id}`
+                link: `${ getAppBaseUrl() } /programs/${ p.id } `
             }));
 
             return {
@@ -334,24 +339,24 @@ export async function POST(req: Request) {
         });
 
         const systemInstruction = `
-      Anda adalah "Garuda AI Assistant", asisten dukungan teknis DAN Sales Agent untuk platform Garuda Academy serta Garuda-21.
+      Anda adalah "Garuda AI Assistant", asisten dukungan teknis DAN Sales Agent untuk platform Garuda Academy serta Garuda - 21.
       
       Tugas Utama Anda:
-      1. Menjawab pertanyaan pengguna berdasarkan "Knowledge Base" di bawah.
-      2. Membantu reset password pengguna jika diminta (menggunakan tool).
-      3. Memberikan informasi jadwal webinar jika pengguna bertanya (menggunakan tool).
-      4. **SALES AGENT:** Mempromosikan "Garuda-21" jika pengguna mencari solusi sekolah digital. 
+1. Menjawab pertanyaan pengguna berdasarkan "Knowledge Base" di bawah.
+      2. Membantu reset password pengguna jika diminta(menggunakan tool).
+      3. Memberikan informasi jadwal webinar jika pengguna bertanya(menggunakan tool).
+      4. ** SALES AGENT:** Mempromosikan "Garuda-21" jika pengguna mencari solusi sekolah digital. 
       
       Knowledge Base:
-      ---
-      ${knowledgeBase}
-      ---
-      
-      Aturan Penting:
-      - **Mode Sales:** Jika pengguna bertanya tentang "aplikasi sekolah", "ujian online", "harga", atau solusi sekolah digital, LANGSUNG tawarkan **Garuda-21** dengan harga promo Rp 1.200.000/tahun (Unlimited User). 
-      - **Lead Collection:** Jika pengguna BERMINAT/TERTARIK, jangan suruh hubungi manual. Tawarkan untuk memprosesnya sekarang.
+---
+    ${ knowledgeBase }
+---
+
+    Aturan Penting:
+      - ** Mode Sales:** Jika pengguna bertanya tentang "aplikasi sekolah", "ujian online", "harga", atau solusi sekolah digital, LANGSUNG tawarkan ** Garuda - 21 ** dengan harga promo Rp 1.200.000 / tahun(Unlimited User). 
+      - ** Lead Collection:** Jika pengguna BERMINAT / TERTARIK, jangan suruh hubungi manual.Tawarkan untuk memprosesnya sekarang.
         - Katakan: "Boleh saya minta data berikut untuk diproses Tim Sales kami?"
-        - Minta data: **Nama PIC, Nama Sekolah, Alamat Lengkap, Email, dan No HP (WhatsApp).**
+    - Minta data: ** Nama PIC, Nama Sekolah, Alamat Lengkap, Email, dan No HP(WhatsApp).**
         - Setelah data lengkap, GUNAKAN TOOL \`submitSalesLead\`.
       - **Webinar Info:** Jika pengguna bertanya tentang "webinar", "jadwal", "acara", baik yang akan datang maupun yang sudah lewat, GUNAKAN TOOL \`getWebinars\`.
         - Gunakan parameter \`status='upcoming'\` (default) untuk pertanyaan masa depan.
@@ -373,82 +378,82 @@ export async function POST(req: Request) {
       - User: "Ada webinar apa minggu ini?" -> Action: Call getUpcomingWebinars.
     `;
 
-        // Construct Chat History for Gemini
-        const validHistory = history.filter((msg: any, index: number) => {
-            // Skip the first message if it is from 'model' (the greeting)
-            if (index === 0 && msg.role === 'model') return false;
-            return true;
-        });
+// Construct Chat History for Gemini
+const validHistory = history.filter((msg: any, index: number) => {
+    // Skip the first message if it is from 'model' (the greeting)
+    if (index === 0 && msg.role === 'model') return false;
+    return true;
+});
 
-        const chat = model.startChat({
-            history: validHistory.map((msg: any) => ({
-                role: msg.role === "user" ? "user" : "model",
-                parts: [{ text: msg.content }],
-            })),
-            generationConfig: {
-                maxOutputTokens: 500,
-            },
-            systemInstruction: {
-                parts: [{ text: systemInstruction }],
-                role: "model"
-            }
-        });
-
-        console.log("Sending message to Gemini...");
-        // Prepend system instruction to the first message effectively if history is empty
-        // OR use systemInstruction property if supported by the model/SDK (Attempting property above)
-        // But as fallback, we also inject it into the prompt if history is empty.
-
-        let finalMessage = message;
-        if (validHistory.length === 0) {
-            // Force context in first message to be safe
-            finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
-        }
-
-        const result = await chat.sendMessage(finalMessage);
-        const response = result.response;
-
-        // Check for function calls
-        const candidates = response.candidates;
-        if (candidates && candidates[0].content.parts.length > 0) {
-            const firstPart = candidates[0].content.parts[0];
-
-            // Handle Function Call
-            if (firstPart.functionCall) {
-                const functionCall = firstPart.functionCall;
-                const functionName = functionCall.name;
-                const functionArgs = functionCall.args;
-
-                console.log(`[Gemini] Triggered Function Call: ${functionName}`, functionArgs);
-
-                if (functions[functionName]) {
-                    const functionResponse = await functions[functionName](functionArgs);
-                    console.log(`[Gemini] Function Execution Result:`, functionResponse);
-
-                    // Send result back to model to generate text response
-                    const result2 = await chat.sendMessage([{
-                        functionResponse: {
-                            name: functionName,
-                            response: {
-                                content: functionResponse
-                            }
-                        }
-                    }]);
-
-                    return NextResponse.json({ reply: result2.response.text() });
-                }
-            }
-        }
-
-        const text = response.text();
-        console.log("Received response from Gemini.");
-
-        return NextResponse.json({ reply: text });
-    } catch (error: any) {
-        console.error("Detailed Error in chat API:", error);
-        return NextResponse.json(
-            { error: error.message || "Failed to process request" },
-            { status: 500 }
-        );
+const chat = model.startChat({
+    history: validHistory.map((msg: any) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }],
+    })),
+    generationConfig: {
+        maxOutputTokens: 500,
+    },
+    systemInstruction: {
+        parts: [{ text: systemInstruction }],
+        role: "model"
     }
+});
+
+console.log("Sending message to Gemini...");
+// Prepend system instruction to the first message effectively if history is empty
+// OR use systemInstruction property if supported by the model/SDK (Attempting property above)
+// But as fallback, we also inject it into the prompt if history is empty.
+
+let finalMessage = message;
+if (validHistory.length === 0) {
+    // Force context in first message to be safe
+    finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
+}
+
+const result = await chat.sendMessage(finalMessage);
+const response = result.response;
+
+// Check for function calls
+const candidates = response.candidates;
+if (candidates && candidates[0].content.parts.length > 0) {
+    const firstPart = candidates[0].content.parts[0];
+
+    // Handle Function Call
+    if (firstPart.functionCall) {
+        const functionCall = firstPart.functionCall;
+        const functionName = functionCall.name;
+        const functionArgs = functionCall.args;
+
+        console.log(`[Gemini] Triggered Function Call: ${functionName}`, functionArgs);
+
+        if (functions[functionName]) {
+            const functionResponse = await functions[functionName](functionArgs);
+            console.log(`[Gemini] Function Execution Result:`, functionResponse);
+
+            // Send result back to model to generate text response
+            const result2 = await chat.sendMessage([{
+                functionResponse: {
+                    name: functionName,
+                    response: {
+                        content: functionResponse
+                    }
+                }
+            }]);
+
+            return NextResponse.json({ reply: result2.response.text() });
+        }
+    }
+}
+
+const text = response.text();
+console.log("Received response from Gemini.");
+
+return NextResponse.json({ reply: text });
+    } catch (error: any) {
+    console.error("Detailed Error in chat API:", error);
+    return NextResponse.json(
+        { error: error.message || "Failed to process request" },
+        { status: 500 }
+    );
+}
 }
