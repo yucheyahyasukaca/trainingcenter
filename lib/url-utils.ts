@@ -1,10 +1,11 @@
 export function getAppBaseUrl(): string {
-    // Check for standard environment variables
-    if (process.env.NEXT_PUBLIC_SITE_URL) {
+    // Check for standard environment variables, but ignore localhost in production context
+    // This fixes the issue where server env vars might be defaulted to localhost
+    if (process.env.NEXT_PUBLIC_SITE_URL && !process.env.NEXT_PUBLIC_SITE_URL.includes('localhost')) {
         return process.env.NEXT_PUBLIC_SITE_URL
     }
 
-    if (process.env.NEXT_PUBLIC_APP_URL) {
+    if (process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')) {
         return process.env.NEXT_PUBLIC_APP_URL
     }
 
