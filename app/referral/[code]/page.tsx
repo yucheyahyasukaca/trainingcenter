@@ -112,12 +112,93 @@ export default function ReferralPage({ params }: { params: { code: string } }) {
     }
   }
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!profile) {
       // User not logged in, redirect to registration/login
       router.push(`/register?referral=${referralCode}`)
     } else {
-      // User already logged in, redirect to referral registration page
+      // User logged in: Check if already enrolled in the program associated with this trainer
+      if (referralData) {
+        setLoading(true)
+        try {
+          // 1. Find the program (logic similar to register-referral)
+          // First try: programs with trainer_id from user_profiles
+          let programId = null
+          const { data: programsData1 } = await supabase
+            .from('programs')
+            .select('id')
+            .eq('trainer_id', referralData.trainer_id)
+            .eq('status', 'published')
+            .order('created_at', { ascending: false })
+            .limit(1)
+
+          if (programsData1 && programsData1.length > 0) {
+            programId = programsData1[0].id
+          } else {
+            // Fallback: get any published program
+            const { data: allProgramsData } = await supabase
+              .from('programs')
+              .select('id')
+              .eq('status', 'published')
+              .order('created_at', { ascending: false })
+              .limit(1)
+            if (allProgramsData && allProgramsData.length > 0) {
+              programId = allProgramsData[0].id
+            }
+          }
+
+          if (programId) {
+            // 2. Check for existing enrollment
+            // First get participant id
+            const { data: participant } = await supabase
+              .from('participants')
+              .select('id')
+              .eq('user_id', profile.id)
+              .single()
+
+            if (participant) {
+              const { data: existingEnrollment } = await supabase
+                .from('enrollments')
+                .select('id, notes')
+                .eq('program_id', programId)
+                .eq('participant_id', participant.id)
+                .single()
+
+              if (existingEnrollment) {
+                // 3. User is already enrolled! Auto-apply referral and redirect
+                console.log('User already enrolled, auto-applying referral...')
+
+                await supabase
+                  .from('enrollments')
+                  .update({
+                    referral_code_id: referralData.id,
+                    referral_code: referralData.code,
+                    referred_by_trainer_id: referralData.trainer_id,
+                    notes: existingEnrollment.notes ? existingEnrollment.notes + ` | Referral Auto-Applied: ${referralData.code}` : `Referral Auto-Applied: ${referralData.code}`
+                  } as any)
+                  .eq('id', existingEnrollment.id)
+
+                addNotification({
+                  type: 'success',
+                  title: 'Berhasil!',
+                  message: 'Kode referral berhasil diterapkan ke pendaftaran Anda yang sudah ada.'
+                })
+
+                // Redirect directly to dashboard or success page
+                router.push('/dashboard')
+                return
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking existing enrollment:', err)
+          // Continue to form if check fails
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      // If not enrolled or check failed, proceed to standard registration form
       router.push(`/register-referral/${referralCode}`)
     }
   }
@@ -212,7 +293,7 @@ export default function ReferralPage({ params }: { params: { code: string } }) {
             {profile ? 'Daftar Program' : 'Daftar atau Login'}
             <ArrowRight className="h-4 w-4" />
           </button>
-          
+
           <button
             onClick={() => router.push('/')}
             className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
@@ -224,7 +305,7 @@ export default function ReferralPage({ params }: { params: { code: string } }) {
         {/* Info */}
         <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
           <p className="text-xs text-gray-600 text-center">
-            {profile 
+            {profile
               ? 'Anda akan diarahkan ke halaman pendaftaran program dengan kode referral ini.'
               : 'Anda akan diarahkan ke halaman registrasi. Setelah berhasil login, Anda akan diarahkan ke pendaftaran program.'
             }
