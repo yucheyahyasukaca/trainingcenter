@@ -40,12 +40,12 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
   const router = useRouter()
   const { profile, loading: authLoading } = useAuth()
   const { addNotification } = useNotification()
-  
+
   const [program, setProgram] = useState<Program | null>(null)
   const [referralData, setReferralData] = useState<ReferralData | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  
+
   const referralCode = params.code
 
   // Form data
@@ -60,17 +60,17 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     province: '',
     city: '',
     district: '',
-    
+
     // Career & Education
     education: '',
     education_status: '',
     employment_status: '',
-    
+
     // Other Information
     it_background: '',
     disability: '',
     program_source: [] as string[],
-    
+
     // Consent
     consent_privacy: false,
     consent_contact: false,
@@ -83,13 +83,13 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     career: false,
     other: false
   })
-  
+
   // Custom dropdown states
   const [isBackgroundDropdownOpen, setIsBackgroundDropdownOpen] = useState(false)
   const [backgroundSearchTerm, setBackgroundSearchTerm] = useState('')
   const [isEducationDropdownOpen, setIsEducationDropdownOpen] = useState(false)
   const [educationSearchTerm, setEducationSearchTerm] = useState('')
-  
+
   // Location data
   const [provinces, setProvinces] = useState<any[]>([])
   const [cities, setCities] = useState<any[]>([])
@@ -1834,17 +1834,17 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         router.push('/login')
         return
       }
-      
+
       // Pre-fill form with profile data
       setFormData(prev => ({
         ...prev,
         full_name: profile.full_name || '',
         email: profile.email || ''
       }))
-      
+
       // Initialize provinces data
       setProvinces(indonesiaProvinces)
-      
+
       validateReferralCode()
     }
   }, [profile, authLoading, referralCode])
@@ -2062,12 +2062,12 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
-    
+
     if (name === 'program_source') {
       const checkbox = e.target as HTMLInputElement
       setFormData(prev => ({
         ...prev,
-        program_source: checkbox.checked 
+        program_source: checkbox.checked
           ? [...prev.program_source, value]
           : prev.program_source.filter(item => item !== value)
       }))
@@ -2100,8 +2100,8 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
       const kecamatanFromFile = getKecamatanByKabupatenKota(value)
       const kecamatanFromLegacy = districtsData[value] || []
       // Combine both sources, prioritizing file data
-      const allKecamatan = kecamatanFromFile.length > 0 
-        ? kecamatanFromFile 
+      const allKecamatan = kecamatanFromFile.length > 0
+        ? kecamatanFromFile
         : kecamatanFromLegacy.map(d => ({ id: d.id, name: d.name }))
       setDistricts(allKecamatan)
     }
@@ -2135,7 +2135,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     const value = e.target.value
     setBackgroundSearchTerm(value)
     setIsBackgroundDropdownOpen(true)
-    
+
     // If user clears the input, clear the form data too
     if (!value) {
       setFormData(prev => ({
@@ -2160,7 +2160,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     const value = e.target.value
     setEducationSearchTerm(value)
     setIsEducationDropdownOpen(true)
-    
+
     // If user clears the input, clear the form data too
     if (!value) {
       setFormData(prev => ({
@@ -2181,8 +2181,8 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
   // Check if specific section is complete
   const isSectionComplete = (section: string) => {
     if (section === 'personal') {
-      return formData.full_name && formData.email && formData.background && formData.gender && 
-             formData.date_of_birth && formData.whatsapp && formData.province
+      return formData.full_name && formData.email && formData.background && formData.gender &&
+        formData.date_of_birth && formData.whatsapp && formData.province
     } else if (section === 'career') {
       return formData.education && formData.education_status && formData.employment_status
     } else if (section === 'other') {
@@ -2225,7 +2225,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
     if (!referralData) return program.price
 
     let finalPrice = program.price
-    
+
     // Apply discount
     if (referralData.discount_percentage > 0) {
       finalPrice = finalPrice * (1 - referralData.discount_percentage / 100)
@@ -2283,7 +2283,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
 
       // Create or update participant record
       let participantId = profile.id
-      
+
       const { data: existingParticipant, error: participantError } = await supabase
         .from('participants')
         .select('id')
@@ -2326,7 +2326,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
           emergency_contact_name: '',
           emergency_contact_phone: ''
         }
-        
+
         const { error: updateParticipantError } = await (supabase as any)
           .from('participants')
           .update(updateData)
@@ -2336,325 +2336,355 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
         participantId = (existingParticipant as any).id
       }
 
-      // Check if program is free (finalPrice === 0 or program.price === 0)
+      // Check if enrollment already exists
+      const { data: existingEnrollment } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('program_id', program.id)
+        .eq('participant_id', participantId)
+        .single()
+
+      let enrollment;
       const isFree = calculateFinalPrice() === 0 || program.price === 0
 
-      // Create enrollment
+      // Create enrollment data object
       const enrollmentData = {
         program_id: program.id,
         participant_id: participantId,
         status: isFree ? 'approved' : 'pending',
         payment_status: isFree ? 'paid' : 'unpaid',
         amount_paid: 0,
-        referral_code_id: referralData.id, // Save referral_code_id to enrollment
+        referral_code_id: referralData.id,
+        referral_code: referralData.code,
+        referred_by_trainer_id: referralData.trainer_id,
         notes: `Referral Code: ${referralData.code}`
       }
 
-      const { data: enrollment, error: enrollmentError } = await supabase
-        .from('enrollments')
-        .insert(enrollmentData as any)
-        .select()
-        .single()
+      if (existingEnrollment) {
+        // Update existing enrollment with referral info if not present
+        const { data: updatedEnrollment, error: updateError } = await supabase
+          .from('enrollments')
+          .update({
+            referral_code_id: referralData.id,
+            referral_code: referralData.code,
+            referred_by_trainer_id: referralData.trainer_id,
+            // Verify if we should update notes or append
+            notes: existingEnrollment.notes ? existingEnrollment.notes + ` | Referral Added: ${referralData.code}` : `Referral Added: ${referralData.code}`
+          })
+          .eq('id', existingEnrollment.id)
+          .select()
+          .single()
 
-      if (enrollmentError) {
-        throw enrollmentError
+        if (updateError) throw updateError
+        enrollment = updatedEnrollment
+      } else {
+        // Create new enrollment
+        const { data: newEnrollment, error: enrollmentError } = await supabase
+          .from('enrollments')
+          .insert(enrollmentData as any)
+          .select()
+          .single()
+
+        if (enrollmentError) throw enrollmentError
+        enrollment = newEnrollment
       }
+    }
 
       // Check enrollment status (might be auto-approved by trigger)
       const enrollmentStatus = (enrollment as any).status
-      const isEnrollmentApproved = enrollmentStatus === 'approved'
+    const isEnrollmentApproved = enrollmentStatus === 'approved'
 
-      // Create referral tracking with appropriate status
-      // If enrollment is approved (free program or auto-approved), referral should be confirmed
-      const referralTrackingStatus = isEnrollmentApproved ? 'confirmed' : 'pending'
+    // Create referral tracking with appropriate status
+    // If enrollment is approved (free program or auto-approved), referral should be confirmed
+    const referralTrackingStatus = isEnrollmentApproved ? 'confirmed' : 'pending'
 
-      const { error: trackingError } = await supabase
-        .from('referral_tracking')
-        .insert({
-          referral_code_id: referralData.id,
-          trainer_id: referralData.trainer_id,
-          participant_id: participantId,
-          enrollment_id: (enrollment as any).id,
-          program_id: program.id,
-          discount_applied: program.price - calculateFinalPrice(),
-          commission_earned: 0,
-          status: referralTrackingStatus
-        } as any)
+    const { error: trackingError } = await supabase
+      .from('referral_tracking')
+      .insert({
+        referral_code_id: referralData.id,
+        trainer_id: referralData.trainer_id,
+        participant_id: participantId,
+        enrollment_id: (enrollment as any).id,
+        program_id: program.id,
+        discount_applied: program.price - calculateFinalPrice(),
+        commission_earned: 0,
+        status: referralTrackingStatus
+      } as any)
 
-      if (trackingError) {
-        console.error('Error creating referral tracking:', trackingError)
-      } else if (isEnrollmentApproved) {
-        console.log('Referral tracking created with confirmed status (free program auto-approved)')
-      }
+    if (trackingError) {
+      console.error('Error creating referral tracking:', trackingError)
+    } else if (isEnrollmentApproved) {
+      console.log('Referral tracking created with confirmed status (free program auto-approved)')
+    }
 
-      // Get or create user referral code and send welcome email
-      try {
-        // Get or create user referral code
-        let userReferralCode: string | null = null
-        
-        const { data: existingCodes } = await supabase
-          .from('referral_codes')
-          .select('code')
-          .eq('trainer_id', profile.id)
-          .eq('is_active', true)
-          .limit(1)
+    // Get or create user referral code and send welcome email
+    try {
+      // Get or create user referral code
+      let userReferralCode: string | null = null
 
-        if (existingCodes && existingCodes.length > 0) {
-          userReferralCode = (existingCodes[0] as any).code
-        } else {
-          // Generate new referral code
-          const generateReferralCode = () => {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-            let result = ''
-            for (let i = 0; i < 8; i++) {
-              result += chars.charAt(Math.floor(Math.random() * chars.length))
-            }
-            return result
+      const { data: existingCodes } = await supabase
+        .from('referral_codes')
+        .select('code')
+        .eq('trainer_id', profile.id)
+        .eq('is_active', true)
+        .limit(1)
+
+      if (existingCodes && existingCodes.length > 0) {
+        userReferralCode = (existingCodes[0] as any).code
+      } else {
+        // Generate new referral code
+        const generateReferralCode = () => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+          let result = ''
+          for (let i = 0; i < 8; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length))
           }
+          return result
+        }
 
-          let newReferralCode = generateReferralCode()
-          let attempts = 0
-          let codeExists = true
+        let newReferralCode = generateReferralCode()
+        let attempts = 0
+        let codeExists = true
 
-          while (codeExists && attempts < 10) {
-            const { data: checkCodes } = await supabase
-              .from('referral_codes')
-              .select('id')
-              .eq('code', newReferralCode)
-              .limit(1)
+        while (codeExists && attempts < 10) {
+          const { data: checkCodes } = await supabase
+            .from('referral_codes')
+            .select('id')
+            .eq('code', newReferralCode)
+            .limit(1)
 
-            if (!checkCodes || checkCodes.length === 0) {
-              codeExists = false
-            } else {
-              newReferralCode = generateReferralCode()
-              attempts++
-            }
-          }
-
-          if (!codeExists) {
-            const { data: newCode } = await supabase
-              .from('referral_codes')
-              .insert({
-                code: newReferralCode,
-                trainer_id: profile.id,
-                description: 'Referral code untuk berbagi program',
-                is_active: true,
-                discount_percentage: 0,
-                discount_amount: 0,
-                commission_percentage: 0,
-                commission_amount: 0
-              } as any)
-              .select('code')
-              .single()
-
-            if (newCode) {
-              userReferralCode = (newCode as any).code
-            }
+          if (!checkCodes || checkCodes.length === 0) {
+            codeExists = false
+          } else {
+            newReferralCode = generateReferralCode()
+            attempts++
           }
         }
 
-        // Check if user has used referral (has confirmed referral tracking)
-        const { data: trackingData } = await supabase
-          .from('referral_tracking')
-          .select('id')
-          .eq('trainer_id', profile.id)
-          .eq('status', 'confirmed')
-          .limit(1)
+        if (!codeExists) {
+          const { data: newCode } = await supabase
+            .from('referral_codes')
+            .insert({
+              code: newReferralCode,
+              trainer_id: profile.id,
+              description: 'Referral code untuk berbagi program',
+              is_active: true,
+              discount_percentage: 0,
+              discount_amount: 0,
+              commission_percentage: 0,
+              commission_amount: 0
+            } as any)
+            .select('code')
+            .single()
 
-        const hasReferralUsed = trackingData && trackingData.length > 0
-
-        // Materials list
-        const materials = [
-          'Fondasi AI Generatif dan Prompting Efektif',
-          'Dari Ide Menjadi Materi Ajar di Gemini Canvas',
-          'Integrasi Lanjutan, Etika dan Pemberdayaan Siswa',
-          'Sertifikasi Internasional Gemini Certified Educator',
-          'Diseminasi Pengimbasan Program'
-        ]
-
-        const openMaterials = hasReferralUsed ? materials : materials.slice(0, 2)
-        const lockedMaterials = hasReferralUsed ? [] : materials.slice(2)
-
-        // Generate referral link
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-        const referralLink = userReferralCode ? `${baseUrl}/referral/${userReferralCode}` : undefined
-
-        // Generate email HTML
-        const emailHtml = generateWelcomeEmail({
-          participantName: formData.full_name,
-          programTitle: program.title,
-          programDescription: program.description || '',
-          userReferralCode: userReferralCode || undefined,
-          referralLink: referralLink,
-          dashboardUrl: `${baseUrl}/dashboard`,
-          openMaterials,
-          lockedMaterials,
-          hasReferralUsed: !!hasReferralUsed,
-        })
-
-        // Send email via API (async, tidak perlu menunggu)
-        fetch('/api/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: formData.email,
-            subject: `Selamat Bergabung - ${program.title} | GARUDA-21 Training Center`,
-            html: emailHtml,
-            useQueue: true, // Use queue untuk scalability
-          }),
-        }).catch((error) => {
-          console.error('Error sending welcome email:', error)
-          // Don't throw - email sending failure shouldn't block enrollment
-        })
-      } catch (emailError) {
-        console.error('Error preparing welcome email:', emailError)
-        // Don't throw - email sending failure shouldn't block enrollment
+          if (newCode) {
+            userReferralCode = (newCode as any).code
+          }
+        }
       }
 
-      addNotification({
-        type: 'success',
-        title: 'Berhasil',
-        message: 'Pendaftaran berhasil! Detail lebih lanjut telah dikirim ke email Anda.'
+      // Check if user has used referral (has confirmed referral tracking)
+      const { data: trackingData } = await supabase
+        .from('referral_tracking')
+        .select('id')
+        .eq('trainer_id', profile.id)
+        .eq('status', 'confirmed')
+        .limit(1)
+
+      const hasReferralUsed = trackingData && trackingData.length > 0
+
+      // Materials list
+      const materials = [
+        'Fondasi AI Generatif dan Prompting Efektif',
+        'Dari Ide Menjadi Materi Ajar di Gemini Canvas',
+        'Integrasi Lanjutan, Etika dan Pemberdayaan Siswa',
+        'Sertifikasi Internasional Gemini Certified Educator',
+        'Diseminasi Pengimbasan Program'
+      ]
+
+      const openMaterials = hasReferralUsed ? materials : materials.slice(0, 2)
+      const lockedMaterials = hasReferralUsed ? [] : materials.slice(2)
+
+      // Generate referral link
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+      const referralLink = userReferralCode ? `${baseUrl}/referral/${userReferralCode}` : undefined
+
+      // Generate email HTML
+      const emailHtml = generateWelcomeEmail({
+        participantName: formData.full_name,
+        programTitle: program.title,
+        programDescription: program.description || '',
+        userReferralCode: userReferralCode || undefined,
+        referralLink: referralLink,
+        dashboardUrl: `${baseUrl}/dashboard`,
+        openMaterials,
+        lockedMaterials,
+        hasReferralUsed: !!hasReferralUsed,
       })
 
-      // Redirect to success page
-      setTimeout(() => {
-        router.push(`/register-referral/${referralCode}/success`)
-      }, 1000)
-
-    } catch (error: any) {
-      console.error('Error completing enrollment:', error)
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: error.message || 'Gagal menyelesaikan pendaftaran'
+      // Send email via API (async, tidak perlu menunggu)
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: formData.email,
+          subject: `Selamat Bergabung - ${program.title} | GARUDA-21 Training Center`,
+          html: emailHtml,
+          useQueue: true, // Use queue untuk scalability
+        }),
+      }).catch((error) => {
+        console.error('Error sending welcome email:', error)
+        // Don't throw - email sending failure shouldn't block enrollment
       })
-    } finally {
-      setSubmitting(false)
+    } catch (emailError) {
+      console.error('Error preparing welcome email:', emailError)
+      // Don't throw - email sending failure shouldn't block enrollment
     }
+
+    addNotification({
+      type: 'success',
+      title: 'Berhasil',
+      message: 'Pendaftaran berhasil! Detail lebih lanjut telah dikirim ke email Anda.'
+    })
+
+    // Redirect to success page
+    setTimeout(() => {
+      router.push(`/register-referral/${referralCode}/success`)
+    }, 1000)
+
+  } catch (error: any) {
+    console.error('Error completing enrollment:', error)
+    addNotification({
+      type: 'error',
+      title: 'Error',
+      message: error.message || 'Gagal menyelesaikan pendaftaran'
+    })
+  } finally {
+    setSubmitting(false)
   }
+}
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Memvalidasi kode referral...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!program || !referralData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Kode Referral Tidak Valid</h2>
-          <Link href="/programs" className="text-blue-600 hover:text-blue-700">
-            Kembali ke Daftar Program
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const finalPrice = calculateFinalPrice()
-  const discount = program.price - finalPrice
-
+if (loading) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Pendaftaran dengan Referral</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-2">
-            Lengkapi data diri Anda untuk melanjutkan pendaftaran dengan kode referral
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Memvalidasi kode referral...</p>
+      </div>
+    </div>
+  )
+}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          {/* Program Info */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:sticky lg:top-8">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Program Detail</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-900">{program.title}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{program.description}</p>
-                </div>
-                
-                <div className="border-t pt-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Harga Normal:</span>
-                    <span className="font-medium">Rp {program.price.toLocaleString('id-ID')}</span>
-                  </div>
-                  
-                  {discount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 mt-1">
-                      <span>Diskon:</span>
-                      <span className="font-medium">-Rp {discount.toLocaleString('id-ID')}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between text-lg font-semibold text-gray-900 mt-2 pt-2 border-t">
-                    <span>Total:</span>
-                    <span>Rp {finalPrice.toLocaleString('id-ID')}</span>
-                  </div>
+if (!program || !referralData) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Kode Referral Tidak Valid</h2>
+        <Link href="/programs" className="text-blue-600 hover:text-blue-700">
+          Kembali ke Daftar Program
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+const finalPrice = calculateFinalPrice()
+const discount = program.price - finalPrice
+
+return (
+  <div className="min-h-screen bg-gray-50">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {/* Header */}
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Pendaftaran dengan Referral</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-2">
+          Lengkapi data diri Anda untuk melanjutkan pendaftaran dengan kode referral
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* Program Info */}
+        <div className="lg:col-span-1 order-2 lg:order-1">
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:sticky lg:top-8">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Program Detail</h3>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-gray-900">{program.title}</h4>
+                <p className="text-sm text-gray-600 mt-1">{program.description}</p>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Harga Normal:</span>
+                  <span className="font-medium">Rp {program.price.toLocaleString('id-ID')}</span>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">Kode Referral Valid</span>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 mt-1">
+                    <span>Diskon:</span>
+                    <span className="font-medium">-Rp {discount.toLocaleString('id-ID')}</span>
                   </div>
-                  <p className="text-xs text-blue-700 mt-1">
-                    Dari: {program.trainer.full_name}
-                  </p>
+                )}
+
+                <div className="flex justify-between text-lg font-semibold text-gray-900 mt-2 pt-2 border-t">
+                  <span>Total:</span>
+                  <span>Rp {finalPrice.toLocaleString('id-ID')}</span>
                 </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">Kode Referral Valid</span>
+                </div>
+                <p className="text-xs text-blue-700 mt-1">
+                  Dari: {program.trainer.full_name}
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Form */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Data Diri</h3>
-              
-              <div className="space-y-6">
-                {/* Accordion 1: Personal Information */}
-                <div className="border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('personal')}
-                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Pribadi</span>
-                      {isSectionComplete('personal') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
-                          ✓ Lengkap
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
-                          {getMissingFields('personal').length} field kosong
-                        </span>
-                      )}
-                    </div>
-                    {accordionStates.personal ? (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+        {/* Form */}
+        <div className="lg:col-span-2 order-1 lg:order-2">
+          <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Data Diri</h3>
+
+            <div className="space-y-6">
+              {/* Accordion 1: Personal Information */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('personal')}
+                  className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Pribadi</span>
+                    {isSectionComplete('personal') ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+                        ✓ Lengkap
+                      </span>
                     ) : (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
+                        {getMissingFields('personal').length} field kosong
+                      </span>
                     )}
-                  </button>
-                  
-                  {accordionStates.personal && (
+                  </div>
+                  {accordionStates.personal ? (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
+
+                {accordionStates.personal && (
                   <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -2670,7 +2700,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Email *
@@ -2684,7 +2714,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
-                      
+
                       <div className="relative background-dropdown-container">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Latar Belakang *
@@ -2714,7 +2744,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             </svg>
                           </button>
                         </div>
-                        
+
                         {isBackgroundDropdownOpen && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 sm:max-h-60 overflow-auto">
                             {filteredBackgroundOptions.length > 0 ? (
@@ -2740,7 +2770,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Jenis Kelamin *
@@ -2758,7 +2788,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           <option value="other">Lainnya</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Tanggal Lahir *
@@ -2772,7 +2802,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           No WhatsApp *
@@ -2787,7 +2817,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 hover:border-gray-400 transition-colors"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Provinsi *
@@ -2807,7 +2837,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           ))}
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Kabupaten *
@@ -2828,7 +2858,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           ))}
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Kecamatan *
@@ -2851,40 +2881,40 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       </div>
                     </div>
                   </div>
-                  )}
-                </div>
+                )}
+              </div>
 
-                {/* Accordion 2: Career & Education */}
-                <div className="border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('career')}
-                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">Karier & Pendidikan</span>
-                      {isSectionComplete('career') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
-                          ✓ Lengkap
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
-                          {getMissingFields('career').length} field kosong
-                        </span>
-                      )}
-                    </div>
-                    {accordionStates.career ? (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+              {/* Accordion 2: Career & Education */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('career')}
+                  className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">Karier & Pendidikan</span>
+                    {isSectionComplete('career') ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+                        ✓ Lengkap
+                      </span>
                     ) : (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
+                        {getMissingFields('career').length} field kosong
+                      </span>
                     )}
-                  </button>
-                  
-                  {accordionStates.career && (
+                  </div>
+                  {accordionStates.career ? (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
+
+                {accordionStates.career && (
                   <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="relative education-dropdown-container">
@@ -2916,7 +2946,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                             </svg>
                           </button>
                         </div>
-                        
+
                         {isEducationDropdownOpen && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 sm:max-h-60 overflow-auto">
                             {filteredEducationOptions.length > 0 ? (
@@ -2942,7 +2972,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Status Pendidikan *
@@ -2959,7 +2989,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           <option value="tidak">Tidak Menempuh Pendidikan</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Status Pekerjaan *
@@ -2978,40 +3008,40 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       </div>
                     </div>
                   </div>
-                  )}
-                </div>
+                )}
+              </div>
 
-                {/* Accordion 3: Other Information */}
-                <div className="border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('other')}
-                    className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Lainnya</span>
-                      {isSectionComplete('other') ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
-                          ✓ Lengkap
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
-                          {getMissingFields('other').length} field kosong
-                        </span>
-                      )}
-                    </div>
-                    {accordionStates.other ? (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+              {/* Accordion 3: Other Information */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('other')}
+                  className="w-full px-3 sm:px-4 py-3 text-left flex items-center justify-between bg-gray-50 rounded-t-lg hover:bg-gray-100"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="font-medium text-gray-900 text-sm sm:text-base">Informasi Lainnya</span>
+                    {isSectionComplete('other') ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex-shrink-0">
+                        ✓ Lengkap
+                      </span>
                     ) : (
-                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 flex-shrink-0">
+                        {getMissingFields('other').length} field kosong
+                      </span>
                     )}
-                  </button>
-                  
-                  {accordionStates.other && (
+                  </div>
+                  {accordionStates.other ? (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
+
+                {accordionStates.other && (
                   <div className="p-3 sm:p-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -3030,7 +3060,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                           <option value="tidak">Tidak</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Apakah kamu penyandang disabilitas? *
@@ -3048,7 +3078,7 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                         </select>
                       </div>
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Dari mana kamu mengetahui program ini? * (bisa lebih dari 1)
@@ -3070,85 +3100,84 @@ export default function RegisterReferralPage({ params }: { params: { code: strin
                       </div>
                     </div>
                   </div>
-                  )}
-                </div>
+                )}
               </div>
+            </div>
 
-              {/* Consent Section - Always visible at the bottom */}
-              <div className="mt-6 sm:mt-8 border rounded-lg p-3 sm:p-4 bg-gray-50">
-                <h4 className="font-medium text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Pernyataan Persetujuan</h4>
-                
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
-                    <input
-                      type="checkbox"
-                      name="consent_privacy"
-                      checked={formData.consent_privacy}
-                      onChange={handleInputChange}
-                      required
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="text-xs sm:text-sm text-gray-700">
-                      Saya menyetujui penggunaan data pribadi saya sesuai dengan kebijakan privasi yang berlaku. *
-                    </span>
-                  </label>
-                  
-                  <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
-                    <input
-                      type="checkbox"
-                      name="consent_contact"
-                      checked={formData.consent_contact}
-                      onChange={handleInputChange}
-                      required
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="text-xs sm:text-sm text-gray-700">
-                      Saya menyetujui untuk dihubungi melalui email atau telepon untuk keperluan program. *
-                    </span>
-                  </label>
-                  
-                  <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
-                    <input
-                      type="checkbox"
-                      name="consent_terms"
-                      checked={formData.consent_terms}
-                      onChange={handleInputChange}
-                      required
-                      className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="text-xs sm:text-sm text-gray-700">
-                      Saya menyetujui syarat dan ketentuan yang berlaku. *
-                    </span>
-                  </label>
-                </div>
+            {/* Consent Section - Always visible at the bottom */}
+            <div className="mt-6 sm:mt-8 border rounded-lg p-3 sm:p-4 bg-gray-50">
+              <h4 className="font-medium text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">Pernyataan Persetujuan</h4>
+
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
+                  <input
+                    type="checkbox"
+                    name="consent_privacy"
+                    checked={formData.consent_privacy}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-xs sm:text-sm text-gray-700">
+                    Saya menyetujui penggunaan data pribadi saya sesuai dengan kebijakan privasi yang berlaku. *
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
+                  <input
+                    type="checkbox"
+                    name="consent_contact"
+                    checked={formData.consent_contact}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-xs sm:text-sm text-gray-700">
+                    Saya menyetujui untuk dihubungi melalui email atau telepon untuk keperluan program. *
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 p-2 hover:bg-white rounded-md transition-colors">
+                  <input
+                    type="checkbox"
+                    name="consent_terms"
+                    checked={formData.consent_terms}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-xs sm:text-sm text-gray-700">
+                    Saya menyetujui syarat dan ketentuan yang berlaku. *
+                  </span>
+                </label>
               </div>
+            </div>
 
-              {/* Submit Button */}
-              <div className="mt-4 sm:mt-6 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms}
-                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 text-sm sm:text-base ${
-                    submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms
-                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+            {/* Submit Button */}
+            <div className="mt-4 sm:mt-6 flex justify-end">
+              <button
+                type="submit"
+                disabled={submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms}
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg flex items-center gap-2 text-sm sm:text-base ${submitting || !isAllSectionsComplete() || !formData.consent_privacy || !formData.consent_contact || !formData.consent_terms
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
-                >
-                  {submitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
-                      <span className="hidden sm:inline">Memproses...</span>
-                      <span className="sm:hidden">Proses...</span>
-                    </>
-                  ) : (
-                    'Daftar Program'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+                    <span className="hidden sm:inline">Memproses...</span>
+                    <span className="sm:hidden">Proses...</span>
+                  </>
+                ) : (
+                  'Daftar Program'
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
-  )
+  </div>
+)
 }
