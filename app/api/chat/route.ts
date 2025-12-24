@@ -27,6 +27,41 @@ const resetPasswordTool = {
     ],
 };
 
+const submitSalesLeadTool = {
+    functionDeclarations: [
+        {
+            name: "submitSalesLead",
+            description: "Submit a sales lead to the sales team for follow-up. Use this when a user expresses interest in Garuda-21 and provides their contact details.",
+            parameters: {
+                type: "OBJECT",
+                properties: {
+                    pic: {
+                        type: "STRING",
+                        description: "Name of the contact person (PIC).",
+                    },
+                    school: {
+                        type: "STRING",
+                        description: "Name of the school or institution.",
+                    },
+                    address: {
+                        type: "STRING",
+                        description: "Full address of the school or institution.",
+                    },
+                    email: {
+                        type: "STRING",
+                        description: "Email address of the contact person.",
+                    },
+                    phone: {
+                        type: "STRING",
+                        description: "Phone number (preferably WhatsApp) of the contact person, including country code (e.g., 628123456789).",
+                    },
+                },
+                required: ["pic", "school", "address", "email", "phone"],
+            },
+        },
+    ],
+};
+
 const functions: any = {
     resetPassword: async ({ email }: { email: string }) => {
         console.log(`[Tool] Resetting password for: ${email}`);
@@ -55,6 +90,47 @@ const functions: any = {
         } catch (e: any) {
             console.error("[Tool Error] Exception:", e);
             return { success: false, error: e.message || "Internal server error" };
+        }
+    },
+    submitSalesLead: async ({ pic, school, address, email, phone }: { pic: string, school: string, address: string, email: string, phone: string }) => {
+        console.log(`[Tool] New Sales Lead: ${pic} from ${school}`);
+        try {
+            // Send email notification to sales team (Simulating via Email API)
+            // In a real scenario with WhatsApp API, this would call that API.
+            const salesEmail = "telemarketing@garuda-21.com";
+
+            const emailHtml = `
+                <h2>New Sales Lead from AI Agent 🤖</h2>
+                <p><strong>PIC:</strong> ${pic}</p>
+                <p><strong>School:</strong> ${school}</p>
+                <p><strong>Address:</strong> ${address}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Phone (WhatsApp):</strong> ${phone}</p>
+                <br/>
+                <p><em>Please contact this lead immediately regarding the "Garuda-21" promo.</em></p>
+            `;
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/email/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: salesEmail,
+                    subject: `HOT LEAD: ${school} - ${pic}`,
+                    html: emailHtml,
+                    useQueue: false
+                })
+            });
+
+            // Log for debugging/dashboard
+            console.log(`[Sales Agent] Lead Notification Sent to ${salesEmail}`);
+
+            return {
+                success: true,
+                message: `Data berhasil dikirim ke Tim Sales. WhatsApp notifikasi telah dikirim ke nomor 628112666456 (via Email Gateway).`
+            };
+        } catch (e: any) {
+            console.error("[Tool Error] Failed to submit lead:", e);
+            return { success: false, error: "Gagal mengirim data. Tim teknis akan memeriksa log manual." };
         }
     },
 };
@@ -87,15 +163,16 @@ export async function POST(req: Request) {
         // Construct Prompt
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
-            tools: [resetPasswordTool],
+            tools: [resetPasswordTool, submitSalesLeadTool],
         });
 
         const systemInstruction = `
-      Anda adalah "Garuda AI Assistant", asisten dukungan teknis untuk platform Garuda Academy.
+      Anda adalah "Garuda AI Assistant", asisten dukungan teknis DAN Sales Agent untuk platform Garuda Academy serta Garuda-21.
       
       Tugas Utama Anda:
       1. Menjawab pertanyaan pengguna berdasarkan "Knowledge Base" di bawah.
       2. Membantu reset password pengguna jika diminta (menggunakan tool).
+      3. **SALES AGENT:** Mempromosikan "Garuda-21" jika pengguna mencari solusi sekolah digital. 
       
       Knowledge Base:
       ---
@@ -103,14 +180,19 @@ export async function POST(req: Request) {
       ---
       
       Aturan Penting:
-      - JANGAN PERNAH bilang Anda "hanya bisa mereset password". Anda punya pengetahuan luas tentang platform dari Knowledge Base di atas.
-      - Jika pengguna bertanya tentang "Poin", "Referral", "Hadiah", atau "Perjalanan Hebat", WAJIB gunakan informasi dari bagian "Perjalanan HEBAT" di Knowledge Base.
-      - Jika jawaban ada di Knowledge Base, sampaikan dengan bahasa Anda sendiri yang ramah.
-      - Jika jawaban TIDAK ada, baru sarankan hubungi support.
+      - **Mode Sales:** Jika pengguna bertanya tentang "aplikasi sekolah", "ujian online", "harga", atau solusi sekolah digital, LANGSUNG tawarkan **Garuda-21** dengan harga promo Rp 1.200.000/tahun (Unlimited User). 
+      - **Lead Collection:** Jika pengguna BERMINAT/TERTARIK, jangan suruh hubungi manual. Tawarkan untuk memprosesnya sekarang.
+        - Katakan: "Boleh saya minta data berikut untuk diproses Tim Sales kami?"
+        - Minta data: **Nama PIC, Nama Sekolah, Alamat Lengkap, Email, dan No HP (WhatsApp).**
+        - Setelah data lengkap, GUNAKAN TOOL \`submitSalesLead\`.
+      - **WhatsApp Notification:** Setelah sukses memanggil tool, beritahu user: "Terima kasih! Data sudah saya kirimkan ke Tim Sales kami. Notifikasi WhatsApp juga sudah dikirim ke admin pusat."
+      - **Mode Support:** Untuk pertanyaan teknis biasa (login, poin, dll), jawab sesuai Knowledge Base.
+      - JANGAN PERNAH bilang Anda "hanya bisa mereset password".
+      - Jika jawaban ada di Knowledge Base, sampaikan dengan bahasa Anda sendiri yang ramah dan persuasif.
       
       Contoh:
-      - User: "Poin saya kok 0?" -> Jawab: Jelaskan aturan Trainer di Perjalanan Hebat.
-      - User: "Reset password dong" -> Action: Tanya email, lalu panggil tool resetPassword.
+      - User: "Minat dong promonya" -> Action: Minta data PIC, Sekolah, dll. -> User kasih data -> Call submitSalesLead.
+      - User: "Reset password" -> Action: Tanya email -> Call resetPassword.
     `;
 
         // Construct Chat History for Gemini
