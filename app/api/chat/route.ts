@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
@@ -15,10 +15,10 @@ const resetPasswordTool = {
             name: "resetPassword",
             description: "Send a password reset email to a user.",
             parameters: {
-                type: "OBJECT",
+                type: SchemaType.OBJECT,
                 properties: {
                     email: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "The email address of the user who needs to reset their password.",
                     },
                 },
@@ -34,26 +34,26 @@ const submitSalesLeadTool = {
             name: "submitSalesLead",
             description: "Submit a sales lead to the sales team for follow-up. Use this when a user expresses interest in Garuda-21 and provides their contact details.",
             parameters: {
-                type: "OBJECT",
+                type: SchemaType.OBJECT,
                 properties: {
                     pic: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "Name of the contact person (PIC).",
                     },
                     school: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "Name of the school or institution.",
                     },
                     address: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "Full address of the school or institution.",
                     },
                     email: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "Email address of the contact person.",
                     },
                     phone: {
-                        type: "STRING",
+                        type: SchemaType.STRING,
                         description: "Phone number (preferably WhatsApp) of the contact person, including country code (e.g., 628123456789).",
                     },
                 },
@@ -62,6 +62,32 @@ const submitSalesLeadTool = {
         },
     ],
 };
+
+const getUpcomingWebinarsTool = {
+    functionDeclarations: [
+        {
+            name: "getUpcomingWebinars",
+            description: "Get the list of upcoming webinars from the database. Use this when a user asks about future webinars, schedules, or events.",
+            parameters: {
+                type: SchemaType.OBJECT,
+                properties: {}, // No inputs needed
+            },
+        },
+    ],
+};
+
+
+
+// Define minimal type for Webinar since it might be missing in Database types
+interface Webinar {
+    title: string;
+    start_time: string;
+    end_time: string;
+    description: string;
+    slug: string;
+    platform?: string;
+    link?: string;
+}
 
 const functions: any = {
     resetPassword: async ({ email }: { email: string }) => {
@@ -134,6 +160,54 @@ const functions: any = {
             return { success: false, error: "Gagal mengirim data. Tim teknis akan memeriksa log manual." };
         }
     },
+    getUpcomingWebinars: async () => {
+        console.log(`[Tool] Fetching upcoming webinars...`);
+        try {
+            const supabase = getSupabaseAdmin();
+            const now = new Date().toISOString();
+
+            const { data, error } = await supabase
+                .from('webinars')
+                .select('title, start_time, end_time, description, slug, platform, link')
+                .eq('is_published', true)
+                .gte('start_time', now)
+                .order('start_time', { ascending: true });
+
+            if (error) {
+                console.error("[Tool Error] Supabase:", error);
+                return { success: false, error: error.message };
+            }
+
+            // Cast data to Webinar[] because 'webinars' might not be in the generated types yet
+            const webinars = data as unknown as Webinar[];
+
+            if (!webinars || webinars.length === 0) {
+                return {
+                    success: true,
+                    webinars: [],
+                    message: "Saat ini belum ada jadwal webinar baru yang akan datang."
+                };
+            }
+
+            // Format data for AI consumption
+            const formattedWebinars = webinars.map(w => ({
+                title: w.title,
+                date: new Date(w.start_time).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+                time: `${new Date(w.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${new Date(w.end_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+                description: w.description,
+                link: `${process.env.NEXT_PUBLIC_SITE_URL}/webinars/${w.slug || ''}`
+            }));
+
+            return {
+                success: true,
+                webinars: formattedWebinars
+            };
+
+        } catch (e: any) {
+            console.error("[Tool Error] Exception:", e);
+            return { success: false, error: e.message || "Internal server error" };
+        }
+    }
 };
 
 export async function POST(req: Request) {
@@ -158,7 +232,7 @@ export async function POST(req: Request) {
         // Construct Prompt
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
-            tools: [resetPasswordTool, submitSalesLeadTool],
+            tools: [resetPasswordTool, submitSalesLeadTool, getUpcomingWebinarsTool],
         });
 
         const systemInstruction = `
@@ -167,7 +241,8 @@ export async function POST(req: Request) {
       Tugas Utama Anda:
       1. Menjawab pertanyaan pengguna berdasarkan "Knowledge Base" di bawah.
       2. Membantu reset password pengguna jika diminta (menggunakan tool).
-      3. **SALES AGENT:** Mempromosikan "Garuda-21" jika pengguna mencari solusi sekolah digital. 
+      3. Memberikan informasi jadwal webinar jika pengguna bertanya (menggunakan tool).
+      4. **SALES AGENT:** Mempromosikan "Garuda-21" jika pengguna mencari solusi sekolah digital. 
       
       Knowledge Base:
       ---
@@ -180,6 +255,10 @@ export async function POST(req: Request) {
         - Katakan: "Boleh saya minta data berikut untuk diproses Tim Sales kami?"
         - Minta data: **Nama PIC, Nama Sekolah, Alamat Lengkap, Email, dan No HP (WhatsApp).**
         - Setelah data lengkap, GUNAKAN TOOL \`submitSalesLead\`.
+      - **Webinar Info:** Jika pengguna bertanya tentang "webinar", "jadwal", "pelatihan live", atau "acara besok", GUNAKAN TOOL \`getUpcomingWebinars\`.
+        - Jangan mengarang jadwal webinar. Selalu cek database real-time.
+        - Jika tool mengembalikan daftar webinar, sajikan dengan rapi (Judul, Tanggal/Jam, dan Link Pendaftaran).
+        - Jika kosong, katakan dengan sopan bahwa belum ada jadwal dan sarankan cek berkala.
       - **WhatsApp Notification:** Setelah sukses memanggil tool, beritahu user: "Terima kasih! Data sudah saya kirimkan ke Tim Sales kami. Notifikasi WhatsApp juga sudah dikirim ke admin pusat."
       - **Mode Support:** Untuk pertanyaan teknis biasa (login, poin, dll), jawab sesuai Knowledge Base.
       - JANGAN PERNAH bilang Anda "hanya bisa mereset password".
@@ -188,6 +267,7 @@ export async function POST(req: Request) {
       Contoh:
       - User: "Minat dong promonya" -> Action: Minta data PIC, Sekolah, dll. -> User kasih data -> Call submitSalesLead.
       - User: "Reset password" -> Action: Tanya email -> Call resetPassword.
+      - User: "Ada webinar apa minggu ini?" -> Action: Call getUpcomingWebinars.
     `;
 
         // Construct Chat History for Gemini
