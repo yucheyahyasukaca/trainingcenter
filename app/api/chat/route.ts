@@ -2,9 +2,62 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+// Define Tools
+const resetPasswordTool = {
+    functionDeclarations: [
+        {
+            name: "resetPassword",
+            description: "Send a password reset email to a user.",
+            parameters: {
+                type: "OBJECT",
+                properties: {
+                    email: {
+                        type: "STRING",
+                        description: "The email address of the user who needs to reset their password.",
+                    },
+                },
+                required: ["email"],
+            },
+        },
+    ],
+};
+
+const functions: any = {
+    resetPassword: async ({ email }: { email: string }) => {
+        console.log(`[Tool] Resetting password for: ${email}`);
+        try {
+            // Instead of calling Supabase directly (which fails due to SMTP config),
+            // we call the existing local API endpoint that handles manual reset + custom email sending.
+            const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add a secret header or rely on the internal nature if strictly server-side, 
+                    // but here we are calling a public endpoint from server-side.
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("[Tool Error] API:", data);
+                return { success: false, error: data.error || "Failed to reset password via API" };
+            }
+
+            return { success: true, message: data.message || `Password reset email sent to ${email}` };
+
+        } catch (e: any) {
+            console.error("[Tool Error] Exception:", e);
+            return { success: false, error: e.message || "Internal server error" };
+        }
+    },
+};
 
 export async function POST(req: Request) {
     try {
@@ -13,9 +66,6 @@ export async function POST(req: Request) {
         // Log the API key status (first 4 chars only for security)
         const key = process.env.GEMINI_API_KEY;
         console.log("Chat API Request received.");
-        console.log("API Key configured:", !!key);
-        if (key) console.log("API Key prefix:", key.substring(0, 4) + "...");
-
         if (!key) {
             console.error("GEMINI_API_KEY is missing in environment variables.");
             return NextResponse.json(
@@ -25,23 +75,20 @@ export async function POST(req: Request) {
         }
 
         // Load Knowledge Base
-        const knowledgePath = path.join(
-            process.cwd(),
-            "lib",
-            "knowledge",
-            "tech-support.md"
-        );
+        const knowledgePath = path.join(process.cwd(), "lib", "knowledge", "tech-support.md");
         let knowledgeBase = "";
         try {
             knowledgeBase = fs.readFileSync(knowledgePath, "utf8");
-            console.log("Knowledge base loaded, length:", knowledgeBase.length);
         } catch (error) {
             console.error("Error reading knowledge base:", error);
             knowledgeBase = "Knowledge base not found.";
         }
 
         // Construct Prompt
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            tools: [resetPasswordTool],
+        });
 
         const systemInstruction = `
       Anda adalah "Garuda AI Assistant", asisten dukungan teknis untuk platform Garuda Academy.
@@ -54,16 +101,15 @@ export async function POST(req: Request) {
       
       Panduan:
       1. Jawablah dengan ramah, profesional, dan ringkas.
-      2. Gunakan Bahasa Indonesia yang baik dan benar.
-      3. Jika jawaban ada di Knowledge Base, gunakan informasi tersebut.
-      4. Jika jawaban TIDAK ada di Knowledge Base, katakan dengan sopan bahwa Anda tidak memiliki informasinya dan sarankan menghubungi support@garuda-21.com. JANGAN MENGARANG JAWABAN TEKNIS.
-      5. Anda boleh menjawab sapaan umum (Halo, Selamat Pagi) dengan wajar.
-      6. Format jawaban Anda bisa menggunakan Markdown (bold, list, dll) agar mudah dibaca.
+      2. Jika jawaban ada di Knowledge Base, gunakan informasi tersebut.
+      3. ANDA MEMILIKI KEMAMPUAN "Agentic" untuk me-reset password pengguna.
+         - Jika user minta reset password, TANYAKAN EMAIL mereka terlebih dahulu (jika belum disebut).
+         - Gunakan tool \`resetPassword(email)\` untuk mengirim email reset.
+         - Setelah sukses memanggil tool, beritahu user bahwa email sudah dikirim.
+      4. Gunakan Bahasa Indonesia yang baik dan benar.
     `;
 
         // Construct Chat History for Gemini
-        // Validating history: Gemini requires the first message to be from 'user'.
-        // Our frontend initializes with a 'model' greeting, so we must filter that out.
         const validHistory = history.filter((msg: any, index: number) => {
             // Skip the first message if it is from 'model' (the greeting)
             if (index === 0 && msg.role === 'model') return false;
@@ -80,24 +126,48 @@ export async function POST(req: Request) {
             },
         });
 
-        // Send message with system instruction context via a specific prompt structure or just relying on the preamble
-        // Gemini-pro doesn't have a strict "system" role in the same way as GPT-4 in the API yet (it varies),
-        // so standard practice is to include it in the first message or use the systemInstruction params if available in the SDK version.
-        // The current SDK supports systemInstruction in model config, let's try to verify if we can pass it.
-        // Since I can't easily verify SDK version features runtime, I will prepend the instruction to the last message transparently
-        // OR just treat the first message as a setup if history is empty.
-
-        // Better approach: wrap the user message with the system instruction if it's a fresh chat,
-        // but since we are stateless, we have to rely on the history passed.
-        // We will assume the `systemInstruction` is implicitly understood if we include it in the context of the prompt 
-        // or we can use the `systemInstruction` property if the model is initialized with one (v1.2+ of SDK).
-
-        // Let's try the safest "context injection" approach for now:
-        // We'll create a transient model instance with the instruction if possible, or just prepend context.
-
         console.log("Sending message to Gemini...");
-        const result = await chat.sendMessage(`${systemInstruction}\n\nUser Question: ${message}`);
+        // Prepend system instruction to the first message effectively
+        let finalMessage = message;
+        if (validHistory.length === 0) {
+            finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
+        }
+
+        const result = await chat.sendMessage(finalMessage);
         const response = result.response;
+
+        // Check for function calls
+        const candidates = response.candidates;
+        if (candidates && candidates[0].content.parts.length > 0) {
+            const firstPart = candidates[0].content.parts[0];
+
+            // Handle Function Call
+            if (firstPart.functionCall) {
+                const functionCall = firstPart.functionCall;
+                const functionName = functionCall.name;
+                const functionArgs = functionCall.args;
+
+                console.log(`[Gemini] Triggered Function Call: ${functionName}`, functionArgs);
+
+                if (functions[functionName]) {
+                    const functionResponse = await functions[functionName](functionArgs);
+                    console.log(`[Gemini] Function Execution Result:`, functionResponse);
+
+                    // Send result back to model to generate text response
+                    const result2 = await chat.sendMessage([{
+                        functionResponse: {
+                            name: functionName,
+                            response: {
+                                content: functionResponse
+                            }
+                        }
+                    }]);
+
+                    return NextResponse.json({ reply: result2.response.text() });
+                }
+            }
+        }
+
         const text = response.text();
         console.log("Received response from Gemini.");
 

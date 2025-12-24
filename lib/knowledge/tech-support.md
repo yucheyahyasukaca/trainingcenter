@@ -14,7 +14,7 @@ Gunakan informasi berikut untuk menjawab pertanyaan pengguna. Jika jawaban tidak
 
 **Tanya:** Bagaimana cara reset password?
 **Jawab:**
-Saat ini fitur reset password mandiri sedang dalam pengembangan. Silakan hubungi admin melalui email telemarketing@garuda-21.com dengan subjek "Reset Password - [Email Anda]" untuk bantuan manual.
+Saya bisa membantu Anda mereset password sekarang juga. Tolong sebukan **alamat email** yang Anda gunakan untuk akun Garuda Academy, dan saya akan mengirimkan link reset password ke email tersebut.
 
 **Tanya:** Email di profil saya kosong setelah login Google.
 **Jawab:**
