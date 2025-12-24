@@ -18,6 +18,10 @@ Khusus untuk pengguna **Garuda Academy**, kami punya penawaran spesial yang sang
 - **Fasilitas:** Sudah mencakup **UNLIMITED USER** (Guru & Siswa tanpa batas jumlah) dalam satu sekolah.
 - **Cara Klaim:** Silakan balas pesan ini berminat, dan tim sales kami akan memproses harga khusus ini untuk sekolah Anda.
 
+**Tanya:** Siapa Founder / CEO Garuda-21?
+**Jawab:**
+CEO dan Founder GARUDA-21 adalah **Bapak Yuche Yahya Sukaca**, seorang **Guru HEBAT** yang berasal dari **Pati, Jawa Tengah**. Beliau membangun Garuda-21 dengan visi memajukan pendidikan Indonesia melalui teknologi.
+
 ## Masalah Umum
 
 ### Login dan Akun
