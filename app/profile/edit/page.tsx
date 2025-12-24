@@ -21,71 +21,71 @@ const provinces = [
 // Indonesia kabupaten/kota data (sama dengan trainer profile)
 const kabupatenKota = {
   'Aceh': [
-    'Banda Aceh', 'Langsa', 'Lhokseumawe', 'Sabang', 'Subulussalam', 'Aceh Besar', 'Aceh Jaya', 'Aceh Selatan', 
-    'Aceh Singkil', 'Aceh Tamiang', 'Aceh Tengah', 'Aceh Tenggara', 'Aceh Timur', 'Aceh Utara', 'Bener Meriah', 
+    'Banda Aceh', 'Langsa', 'Lhokseumawe', 'Sabang', 'Subulussalam', 'Aceh Besar', 'Aceh Jaya', 'Aceh Selatan',
+    'Aceh Singkil', 'Aceh Tamiang', 'Aceh Tengah', 'Aceh Tenggara', 'Aceh Timur', 'Aceh Utara', 'Bener Meriah',
     'Bireuen', 'Gayo Lues', 'Nagan Raya', 'Pidie', 'Pidie Jaya', 'Simeulue'
   ],
   'Sumatera Utara': [
-    'Medan', 'Binjai', 'Pematangsiantar', 'Tebing Tinggi', 'Tanjungbalai', 'Sibolga', 'Padang Sidempuan', 
-    'Gunungsitoli', 'Asahan', 'Batubara', 'Dairi', 'Deli Serdang', 'Humbang Hasundutan', 'Karo', 'Labuhanbatu', 
-    'Labuhanbatu Selatan', 'Labuhanbatu Utara', 'Langkat', 'Mandailing Natal', 'Nias', 'Nias Barat', 'Nias Selatan', 
-    'Nias Utara', 'Padang Lawas', 'Padang Lawas Utara', 'Pakpak Bharat', 'Samosir', 'Serdang Bedagai', 'Simalungun', 
+    'Medan', 'Binjai', 'Pematangsiantar', 'Tebing Tinggi', 'Tanjungbalai', 'Sibolga', 'Padang Sidempuan',
+    'Gunungsitoli', 'Asahan', 'Batubara', 'Dairi', 'Deli Serdang', 'Humbang Hasundutan', 'Karo', 'Labuhanbatu',
+    'Labuhanbatu Selatan', 'Labuhanbatu Utara', 'Langkat', 'Mandailing Natal', 'Nias', 'Nias Barat', 'Nias Selatan',
+    'Nias Utara', 'Padang Lawas', 'Padang Lawas Utara', 'Pakpak Bharat', 'Samosir', 'Serdang Bedagai', 'Simalungun',
     'Tapanuli Selatan', 'Tapanuli Tengah', 'Tapanuli Utara', 'Toba Samosir'
   ],
   'Sumatera Barat': [
-    'Padang', 'Payakumbuh', 'Bukittinggi', 'Pariaman', 'Solok', 'Sawahlunto', 'Padang Panjang', 'Dharmasraya', 
-    'Pasaman', 'Pasaman Barat', 'Pesisir Selatan', 'Sijunjung', 'Solok Selatan', 'Tanah Datar', 'Agam', 'Lima Puluh Kota', 
+    'Padang', 'Payakumbuh', 'Bukittinggi', 'Pariaman', 'Solok', 'Sawahlunto', 'Padang Panjang', 'Dharmasraya',
+    'Pasaman', 'Pasaman Barat', 'Pesisir Selatan', 'Sijunjung', 'Solok Selatan', 'Tanah Datar', 'Agam', 'Lima Puluh Kota',
     'Kepulauan Mentawai', 'Padang Pariaman', 'Solok'
   ],
   'Riau': [
-    'Pekanbaru', 'Dumai', 'Bengkalis', 'Rengat', 'Tembilahan', 'Indragiri Hilir', 'Indragiri Hulu', 'Kampar', 
+    'Pekanbaru', 'Dumai', 'Bengkalis', 'Rengat', 'Tembilahan', 'Indragiri Hilir', 'Indragiri Hulu', 'Kampar',
     'Kepulauan Meranti', 'Kuantan Singingi', 'Pelalawan', 'Rokan Hilir', 'Rokan Hulu', 'Siak'
   ],
   'Kepulauan Riau': [
     'Batam', 'Tanjung Pinang', 'Bintan', 'Karimun', 'Kepulauan Anambas', 'Lingga', 'Natuna'
   ],
   'Jambi': [
-    'Jambi', 'Sungai Penuh', 'Batanghari', 'Bungo', 'Kerinci', 'Merangin', 'Muaro Jambi', 'Sarolangun', 
+    'Jambi', 'Sungai Penuh', 'Batanghari', 'Bungo', 'Kerinci', 'Merangin', 'Muaro Jambi', 'Sarolangun',
     'Tanjung Jabung Barat', 'Tanjung Jabung Timur', 'Tebo'
   ],
   'Sumatera Selatan': [
-    'Palembang', 'Prabumulih', 'Lubuklinggau', 'Pagar Alam', 'Banyuasin', 'Empat Lawang', 'Lahat', 'Muara Enim', 
-    'Musi Banyuasin', 'Musi Rawas', 'Musi Rawas Utara', 'Ogan Ilir', 'Ogan Komering Ilir', 'Ogan Komering Ulu', 
+    'Palembang', 'Prabumulih', 'Lubuklinggau', 'Pagar Alam', 'Banyuasin', 'Empat Lawang', 'Lahat', 'Muara Enim',
+    'Musi Banyuasin', 'Musi Rawas', 'Musi Rawas Utara', 'Ogan Ilir', 'Ogan Komering Ilir', 'Ogan Komering Ulu',
     'Ogan Komering Ulu Selatan', 'Ogan Komering Ulu Timur', 'Penukal Abab Lematang Ilir'
   ],
   'Bangka Belitung': [
     'Pangkal Pinang', 'Bangka', 'Bangka Barat', 'Bangka Selatan', 'Bangka Tengah', 'Belitung', 'Belitung Timur'
   ],
   'Bengkulu': [
-    'Bengkulu', 'Bengkulu Selatan', 'Bengkulu Tengah', 'Bengkulu Utara', 'Kaur', 'Kepahiang', 'Lebong', 
+    'Bengkulu', 'Bengkulu Selatan', 'Bengkulu Tengah', 'Bengkulu Utara', 'Kaur', 'Kepahiang', 'Lebong',
     'Mukomuko', 'Rejang Lebong', 'Seluma'
   ],
   'Lampung': [
-    'Bandar Lampung', 'Metro', 'Lampung Barat', 'Lampung Selatan', 'Lampung Tengah', 'Lampung Timur', 
-    'Lampung Utara', 'Mesuji', 'Pesawaran', 'Pringsewu', 'Tanggamus', 'Tulang Bawang', 'Tulang Bawang Barat', 
+    'Bandar Lampung', 'Metro', 'Lampung Barat', 'Lampung Selatan', 'Lampung Tengah', 'Lampung Timur',
+    'Lampung Utara', 'Mesuji', 'Pesawaran', 'Pringsewu', 'Tanggamus', 'Tulang Bawang', 'Tulang Bawang Barat',
     'Way Kanan', 'Pesisir Barat'
   ],
   'DKI Jakarta': [
     'Jakarta Pusat', 'Jakarta Utara', 'Jakarta Barat', 'Jakarta Selatan', 'Jakarta Timur', 'Kepulauan Seribu'
   ],
   'Jawa Barat': [
-    'Bandung', 'Bekasi', 'Bogor', 'Cirebon', 'Depok', 'Sukabumi', 'Tasikmalaya', 'Banjar', 'Cimahi', 'Cirebon', 
-    'Bandung', 'Bandung Barat', 'Bekasi', 'Bogor', 'Ciamis', 'Cianjur', 'Cirebon', 'Garut', 'Indramayu', 'Karawang', 
+    'Bandung', 'Bekasi', 'Bogor', 'Cirebon', 'Depok', 'Sukabumi', 'Tasikmalaya', 'Banjar', 'Cimahi', 'Cirebon',
+    'Bandung', 'Bandung Barat', 'Bekasi', 'Bogor', 'Ciamis', 'Cianjur', 'Cirebon', 'Garut', 'Indramayu', 'Karawang',
     'Kuningan', 'Majalengka', 'Pangandaran', 'Purwakarta', 'Subang', 'Sukabumi', 'Sumedang', 'Tasikmalaya'
   ],
   'Jawa Tengah': [
-    'Semarang', 'Surakarta', 'Salatiga', 'Magelang', 'Pekalongan', 'Tegal', 'Banjarnegara', 'Banyumas', 'Batang', 
-    'Blora', 'Boyolali', 'Brebes', 'Cilacap', 'Demak', 'Grobogan', 'Jepara', 'Karanganyar', 'Kebumen', 'Kendal', 
-    'Klaten', 'Kudus', 'Pati', 'Pemalang', 'Purbalingga', 'Purworejo', 'Rembang', 'Sragen', 'Sukoharjo', 'Temanggung', 
+    'Semarang', 'Surakarta', 'Salatiga', 'Magelang', 'Pekalongan', 'Tegal', 'Banjarnegara', 'Banyumas', 'Batang',
+    'Blora', 'Boyolali', 'Brebes', 'Cilacap', 'Demak', 'Grobogan', 'Jepara', 'Karanganyar', 'Kebumen', 'Kendal',
+    'Klaten', 'Kudus', 'Pati', 'Pemalang', 'Purbalingga', 'Purworejo', 'Rembang', 'Sragen', 'Sukoharjo', 'Temanggung',
     'Wonogiri', 'Wonosobo'
   ],
   'DI Yogyakarta': [
     'Yogyakarta', 'Bantul', 'Gunung Kidul', 'Kulon Progo', 'Sleman'
   ],
   'Jawa Timur': [
-    'Surabaya', 'Malang', 'Kediri', 'Blitar', 'Mojokerto', 'Pasuruan', 'Probolinggo', 'Batu', 'Bangkalan', 
-    'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember', 'Jombang', 'Kediri', 'Lamongan', 
-    'Lumajang', 'Madiun', 'Magetan', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo', 
+    'Surabaya', 'Malang', 'Kediri', 'Blitar', 'Mojokerto', 'Pasuruan', 'Probolinggo', 'Batu', 'Bangkalan',
+    'Banyuwangi', 'Blitar', 'Bojonegoro', 'Bondowoso', 'Gresik', 'Jember', 'Jombang', 'Kediri', 'Lamongan',
+    'Lumajang', 'Madiun', 'Magetan', 'Nganjuk', 'Ngawi', 'Pacitan', 'Pamekasan', 'Pasuruan', 'Ponorogo',
     'Probolinggo', 'Sampang', 'Sidoarjo', 'Situbondo', 'Sumenep', 'Trenggalek', 'Tuban', 'Tulungagung'
   ],
   'Banten': [
@@ -95,50 +95,50 @@ const kabupatenKota = {
     'Denpasar', 'Badung', 'Bangli', 'Buleleng', 'Gianyar', 'Jembrana', 'Karangasem', 'Klungkung', 'Tabanan'
   ],
   'Nusa Tenggara Barat': [
-    'Mataram', 'Bima', 'Dompu', 'Lombok Barat', 'Lombok Tengah', 'Lombok Timur', 'Lombok Utara', 'Sumbawa', 
+    'Mataram', 'Bima', 'Dompu', 'Lombok Barat', 'Lombok Tengah', 'Lombok Timur', 'Lombok Utara', 'Sumbawa',
     'Sumbawa Barat', 'Bima'
   ],
   'Nusa Tenggara Timur': [
-    'Kupang', 'Ende', 'Flores Timur', 'Kupang', 'Malaka', 'Manggarai', 'Manggarai Barat', 'Manggarai Timur', 
-    'Nagekeo', 'Ngada', 'Rote Ndao', 'Sabu Raijua', 'Sikka', 'Sumba Barat', 'Sumba Barat Daya', 'Sumba Tengah', 
+    'Kupang', 'Ende', 'Flores Timur', 'Kupang', 'Malaka', 'Manggarai', 'Manggarai Barat', 'Manggarai Timur',
+    'Nagekeo', 'Ngada', 'Rote Ndao', 'Sabu Raijua', 'Sikka', 'Sumba Barat', 'Sumba Barat Daya', 'Sumba Tengah',
     'Sumba Timur', 'Timor Tengah Selatan', 'Timor Tengah Utara'
   ],
   'Kalimantan Barat': [
-    'Pontianak', 'Singkawang', 'Bengkayang', 'Kapuas Hulu', 'Kayong Utara', 'Ketapang', 'Kubu Raya', 'Landak', 
+    'Pontianak', 'Singkawang', 'Bengkayang', 'Kapuas Hulu', 'Kayong Utara', 'Ketapang', 'Kubu Raya', 'Landak',
     'Melawi', 'Mempawah', 'Sambas', 'Sanggau', 'Sintang'
   ],
   'Kalimantan Tengah': [
-    'Palangka Raya', 'Barito Selatan', 'Barito Timur', 'Barito Utara', 'Gunung Mas', 'Kapuas', 'Katingan', 
+    'Palangka Raya', 'Barito Selatan', 'Barito Timur', 'Barito Utara', 'Gunung Mas', 'Kapuas', 'Katingan',
     'Kotawaringin Barat', 'Kotawaringin Timur', 'Lamandau', 'Murung Raya', 'Pulang Pisau', 'Sukamara', 'Seruyan'
   ],
   'Kalimantan Selatan': [
-    'Banjarmasin', 'Banjar Baru', 'Balangan', 'Hulu Sungai Selatan', 'Hulu Sungai Tengah', 'Hulu Sungai Utara', 
+    'Banjarmasin', 'Banjar Baru', 'Balangan', 'Hulu Sungai Selatan', 'Hulu Sungai Tengah', 'Hulu Sungai Utara',
     'Kotabaru', 'Tabalong', 'Tanah Bumbu', 'Tanah Laut', 'Tapin', 'Barito Kuala'
   ],
   'Kalimantan Timur': [
-    'Samarinda', 'Balikpapan', 'Bontang', 'Berau', 'Kutai Barat', 'Kutai Kartanegara', 'Kutai Timur', 'Penajam Paser Utara', 
+    'Samarinda', 'Balikpapan', 'Bontang', 'Berau', 'Kutai Barat', 'Kutai Kartanegara', 'Kutai Timur', 'Penajam Paser Utara',
     'Paser', 'Mahakam Ulu'
   ],
   'Kalimantan Utara': [
     'Tanjung Selor', 'Bulungan', 'Malinau', 'Nunukan', 'Tana Tidung'
   ],
   'Sulawesi Utara': [
-    'Manado', 'Bitung', 'Kotamobagu', 'Tomohon', 'Bolaang Mongondow', 'Bolaang Mongondow Selatan', 'Bolaang Mongondow Timur', 
-    'Bolaang Mongondow Utara', 'Kepulauan Sangihe', 'Kepulauan Siau Tagulandang Biaro', 'Kepulauan Talaud', 'Minahasa', 
+    'Manado', 'Bitung', 'Kotamobagu', 'Tomohon', 'Bolaang Mongondow', 'Bolaang Mongondow Selatan', 'Bolaang Mongondow Timur',
+    'Bolaang Mongondow Utara', 'Kepulauan Sangihe', 'Kepulauan Siau Tagulandang Biaro', 'Kepulauan Talaud', 'Minahasa',
     'Minahasa Selatan', 'Minahasa Tenggara', 'Minahasa Utara'
   ],
   'Sulawesi Tengah': [
-    'Palu', 'Banggai', 'Banggai Kepulauan', 'Banggai Laut', 'Buol', 'Donggala', 'Morowali', 'Morowali Utara', 
+    'Palu', 'Banggai', 'Banggai Kepulauan', 'Banggai Laut', 'Buol', 'Donggala', 'Morowali', 'Morowali Utara',
     'Parigi Moutong', 'Poso', 'Sigi', 'Tojo Una-Una', 'Tolitoli'
   ],
   'Sulawesi Selatan': [
-    'Makassar', 'Parepare', 'Palopo', 'Bantaeng', 'Barru', 'Bone', 'Bulukumba', 'Enrekang', 'Gowa', 'Jeneponto', 
-    'Kepulauan Selayar', 'Luwu', 'Luwu Timur', 'Luwu Utara', 'Maros', 'Pangkajene dan Kepulauan', 'Pinrang', 
+    'Makassar', 'Parepare', 'Palopo', 'Bantaeng', 'Barru', 'Bone', 'Bulukumba', 'Enrekang', 'Gowa', 'Jeneponto',
+    'Kepulauan Selayar', 'Luwu', 'Luwu Timur', 'Luwu Utara', 'Maros', 'Pangkajene dan Kepulauan', 'Pinrang',
     'Sidenreng Rappang', 'Sinjai', 'Soppeng', 'Takalar', 'Tana Toraja', 'Toraja Utara', 'Wajo'
   ],
   'Sulawesi Tenggara': [
-    'Kendari', 'Bau-Bau', 'Bombana', 'Buton', 'Buton Selatan', 'Buton Tengah', 'Buton Utara', 'Kolaka', 
-    'Kolaka Timur', 'Kolaka Utara', 'Konawe', 'Konawe Kepulauan', 'Konawe Selatan', 'Konawe Utara', 'Muna', 
+    'Kendari', 'Bau-Bau', 'Bombana', 'Buton', 'Buton Selatan', 'Buton Tengah', 'Buton Utara', 'Kolaka',
+    'Kolaka Timur', 'Kolaka Utara', 'Konawe', 'Konawe Kepulauan', 'Konawe Selatan', 'Konawe Utara', 'Muna',
     'Muna Barat', 'Wakatobi'
   ],
   'Gorontalo': [
@@ -148,20 +148,20 @@ const kabupatenKota = {
     'Mamuju', 'Majene', 'Mamasa', 'Mamuju Tengah', 'Mamuju Utara', 'Polewali Mandar'
   ],
   'Maluku': [
-    'Ambon', 'Tual', 'Buru', 'Buru Selatan', 'Kepulauan Aru', 'Kepulauan Tanimbar', 'Maluku Barat Daya', 
+    'Ambon', 'Tual', 'Buru', 'Buru Selatan', 'Kepulauan Aru', 'Kepulauan Tanimbar', 'Maluku Barat Daya',
     'Maluku Tengah', 'Maluku Tenggara', 'Seram Bagian Barat', 'Seram Bagian Timur'
   ],
   'Maluku Utara': [
-    'Sofifi', 'Ternate', 'Tidore Kepulauan', 'Halmahera Barat', 'Halmahera Tengah', 'Halmahera Utara', 
+    'Sofifi', 'Ternate', 'Tidore Kepulauan', 'Halmahera Barat', 'Halmahera Tengah', 'Halmahera Utara',
     'Halmahera Selatan', 'Halmahera Timur', 'Kepulauan Sula', 'Pulau Morotai', 'Pulau Taliabu'
   ],
   'Papua Barat': [
-    'Manokwari', 'Sorong', 'Fakfak', 'Kaimana', 'Manokwari', 'Maybrat', 'Pegunungan Arfak', 'Raja Ampat', 
+    'Manokwari', 'Sorong', 'Fakfak', 'Kaimana', 'Manokwari', 'Maybrat', 'Pegunungan Arfak', 'Raja Ampat',
     'Sorong', 'Sorong Selatan', 'Tambrauw', 'Teluk Bintuni', 'Teluk Wondama'
   ],
   'Papua': [
-    'Jayapura', 'Merauke', 'Biak Numfor', 'Jayapura', 'Keerom', 'Kepulauan Yapen', 'Mamberamo Raya', 
-    'Mamberamo Tengah', 'Mappi', 'Mimika', 'Nabire', 'Nduga', 'Paniai', 'Pegunungan Bintang', 'Puncak', 
+    'Jayapura', 'Merauke', 'Biak Numfor', 'Jayapura', 'Keerom', 'Kepulauan Yapen', 'Mamberamo Raya',
+    'Mamberamo Tengah', 'Mappi', 'Mimika', 'Nabire', 'Nduga', 'Paniai', 'Pegunungan Bintang', 'Puncak',
     'Puncak Jaya', 'Sarmi', 'Supiori', 'Tolikara', 'Waropen', 'Yahukimo', 'Yalimo'
   ]
 }
@@ -227,7 +227,7 @@ export default function EditUserProfilePage() {
   ]
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         setLoading(true)
         const { data: authUser } = await supabase.auth.getUser()
@@ -252,10 +252,18 @@ export default function EditUserProfilePage() {
         const prov = (userProfile as any)?.provinsi || (participant as any)?.provinsi || ''
         const kab = (userProfile as any)?.kabupaten || (participant as any)?.kabupaten || ''
 
+        console.log('🐞 DEBUG PROFILE EDIT:', {
+          userId,
+          authUserEmail: authUser?.user?.email,
+          userProfileEmail: (userProfile as any)?.email,
+          userProfileData: userProfile,
+          fullAuthUser: authUser
+        })
+
         setFormData(prev => ({
           ...prev,
           full_name: (userProfile as any)?.full_name || '',
-          email: (userProfile as any)?.email || '',
+          email: (userProfile as any)?.email || (authUser?.user?.email) || '',
           gender: (userProfile as any)?.gender || (participant as any)?.gender || '',
           date_of_birth: (participant as any)?.date_of_birth || '',
           whatsapp: (participant as any)?.phone || (userProfile as any)?.phone || '',
@@ -314,8 +322,8 @@ export default function EditUserProfilePage() {
 
   const filteredProvinces = provinceSearch.trim()
     ? provinces.filter(province =>
-        province.toLowerCase().includes(provinceSearch.toLowerCase())
-      )
+      province.toLowerCase().includes(provinceSearch.toLowerCase())
+    )
     : provinces
 
   const getKabupatenOptions = () => {
@@ -329,12 +337,12 @@ export default function EditUserProfilePage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
-    
+
     if (name === 'program_source') {
       const checkbox = e.target as HTMLInputElement
       setFormData(prev => ({
         ...prev,
-        program_source: checkbox.checked 
+        program_source: checkbox.checked
           ? [...prev.program_source, value]
           : prev.program_source.filter(item => item !== value)
       }))
@@ -414,7 +422,7 @@ export default function EditUserProfilePage() {
       setSaving(true)
       // Alamat komposit
       const addressComposite = `${formData.provinsi}, ${formData.kabupaten}`.trim()
-      
+
       // Upsert user_profiles
       const { error: profileError } = await supabase
         .from('user_profiles')
@@ -508,7 +516,7 @@ export default function EditUserProfilePage() {
           router.push(returnUrl)
           return
         }
-      } catch {}
+      } catch { }
       router.push('/profile')
     } catch (error: any) {
       console.error('Error saving profile:', error)
