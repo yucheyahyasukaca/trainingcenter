@@ -278,6 +278,7 @@ export interface Database {
           room: string | null
           materials_needed: string[] | null
           notes: string | null
+          auto_enroll: boolean
         }
         Insert: {
           id?: string
@@ -297,6 +298,7 @@ export interface Database {
           room?: string | null
           materials_needed?: string[] | null
           notes?: string | null
+          auto_enroll?: boolean
         }
         Update: {
           id?: string
@@ -316,6 +318,7 @@ export interface Database {
           room?: string | null
           materials_needed?: string[] | null
           notes?: string | null
+          auto_enroll?: boolean
         }
       }
       class_trainers: {
