@@ -117,18 +117,18 @@ export default function ChatWidget() {
                                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                 >
                                     <div
-                                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm break-words whitespace-pre-wrap ${msg.role === "user"
+                                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm break-words ${msg.role === "user"
                                             ? "bg-indigo-600 text-white rounded-tr-none"
                                             : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-tl-none"
                                             }`}
                                     >
                                         {msg.role === "model" ? (
                                             <div
-                                                className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4"
+                                                className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>li]:mb-0.5 leading-relaxed"
                                                 dangerouslySetInnerHTML={{ __html: marked(msg.content) }}
                                             />
                                         ) : (
-                                            <p>{msg.content}</p>
+                                            <p className="whitespace-pre-wrap">{msg.content}</p>
                                         )}
                                     </div>
                                 </motion.div>

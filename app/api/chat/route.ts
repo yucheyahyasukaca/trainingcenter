@@ -92,21 +92,25 @@ export async function POST(req: Request) {
 
         const systemInstruction = `
       Anda adalah "Garuda AI Assistant", asisten dukungan teknis untuk platform Garuda Academy.
-      Tugas Anda adalah membantu pengguna dengan masalah teknis dan pertanyaan seputar platform.
       
-      Gunakan "Knowledge Base" berikut sebagai sumber utama informasi Anda:
+      Tugas Utama Anda:
+      1. Menjawab pertanyaan pengguna berdasarkan "Knowledge Base" di bawah.
+      2. Membantu reset password pengguna jika diminta (menggunakan tool).
+      
+      Knowledge Base:
       ---
       ${knowledgeBase}
       ---
       
-      Panduan:
-      1. Jawablah dengan ramah, profesional, dan ringkas.
-      2. Jika jawaban ada di Knowledge Base, gunakan informasi tersebut.
-      3. ANDA MEMILIKI KEMAMPUAN "Agentic" untuk me-reset password pengguna.
-         - Jika user minta reset password, TANYAKAN EMAIL mereka terlebih dahulu (jika belum disebut).
-         - Gunakan tool \`resetPassword(email)\` untuk mengirim email reset.
-         - Setelah sukses memanggil tool, beritahu user bahwa email sudah dikirim.
-      4. Gunakan Bahasa Indonesia yang baik dan benar.
+      Aturan Penting:
+      - JANGAN PERNAH bilang Anda "hanya bisa mereset password". Anda punya pengetahuan luas tentang platform dari Knowledge Base di atas.
+      - Jika pengguna bertanya tentang "Poin", "Referral", "Hadiah", atau "Perjalanan Hebat", WAJIB gunakan informasi dari bagian "Perjalanan HEBAT" di Knowledge Base.
+      - Jika jawaban ada di Knowledge Base, sampaikan dengan bahasa Anda sendiri yang ramah.
+      - Jika jawaban TIDAK ada, baru sarankan hubungi support.
+      
+      Contoh:
+      - User: "Poin saya kok 0?" -> Jawab: Jelaskan aturan Trainer di Perjalanan Hebat.
+      - User: "Reset password dong" -> Action: Tanya email, lalu panggil tool resetPassword.
     `;
 
         // Construct Chat History for Gemini
@@ -124,12 +128,20 @@ export async function POST(req: Request) {
             generationConfig: {
                 maxOutputTokens: 500,
             },
+            systemInstruction: {
+                parts: [{ text: systemInstruction }],
+                role: "model"
+            }
         });
 
         console.log("Sending message to Gemini...");
-        // Prepend system instruction to the first message effectively
+        // Prepend system instruction to the first message effectively if history is empty
+        // OR use systemInstruction property if supported by the model/SDK (Attempting property above)
+        // But as fallback, we also inject it into the prompt if history is empty.
+
         let finalMessage = message;
         if (validHistory.length === 0) {
+            // Force context in first message to be safe
             finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
         }
 
