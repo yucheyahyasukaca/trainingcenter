@@ -89,6 +89,40 @@ Jika Anda SUDAH Trainer tapi poin referral tetap tidak masuk:
 2. Minta mereka untuk **mengklik/mengakses kembali Link Referral** Anda setelah login.
 3. Sistem akan memverifikasi dan poin akan masuk otomatis.
 
+### Detail Program HEBAT (Himpun - Eksplorasi - Berbagi - Present)
+
+**Tanya:** Apa itu HIMPUN?
+**Jawab:**
+**HIMPUN** adalah tahap pertama di mana Anda belajar mandiri melalui modul-modul di Garuda Academy.
+- **Tujuan:** Menyelesaikan semua modul pembelajaran.
+- **Benefit:** Mendapatkan ilmu, poin penyelesaian modul, dan sertifikat pelatihan setelah lulus.
+- **Status:** Setelah lulus Himpun, Anda resmi menjadi **Trainer** dan membuka fitur Eksplorasi, Berbagi, dan Present.
+
+**Tanya:** Apa itu EKSPLORASI dan bagaimana cara kerjanya?
+**Jawab:**
+**EKSPLORASI** adalah laporan Aksi Nyata Anda setelah belajar.
+- **Tugas:** Anda diminta membuat laporan praktik baik, bisa berupa:
+  1. **Aksi Nyata di Kelas:** Praktik penggunaan AI (Gems) dalam pembelajaran dengan siswa.
+  2. **Pengimbasan:** Melatih rekan guru lain tentang AI.
+- **Cara Lapor:** Isi form di menu Eksplorasi, ceritakan kisah suksesnya, dan unggah bukti foto/dokumentasi.
+- **Poin:** Setiap laporan yang disetujui bernilai **+5 Poin**.
+
+**Tanya:** Apa itu BERBAGI (Referral) dan Pelatihan Siswa?
+**Jawab:**
+Menu **BERBAGI** memiliki dua jenis kegiatan pengumpulan poin:
+1. **Referral GTK (Guru):** Mengajak rekan guru lain mendaftar dan belajar lewat link referral Anda. Poin (1 Poin/orang) didapat saat teman Anda menyelesaikan pembelajaran.
+2. **Pelatihan Siswa:** Anda melatih siswa Anda tentang AI. Poin dihitung **1 Poin per Siswa** yang hadir (Maksimal 150 Poin/bulan). Anda wajib upload bukti presensi/foto kegiatan di menu Berbagi tab "Pelatihan Siswa".
+
+**Tanya:** Apa itu PRESENT (Aktualisasi)?
+**Jawab:**
+**PRESENT** adalah tahap berbagi dampak melalui media sosial.
+- **Tugas:** Posting cerita dampak pembelajaran Google Gemini di media sosial (Instagram/Facebook/LinkedIn/dll).
+- **Syarat Wajib:**
+  - Sertakan foto/video kegiatan.
+  - Gunakan Hashtag: #GoogleGemini #GeminiUntukPendidik #IGI
+  - Tag akun: `@googleindonesia` dan `@garuda21.official`
+- **Poin:** Kirim link postingan dan screenshot di menu Present untuk dapat **+5 Poin**.
+
 ### Bantuan Teknis Lain
 
 ### Masalah Teknis Website
