@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { TECH_SUPPORT_KNOWLEDGE } from "@/lib/knowledge/tech-support-data";
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -151,14 +152,8 @@ export async function POST(req: Request) {
         }
 
         // Load Knowledge Base
-        const knowledgePath = path.join(process.cwd(), "lib", "knowledge", "tech-support.md");
-        let knowledgeBase = "";
-        try {
-            knowledgeBase = fs.readFileSync(knowledgePath, "utf8");
-        } catch (error) {
-            console.error("Error reading knowledge base:", error);
-            knowledgeBase = "Knowledge base not found.";
-        }
+        const knowledgeBase = TECH_SUPPORT_KNOWLEDGE;
+
 
         // Construct Prompt
         const model = genAI.getGenerativeModel({
