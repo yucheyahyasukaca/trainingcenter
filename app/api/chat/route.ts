@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
 import { TECH_SUPPORT_KNOWLEDGE } from "@/lib/knowledge/tech-support-data";
 import { getAppBaseUrl } from "@/lib/url-utils";
 
@@ -167,22 +167,19 @@ const functions: any = {
                 <p><em>Please contact this lead immediately regarding the "Garuda-21" promo.</em></p>
             `;
 
-            `;
-
-            const response = await fetch(`${ getAppBaseUrl() } /api/email / send`, {
-                method: 'POST',
+            const response = await fetch(`${getAppBaseUrl()}/api/email/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: salesEmail,
-                    subject: `HOT LEAD: ${ school } - ${ pic } `,
+                    subject: `HOT LEAD: ${school} - ${pic} `,
                     html: emailHtml,
                     useQueue: false
                 })
             });
 
             // Log for debugging/dashboard
-            console.log(`[Sales Agent] Lead Notification Sent to ${ salesEmail } `);
+            console.log(`[Sales Agent] Lead Notification Sent to ${salesEmail} `);
 
             return {
                 success: true,
@@ -194,7 +191,7 @@ const functions: any = {
         }
     },
     getWebinars: async ({ status = 'upcoming' }: { status?: 'upcoming' | 'past' }) => {
-        console.log(`[Tool] Fetching ${ status } webinars...`);
+        console.log(`[Tool] Fetching ${status} webinars...`);
         try {
             const supabase = getSupabaseAdmin();
             const now = new Date().toISOString();
@@ -241,9 +238,9 @@ const functions: any = {
             const formattedWebinars = webinars.map(w => ({
                 title: w.title,
                 date: new Date(w.start_time).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-                time: `${ new Date(w.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${ new Date(w.end_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) } WIB`,
+                time: `${new Date(w.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} - ${new Date(w.end_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
                 description: w.description,
-                link: `${ getAppBaseUrl() } /webinars/${ w.slug || '' } `
+                link: `${getAppBaseUrl()} /webinars/${w.slug || ''} `
             }));
 
             return {
@@ -257,7 +254,7 @@ const functions: any = {
         }
     },
     getTrainingPrograms: async ({ query, category }: { query?: string, category?: string }) => {
-        console.log(`[Tool] Fetching training programs...Query: ${ query }, Category: ${ category } `);
+        console.log(`[Tool] Fetching training programs...Query: ${query}, Category: ${category} `);
         try {
             const supabase = getSupabaseAdmin();
 
@@ -274,7 +271,7 @@ const functions: any = {
 
             if (query) {
                 // Simple ILIKE search on title or description
-                dbQuery = dbQuery.or(`title.ilike.% ${ query }%, description.ilike.% ${ query }% `);
+                dbQuery = dbQuery.or(`title.ilike.% ${query}%, description.ilike.% ${query}% `);
             }
 
             const { data, error } = await dbQuery;
@@ -296,9 +293,9 @@ const functions: any = {
             const formattedPrograms = data.map((p: any) => ({
                 title: p.title,
                 category: p.category,
-                price: p.price === 0 ? "Gratis" : `Rp ${ p.price.toLocaleString('id-ID') } `,
+                price: p.price === 0 ? "Gratis" : `Rp ${p.price.toLocaleString('id-ID')} `,
                 description: p.description?.substring(0, 150) + "...", // Truncate description
-                link: `${ getAppBaseUrl() } /programs/${ p.id } `
+                link: `${getAppBaseUrl()} /programs/${p.id} `
             }));
 
             return {
@@ -349,7 +346,7 @@ export async function POST(req: Request) {
       
       Knowledge Base:
 ---
-    ${ knowledgeBase }
+    ${knowledgeBase}
 ---
 
     Aturan Penting:
@@ -378,82 +375,82 @@ export async function POST(req: Request) {
       - User: "Ada webinar apa minggu ini?" -> Action: Call getUpcomingWebinars.
     `;
 
-// Construct Chat History for Gemini
-const validHistory = history.filter((msg: any, index: number) => {
-    // Skip the first message if it is from 'model' (the greeting)
-    if (index === 0 && msg.role === 'model') return false;
-    return true;
-});
+        // Construct Chat History for Gemini
+        const validHistory = history.filter((msg: any, index: number) => {
+            // Skip the first message if it is from 'model' (the greeting)
+            if (index === 0 && msg.role === 'model') return false;
+            return true;
+        });
 
-const chat = model.startChat({
-    history: validHistory.map((msg: any) => ({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.content }],
-    })),
-    generationConfig: {
-        maxOutputTokens: 500,
-    },
-    systemInstruction: {
-        parts: [{ text: systemInstruction }],
-        role: "model"
-    }
-});
+        const chat = model.startChat({
+            history: validHistory.map((msg: any) => ({
+                role: msg.role === "user" ? "user" : "model",
+                parts: [{ text: msg.content }],
+            })),
+            generationConfig: {
+                maxOutputTokens: 500,
+            },
+            systemInstruction: {
+                parts: [{ text: systemInstruction }],
+                role: "model"
+            }
+        });
 
-console.log("Sending message to Gemini...");
-// Prepend system instruction to the first message effectively if history is empty
-// OR use systemInstruction property if supported by the model/SDK (Attempting property above)
-// But as fallback, we also inject it into the prompt if history is empty.
+        console.log("Sending message to Gemini...");
+        // Prepend system instruction to the first message effectively if history is empty
+        // OR use systemInstruction property if supported by the model/SDK (Attempting property above)
+        // But as fallback, we also inject it into the prompt if history is empty.
 
-let finalMessage = message;
-if (validHistory.length === 0) {
-    // Force context in first message to be safe
-    finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
-}
-
-const result = await chat.sendMessage(finalMessage);
-const response = result.response;
-
-// Check for function calls
-const candidates = response.candidates;
-if (candidates && candidates[0].content.parts.length > 0) {
-    const firstPart = candidates[0].content.parts[0];
-
-    // Handle Function Call
-    if (firstPart.functionCall) {
-        const functionCall = firstPart.functionCall;
-        const functionName = functionCall.name;
-        const functionArgs = functionCall.args;
-
-        console.log(`[Gemini] Triggered Function Call: ${functionName}`, functionArgs);
-
-        if (functions[functionName]) {
-            const functionResponse = await functions[functionName](functionArgs);
-            console.log(`[Gemini] Function Execution Result:`, functionResponse);
-
-            // Send result back to model to generate text response
-            const result2 = await chat.sendMessage([{
-                functionResponse: {
-                    name: functionName,
-                    response: {
-                        content: functionResponse
-                    }
-                }
-            }]);
-
-            return NextResponse.json({ reply: result2.response.text() });
+        let finalMessage = message;
+        if (validHistory.length === 0) {
+            // Force context in first message to be safe
+            finalMessage = `${systemInstruction}\n\nUser Question: ${message}`;
         }
-    }
-}
 
-const text = response.text();
-console.log("Received response from Gemini.");
+        const result = await chat.sendMessage(finalMessage);
+        const response = result.response;
 
-return NextResponse.json({ reply: text });
+        // Check for function calls
+        const candidates = response.candidates;
+        if (candidates && candidates[0].content.parts.length > 0) {
+            const firstPart = candidates[0].content.parts[0];
+
+            // Handle Function Call
+            if (firstPart.functionCall) {
+                const functionCall = firstPart.functionCall;
+                const functionName = functionCall.name;
+                const functionArgs = functionCall.args;
+
+                console.log(`[Gemini] Triggered Function Call: ${functionName}`, functionArgs);
+
+                if (functions[functionName]) {
+                    const functionResponse = await functions[functionName](functionArgs);
+                    console.log(`[Gemini] Function Execution Result:`, functionResponse);
+
+                    // Send result back to model to generate text response
+                    const result2 = await chat.sendMessage([{
+                        functionResponse: {
+                            name: functionName,
+                            response: {
+                                content: functionResponse
+                            }
+                        }
+                    }]);
+
+                    return NextResponse.json({ reply: result2.response.text() });
+                }
+            }
+        }
+
+        const text = response.text();
+        console.log("Received response from Gemini.");
+
+        return NextResponse.json({ reply: text });
     } catch (error: any) {
-    console.error("Detailed Error in chat API:", error);
-    return NextResponse.json(
-        { error: error.message || "Failed to process request" },
-        { status: 500 }
-    );
-}
+        console.error("Detailed Error in chat API:", error);
+        return NextResponse.json(
+            { error: error.message || "Failed to process request" },
+            { status: 500 }
+        );
+    }
 }
