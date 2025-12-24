@@ -120,7 +120,7 @@ Menu **BERBAGI** memiliki dua jenis kegiatan pengumpulan poin:
 - **Syarat Wajib:**
   - Sertakan foto/video kegiatan.
   - Gunakan Hashtag: #GoogleGemini #GeminiUntukPendidik #IGI
-  - Tag akun: `@googleindonesia` dan `@garuda21.official`
+  - Tag akun: @googleindonesia dan @garuda21.official
 - **Poin:** Kirim link postingan dan screenshot di menu Present untuk dapat **+5 Poin**.
 
 ### Bantuan Teknis Lain
