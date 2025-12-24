@@ -167,6 +167,8 @@ export default function RegisterPage() {
 
         // Determine redirect destination
         const storedNext = sessionStorage.getItem('nextAfterAuth')
+        const storedReferral = sessionStorage.getItem('referralCode') // Check storage as primary source
+
         let redirectUrl = '/dashboard'
 
         if (storedNext) {
@@ -174,8 +176,8 @@ export default function RegisterPage() {
           redirectUrl = storedNext
         } else if (redirectToParam) {
           redirectUrl = redirectToParam
-        } else if (referralCode) {
-          redirectUrl = `/register-referral/${referralCode}`
+        } else if (referralCode || storedReferral) {
+          redirectUrl = `/register-referral/${referralCode || storedReferral}`
         }
 
         window.location.href = redirectUrl
@@ -257,14 +259,17 @@ export default function RegisterPage() {
       // Redirect based on referral code
       setTimeout(() => {
         const next = sessionStorage.getItem('nextAfterAuth')
+        const storedReferral = sessionStorage.getItem('referralCode') // Check storage as primary source
+
         if (next) {
           sessionStorage.removeItem('nextAfterAuth')
           router.push(next)
           router.refresh()
           return
         }
-        if (referralCode) {
-          router.push(`/register-referral/${referralCode}`)
+
+        if (referralCode || storedReferral) {
+          router.push(`/register-referral/${referralCode || storedReferral}`)
         } else {
           router.push('/dashboard')
         }

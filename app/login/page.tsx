@@ -200,6 +200,8 @@ export default function LoginPage() {
 
         // Handle post-login redirection
         const next = sessionStorage.getItem('nextAfterAuth')
+        const storedReferral = sessionStorage.getItem('referralCode') // Check storage as primary source
+
         let redirectUrl = '/dashboard'
 
         if (next) {
@@ -209,8 +211,8 @@ export default function LoginPage() {
           const redirectTo = searchParams.get('redirect')
           if (redirectTo) {
             redirectUrl = redirectTo
-          } else if (referralCode) {
-            redirectUrl = `/register-referral/${referralCode}`
+          } else if (referralCode || storedReferral) {
+            redirectUrl = `/register-referral/${referralCode || storedReferral}`
           }
         }
 

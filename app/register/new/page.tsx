@@ -56,8 +56,9 @@ export default function NewRegisterPage() {
       // Redirect to login page after successful registration
       // Preserve referral code in redirect
       setTimeout(() => {
-        if (referralCode) {
-          router.push(`/login?referral=${referralCode}`)
+        const storedReferral = sessionStorage.getItem('referralCode')
+        if (referralCode || storedReferral) {
+          router.push(`/login?referral=${referralCode || storedReferral}`)
         } else {
           router.push('/login')
         }
