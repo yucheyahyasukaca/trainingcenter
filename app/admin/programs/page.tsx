@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ProgramWithClasses } from '@/types'
-import { Search, Plus, Edit, Trash2, GraduationCap, Eye, BookOpen } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, GraduationCap, Eye, BookOpen, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { useToast } from '@/hooks/useToast'
 import { useRouter } from 'next/navigation'
+
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 export default function AdminProgramsPage() {
   const { profile } = useAuth()
@@ -18,6 +20,20 @@ export default function AdminProgramsPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean
+    type: 'delete' | 'approve' | null
+    programId: string | null
+    programTitle: string | null
+    loading: boolean
+  }>({
+    isOpen: false,
+    type: null,
+    programId: null,
+    programTitle: null,
+    loading: false
+  })
 
   useEffect(() => {
     // Check if user is admin or manager
@@ -52,24 +68,56 @@ export default function AdminProgramsPage() {
     }
   }
 
-  async function handleDelete(programId: string, programTitle: string) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus program "${programTitle}"?`)) {
-      return
-    }
+  const openApproveModal = (id: string, title: string) => {
+    setModalState({
+      isOpen: true,
+      type: 'approve',
+      programId: id,
+      programTitle: title,
+      loading: false
+    })
+  }
+
+  const openDeleteModal = (id: string, title: string) => {
+    setModalState({
+      isOpen: true,
+      type: 'delete',
+      programId: id,
+      programTitle: title,
+      loading: false
+    })
+  }
+
+  const handleModalConfirm = async () => {
+    if (!modalState.programId || !modalState.type) return
+
+    setModalState(prev => ({ ...prev, loading: true }))
 
     try {
-      const { error } = await supabase
-        .from('programs')
-        .delete()
-        .eq('id', programId)
+      if (modalState.type === 'approve') {
+        const { error } = await (supabase as any)
+          .from('programs')
+          .update({ status: 'published' })
+          .eq('id', modalState.programId)
 
-      if (error) throw error
+        if (error) throw error
+        addToast.success('Program berhasil disetujui dan diterbitkan', 'Berhasil')
+      } else if (modalState.type === 'delete') {
+        const { error } = await supabase
+          .from('programs')
+          .delete()
+          .eq('id', modalState.programId)
 
-      addToast.success('Program berhasil dihapus', 'Berhasil')
+        if (error) throw error
+        addToast.success('Program berhasil dihapus', 'Berhasil')
+      }
+
       fetchPrograms()
+      setModalState({ isOpen: false, type: null, programId: null, programTitle: null, loading: false })
     } catch (error: any) {
-      console.error('Error deleting program:', error)
-      addToast.error('Gagal menghapus program: ' + error.message, 'Error')
+      console.error(`Error ${modalState.type}ing program:`, error)
+      addToast.error(`Gagal ${modalState.type === 'approve' ? 'menyetujui' : 'menghapus'} program: ` + error.message, 'Error')
+      setModalState(prev => ({ ...prev, loading: false }))
     }
   }
 
@@ -147,8 +195,8 @@ export default function AdminProgramsPage() {
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'all'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                 }`}
             >
               Semua
@@ -156,8 +204,8 @@ export default function AdminProgramsPage() {
             <button
               onClick={() => setStatusFilter('draft')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'draft'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                 }`}
             >
               Draft
@@ -165,8 +213,8 @@ export default function AdminProgramsPage() {
             <button
               onClick={() => setStatusFilter('published')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'published'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                 }`}
             >
               Published
@@ -174,8 +222,8 @@ export default function AdminProgramsPage() {
             <button
               onClick={() => setStatusFilter('archived')}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${statusFilter === 'archived'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                 }`}
             >
               Archived
@@ -254,6 +302,15 @@ export default function AdminProgramsPage() {
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
+                          {program.status === 'draft' && (
+                            <button
+                              onClick={() => openApproveModal(program.id, program.title)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Setujui Program"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          )}
                           <Link
                             href={`/admin/programs/${program.id}/classes`}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -276,7 +333,7 @@ export default function AdminProgramsPage() {
                             <Eye className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => handleDelete(program.id, program.title)}
+                            onClick={() => openDeleteModal(program.id, program.title)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Hapus Program"
                           >
@@ -334,6 +391,15 @@ export default function AdminProgramsPage() {
                   </div>
 
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-200">
+                    {program.status === 'draft' && (
+                      <button
+                        onClick={() => openApproveModal(program.id, program.title)}
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Setujui Program"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                      </button>
+                    )}
                     <Link
                       href={`/admin/programs/${program.id}/classes`}
                       className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
@@ -356,7 +422,7 @@ export default function AdminProgramsPage() {
                       <Eye className="w-4 h-4" />
                     </Link>
                     <button
-                      onClick={() => handleDelete(program.id, program.title)}
+                      onClick={() => openDeleteModal(program.id, program.title)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Hapus Program"
                     >
@@ -369,6 +435,22 @@ export default function AdminProgramsPage() {
           </>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleModalConfirm}
+        title={modalState.type === 'approve' ? 'Setujui Program' : 'Hapus Program'}
+        message={
+          modalState.type === 'approve'
+            ? `Apakah Anda yakin ingin menyetujui program "${modalState.programTitle}"? Program akan menjadi Published dan dapat diakses oleh publik.`
+            : `Apakah Anda yakin ingin menghapus program "${modalState.programTitle}"? Tindakan ini tidak dapat dibatalkan.`
+        }
+        isLoading={modalState.loading}
+        confirmText={modalState.type === 'approve' ? 'Ya, Setujui' : 'Ya, Hapus'}
+        cancelText="Batal"
+        variant={modalState.type === 'approve' ? 'info' : 'danger'}
+      />
     </div>
   )
 }

@@ -3,151 +3,144 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthProvider'
 import { supabase } from '@/lib/supabase'
-import { Program } from '@/types'
 import {
   ArrowLeft,
-  Plus,
-  BookOpen,
-  Calendar,
-  Users,
-  FileText,
   Save
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/hooks/useToast'
 
 export default function NewClassPage() {
   const { profile, user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [programs, setPrograms] = useState<Program[]>([])
+  const toast = useToast()
+
+  const [categories, setCategories] = useState<{ id: string, name: string }[]>([])
   const [loading, setLoading] = useState(false)
+  const [trainerId, setTrainerId] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
-    program_id: '',
     name: '',
+    category: '',
+    price: 0,
     description: '',
     start_date: '',
     end_date: '',
-    max_participants: '',
-    location: '',
-    room: ''
+    max_participants: ''
   })
 
-  // Check if trainer can create class for program
-  const canCreateClassForProgram = (programMinLevel: string) => {
-    const trainerLevel = (profile as any)?.trainer_level || 'user'
-    const levelHierarchy = {
-      'user': 0,
-      'junior': 1,
-      'senior': 2,
-      'expert': 3,
-      'master': 4
-    }
-
-    return (levelHierarchy[trainerLevel as keyof typeof levelHierarchy] || 0) >=
-      (levelHierarchy[programMinLevel as keyof typeof levelHierarchy] || 0)
-  }
-
-  // Filter programs that trainer can create classes for
-  const availablePrograms = programs.filter(program =>
-    canCreateClassForProgram(program.min_trainer_level || 'junior')
-  )
-
   useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('programs')
-          .select('id, title, description, category, min_trainer_level')
-          .eq('status', 'published')
-          .order('title')
+    const fetchData = async () => {
+      if (!profile?.id) return
 
-        if (error) throw error
-        setPrograms(data || [])
+      try {
+        // 1. Fetch trainer ID
+        const { data: trainerData, error: trainerError } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('user_id', profile.id)
+          .single()
+
+        if (trainerError) {
+          console.error('Error fetching trainer:', trainerError)
+          // fail silently or log
+        } else if (trainerData) {
+          setTrainerId(trainerData.id)
+        }
+
+        // 2. Fetch all categories
+        const { data: cats, error: catsError } = await supabase
+          .from('program_categories')
+          .select('id, name')
+          .order('name')
+
+        if (catsError) throw catsError
+        setCategories(cats || [])
       } catch (error) {
-        console.error('Error fetching programs:', error)
+        console.error('Error fetching initial data:', error)
       }
     }
 
-    fetchPrograms()
-  }, [])
+    fetchData()
+  }, [profile?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile?.id || !user) return
+    if (!trainerId) {
+      toast.error('Error', 'Profil trainer tidak ditemukan. Harap hubungi admin.')
+      return
+    }
 
     setLoading(true)
     try {
-      // Use profile.id directly since class_trainers might reference user_profiles.id
-      // This is a simpler approach that avoids RLS issues
-      const trainerId = profile.id
+      // 1. Create independent Program
+      const programData = {
+        title: formData.name, // Program title same as class name
+        description: formData.description || '',
+        category: formData.category,
+        price: Number(formData.price),
+        status: 'draft',
+        trainer_id: trainerId, // Use the actual trainer_id
+        min_trainer_level: (profile as any).trainer_level || 'junior',
+        program_type: 'regular',
+        registration_type: 'limited',
+        is_free: Number(formData.price) === 0
+      }
 
-      // Prepare class data
+      console.log('Creating program:', programData)
+
+      const { data: insertedProgram, error: programError } = await supabase
+        .from('programs')
+        .insert([programData])
+        .select()
+        .single()
+
+      if (programError) throw programError
+      if (!insertedProgram) throw new Error('Failed to create program')
+
+      // 2. Create Class linked to the new Program
       const classData = {
-        program_id: formData.program_id,
+        program_id: insertedProgram.id,
         name: formData.name,
         description: formData.description || null,
         start_date: formData.start_date,
         end_date: formData.end_date,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-        location: formData.location || null,
-        room: formData.room || null,
         status: 'scheduled',
         current_participants: 0
       }
 
-      // Insert class
+      console.log('Creating class:', classData)
+
       const { data: insertedClass, error: classError } = await (supabase as any)
         .from('classes')
         .insert([classData])
         .select()
+        .single()
 
       if (classError) throw classError
 
-      // Validate data before insert
-      if (!insertedClass || !insertedClass[0] || !insertedClass[0].id) {
-        throw new Error('Class ID is missing')
-      }
-
-      if (!trainerId) {
-        throw new Error('Trainer ID is missing')
-      }
-
-      // Assign trainer to class (trainer automatically becomes primary trainer)
+      // 3. Assign trainer to class
       const classTrainerData = {
-        class_id: insertedClass[0].id,
-        trainer_id: trainerId, // Use trainer ID (either existing or newly created)
-        role: 'instructor', // Use 'instructor' as it's most common
+        class_id: insertedClass.id,
+        trainer_id: profile.id, // Use profile.id (User ID) for class_trainers
+        role: 'instructor',
         is_primary: true
       }
-
-      console.log('🔄 Inserting class trainer data:', classTrainerData)
-      console.log('🔄 Data validation:', {
-        class_id_valid: !!classTrainerData.class_id,
-        trainer_id_valid: !!classTrainerData.trainer_id,
-        role_valid: classTrainerData.role === 'instructor',
-        is_primary_valid: classTrainerData.is_primary === true
-      })
 
       const { error: trainerError } = await (supabase as any)
         .from('class_trainers')
         .insert([classTrainerData])
 
-      if (trainerError) {
-        console.error('❌ Class trainer insert error:', trainerError)
-        console.error('❌ Error details:', {
-          message: trainerError.message,
-          details: trainerError.details,
-          hint: trainerError.hint,
-          code: trainerError.code
-        })
-        throw trainerError
-      }
+      if (trainerError) throw trainerError
 
-      alert('Program Pelatihan berhasil dibuat!')
+      toast.success('Berhasil', 'Program Pelatihan berhasil dibuat!')
       router.push('/trainer/classes')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating class:', error)
-      alert('Gagal membuat program pelatihan: ' + (error as Error).message)
+      toast.error('Gagal', 'Gagal membuat program pelatihan: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -161,31 +154,20 @@ export default function NewClassPage() {
     }))
   }
 
-  // Show loading if auth is still loading
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat...</p>
+          <p className="text-gray-600">Memuat data...</p>
         </div>
       </div>
     )
   }
 
-  // Redirect to login if not authenticated
+  // If not authenticated
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-blue-100 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Akses Ditolak</h1>
-          <p className="text-gray-600 mb-6">Silakan login untuk mengakses halaman ini.</p>
-          <a href="/login" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            Login
-          </a>
-        </div>
-      </div>
-    )
+    return null
   }
 
   return (
@@ -201,7 +183,7 @@ export default function NewClassPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Buat Program Pelatihan Baru</h1>
-            <p className="text-gray-600 mt-1">Buat program pelatihan baru</p>
+            <p className="text-gray-600 mt-1">Buat program baru dan jadwalkan kelas</p>
           </div>
         </div>
       </div>
@@ -210,40 +192,32 @@ export default function NewClassPage() {
         <div className="max-w-2xl mx-auto">
           <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="space-y-6">
-              {/* Program Selection */}
+
+              {/* Category Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Program <span className="text-red-500">*</span>
+                  Kategori Program <span className="text-red-500">*</span>
                 </label>
                 <select
-                  name="program_id"
-                  value={formData.program_id}
+                  name="category"
+                  value={formData.category}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                 >
-                  <option value="">Pilih Program</option>
-                  {availablePrograms.map(program => (
-                    <option key={program.id} value={program.id}>
-                      {program.title}
-                      {(program as any).min_trainer_level && (program as any).min_trainer_level !== 'junior' &&
-                        ` (Min: ${(program as any).min_trainer_level === 'senior' ? 'Senior' :
-                          (program as any).min_trainer_level === 'expert' ? 'Expert' : 'Master'})`
-                      }
+                  <option value="">Pilih Kategori</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
-                {availablePrograms.length === 0 && (
-                  <p className="text-sm text-red-600 mt-1">
-                    Tidak ada program yang tersedia untuk level trainer Anda
-                  </p>
-                )}
               </div>
 
-              {/* Class Name */}
+              {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nama Program Pelatihan <span className="text-red-500">*</span>
+                  Nama Program / Kelas <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -252,7 +226,24 @@ export default function NewClassPage() {
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  placeholder="Masukkan nama program pelatihan"
+                  placeholder="Contoh: Belajar Dasar React"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Harga (Rp) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  placeholder="0 untuk gratis"
                 />
               </div>
 
@@ -319,36 +310,6 @@ export default function NewClassPage() {
                   Kosongkan untuk unlimited peserta
                 </p>
               </div>
-
-              {/* Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Lokasi program pelatihan"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ruangan
-                  </label>
-                  <input
-                    type="text"
-                    name="room"
-                    value={formData.room}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Nama ruangan"
-                  />
-                </div>
-              </div>
             </div>
 
             {/* Submit Buttons */}
@@ -372,7 +333,7 @@ export default function NewClassPage() {
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>Simpan Program Pelatihan</span>
+                    <span>Simpan Program</span>
                   </>
                 )}
               </button>

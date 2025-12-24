@@ -63,14 +63,42 @@ const submitSalesLeadTool = {
     ],
 };
 
-const getUpcomingWebinarsTool = {
+const getWebinarsTool = {
     functionDeclarations: [
         {
-            name: "getUpcomingWebinars",
-            description: "Get the list of upcoming webinars from the database. Use this when a user asks about future webinars, schedules, or events.",
+            name: "getWebinars",
+            description: "Get the list of webinars from the database. Can fetch 'upcoming' or 'past' webinars.",
             parameters: {
                 type: SchemaType.OBJECT,
-                properties: {}, // No inputs needed
+                properties: {
+                    status: {
+                        type: SchemaType.STRING,
+                        description: "Filter by status: 'upcoming' (default) or 'past'.",
+                        enum: ["upcoming", "past"]
+                    }
+                },
+            },
+        },
+    ],
+};
+
+const getTrainingProgramsTool = {
+    functionDeclarations: [
+        {
+            name: "getTrainingPrograms",
+            description: "Get the list of available training programs (courses). Use this when user asks for 'program', 'training', 'kursus', or 'pelatihan'.",
+            parameters: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    query: {
+                        type: SchemaType.STRING,
+                        description: "Search keyword for program title or description (e.g. 'excel', 'guru', 'ai').",
+                    },
+                    category: {
+                        type: SchemaType.STRING,
+                        description: "Filter by category if specified (e.g. 'Technology', 'Education').",
+                    }
+                },
             },
         },
     ],
@@ -160,18 +188,30 @@ const functions: any = {
             return { success: false, error: "Gagal mengirim data. Tim teknis akan memeriksa log manual." };
         }
     },
-    getUpcomingWebinars: async () => {
-        console.log(`[Tool] Fetching upcoming webinars...`);
+    getWebinars: async ({ status = 'upcoming' }: { status?: 'upcoming' | 'past' }) => {
+        console.log(`[Tool] Fetching ${status} webinars...`);
         try {
             const supabase = getSupabaseAdmin();
             const now = new Date().toISOString();
 
-            const { data, error } = await supabase
+            let query = supabase
                 .from('webinars')
-                .select('title, start_time, end_time, description, slug, platform, link')
-                .eq('is_published', true)
-                .gte('start_time', now)
-                .order('start_time', { ascending: true });
+                .select('title, start_time, end_time, description, slug, platform')
+                .eq('is_published', true);
+
+            if (status === 'past') {
+                query = query
+                    .lt('start_time', now)
+                    .order('start_time', { ascending: false })
+                    .limit(5); // Limit past webinars to keep context light
+            } else {
+                // Default to upcoming
+                query = query
+                    .gte('start_time', now)
+                    .order('start_time', { ascending: true });
+            }
+
+            const { data, error } = await query;
 
             if (error) {
                 console.error("[Tool Error] Supabase:", error);
@@ -182,10 +222,13 @@ const functions: any = {
             const webinars = data as unknown as Webinar[];
 
             if (!webinars || webinars.length === 0) {
+                const msg = status === 'past'
+                    ? "Tidak ada data webinar yang sudah selesai."
+                    : "Saat ini belum ada jadwal webinar baru yang akan datang.";
                 return {
                     success: true,
                     webinars: [],
-                    message: "Saat ini belum ada jadwal webinar baru yang akan datang."
+                    message: msg
                 };
             }
 
@@ -201,6 +244,61 @@ const functions: any = {
             return {
                 success: true,
                 webinars: formattedWebinars
+            };
+
+        } catch (e: any) {
+            console.error("[Tool Error] Exception:", e);
+            return { success: false, error: e.message || "Internal server error" };
+        }
+    },
+    getTrainingPrograms: async ({ query, category }: { query?: string, category?: string }) => {
+        console.log(`[Tool] Fetching training programs... Query: ${query}, Category: ${category}`);
+        try {
+            const supabase = getSupabaseAdmin();
+
+            let dbQuery = supabase
+                .from('programs')
+                .select('id, title, description, category, price, max_participants')
+                .eq('status', 'published')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            if (category) {
+                dbQuery = dbQuery.eq('category', category);
+            }
+
+            if (query) {
+                // Simple ILIKE search on title or description
+                dbQuery = dbQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+            }
+
+            const { data, error } = await dbQuery;
+
+            if (error) {
+                console.error("[Tool Error] Supabase:", error);
+                return { success: false, error: error.message };
+            }
+
+            if (!data || data.length === 0) {
+                return {
+                    success: true,
+                    programs: [],
+                    message: "Tidak ditemukan program pelatihan yang cocok dengan kriteria pencarian."
+                };
+            }
+
+            // Format data
+            const formattedPrograms = data.map((p: any) => ({
+                title: p.title,
+                category: p.category,
+                price: p.price === 0 ? "Gratis" : `Rp ${p.price.toLocaleString('id-ID')}`,
+                description: p.description?.substring(0, 150) + "...", // Truncate description
+                link: `${process.env.NEXT_PUBLIC_SITE_URL}/programs/${p.id}`
+            }));
+
+            return {
+                success: true,
+                programs: formattedPrograms
             };
 
         } catch (e: any) {
@@ -232,7 +330,7 @@ export async function POST(req: Request) {
         // Construct Prompt
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
-            tools: [resetPasswordTool, submitSalesLeadTool, getUpcomingWebinarsTool],
+            tools: [resetPasswordTool, submitSalesLeadTool, getWebinarsTool, getTrainingProgramsTool],
         });
 
         const systemInstruction = `
@@ -255,10 +353,15 @@ export async function POST(req: Request) {
         - Katakan: "Boleh saya minta data berikut untuk diproses Tim Sales kami?"
         - Minta data: **Nama PIC, Nama Sekolah, Alamat Lengkap, Email, dan No HP (WhatsApp).**
         - Setelah data lengkap, GUNAKAN TOOL \`submitSalesLead\`.
-      - **Webinar Info:** Jika pengguna bertanya tentang "webinar", "jadwal", "pelatihan live", atau "acara besok", GUNAKAN TOOL \`getUpcomingWebinars\`.
-        - Jangan mengarang jadwal webinar. Selalu cek database real-time.
-        - Jika tool mengembalikan daftar webinar, sajikan dengan rapi (Judul, Tanggal/Jam, dan Link Pendaftaran).
-        - Jika kosong, katakan dengan sopan bahwa belum ada jadwal dan sarankan cek berkala.
+      - **Webinar Info:** Jika pengguna bertanya tentang "webinar", "jadwal", "acara", baik yang akan datang maupun yang sudah lewat, GUNAKAN TOOL \`getWebinars\`.
+        - Gunakan parameter \`status='upcoming'\` (default) untuk pertanyaan masa depan.
+        - Gunakan parameter \`status='past'\` untuk pertanyaan tentang webinar yang sudah selesai atau "kemarin".
+        - Jangan mengarang jadwal.
+        - Jika tool mengembalikan daftar, sajikan dengan rapi.
+        - Jika kosong, katakan dengan sopan informasinya belum tersedia.
+      - **Training/Program Info:** Jika pengguna bertanya tentang "program pelatihan", "kursus", "training", atau "belajar apa", GUNAKAN TOOL \`getTrainingPrograms\`.
+        - Anda bisa mencari berdasarkan kata kunci (misal: "excel", "guru") jika user spesifik.
+        - Sajikan daftar program yang tersedia beserta link pendaftarannya.
       - **WhatsApp Notification:** Setelah sukses memanggil tool, beritahu user: "Terima kasih! Data sudah saya kirimkan ke Tim Sales kami. Notifikasi WhatsApp juga sudah dikirim ke admin pusat."
       - **Mode Support:** Untuk pertanyaan teknis biasa (login, poin, dll), jawab sesuai Knowledge Base.
       - JANGAN PERNAH bilang Anda "hanya bisa mereset password".

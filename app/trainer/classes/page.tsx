@@ -102,12 +102,13 @@ export default function TrainerClassesPage() {
             class_id,
             classes!inner(
               *,
-              programs(
+              program:programs(
                 id,
                 title,
                 description,
                 category,
-                min_trainer_level
+                min_trainer_level,
+                status
               )
             )
           `)
@@ -559,8 +560,12 @@ export default function TrainerClassesPage() {
                   {currentClasses.map((classItem) => (
                     <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg transition-shadow bg-gradient-to-r from-white to-gray-50/50">
                       <div className="flex items-start justify-between mb-3 sm:mb-4">
-                        <span className={getStatusBadge(classItem.status)}>
-                          {getStatusText(classItem.status)}
+                        <span className={getStatusBadge(
+                          classItem.program?.status === 'draft' ? 'waiting_approval' : classItem.status
+                        )}>
+                          {getStatusText(
+                            classItem.program?.status === 'draft' ? 'waiting_approval' : classItem.status
+                          )}
                         </span>
                         <div className="flex items-center space-x-1 sm:space-x-2">
                           <Link
