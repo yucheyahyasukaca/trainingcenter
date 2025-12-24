@@ -8,6 +8,8 @@ import ToastContainer from '@/components/ui/ToastContainer'
 import { GlobalToaster } from '@/components/GlobalToaster'
 import ChatWidget from '@/components/ChatWidget'
 
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -30,6 +32,7 @@ export default function RootLayout({
               <ToastContainer />
               <GlobalToaster />
               <ChatWidget />
+              <ServiceWorkerRegister />
             </ToastProvider>
           </NotificationProvider>
         </AuthProvider>
