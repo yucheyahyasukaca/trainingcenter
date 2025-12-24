@@ -444,6 +444,26 @@ export default function LoginPage() {
               ← Kembali ke Beranda
             </a>
           </div>
+
+          <div className="pt-4 text-xs text-center text-gray-400">
+            <button
+              onClick={() => {
+                const confirmed = window.confirm('Ini akan menghapus semua data sesi tersimpan dan me-refresh halaman. Lanjutkan?')
+                if (confirmed) {
+                  localStorage.clear()
+                  sessionStorage.clear()
+                  // Delete cookies via document.cookie is limited to non-HttpOnly
+                  document.cookie.split(";").forEach((c) => {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                  });
+                  window.location.reload()
+                }
+              }}
+              className="text-gray-400 hover:text-gray-600 underline"
+            >
+              Mengalami kendala login? Klik untuk Reset Sesi
+            </button>
+          </div>
         </div>
       </div>
 
@@ -525,13 +545,14 @@ export default function LoginPage() {
             </form>
           </div>
         </div>
-      )}
+      )
+      }
       <Script
         src="https://accounts.google.com/gsi/client"
         strategy="afterInteractive"
         onLoad={() => console.log('✅ Google Identity Services script loaded')}
       />
-    </div>
+    </div >
   )
 }
 
