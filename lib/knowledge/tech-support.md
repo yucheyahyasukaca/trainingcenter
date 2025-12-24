@@ -35,6 +35,41 @@ Sertifikat akan otomatis digenerate setelah Anda menyelesaikan semua materi dan 
 2. Pastikan status enrollment Anda sudah "Completed".
 3. Jika belum muncul, tunggu 5-10 menit dan refresh halaman.
 
+### Perjalanan HEBAT (Poin & Rewards)
+**NOTE: Asumsikan semua pertanyaan tentang "Poin" atau "Reward" berkaitan dengan program "Perjalanan HEBAT", kecuali pengguna menyebutkan hal lain.**
+
+**Tanya:** Kenapa poin saya tidak masuk / masih 0?
+**Jawab:**
+Poin "Perjalanan HEBAT" hanya akan dihitung jika Anda sudah berstatus sebagai **Trainer**.
+- **Jika Anda belum Trainer:** Poin tidak akan bertambah meskipun Anda membagikan kode referral.
+- **Solusi:** Anda harus menyelesaikan **Program Pelatihan** (modul pembelajaran) terlebih dahulu hingga tuntas untuk otomatis diangkat menjadi Trainer. Setelah itu, barulah poin Anda mulai dihitung.
+
+**Tanya:** Apa itu Perjalanan HEBAT?
+**Jawab:**
+Perjalanan HEBAT adalah program apresiasi khusus bagi pengguna yang telah lulus menjadi Trainer. Dalam program ini, setiap aktivitas positif (seperti mengajak teman via referral) akan dihargai dengan Poin yang bisa ditukar dengan Reward.
+
+**Tanya:** Bagaimana cara mengikuti Perjalanan HEBAT?
+**Jawab:**
+1. Daftar akun di Garuda Academy.
+2. Ikuti dan **selesaikan** salah satu Program Pelatihan yang tersedia hingga lulus.
+3. Setelah lulus, status Anda otomatis menjadi **Trainer**.
+4. Menu "Perjalanan HEBAT" akan aktif, dan Anda bisa mulai mengumpulkan poin.
+
+**Tanya:** Apa gunanya Poin Perjalanan HEBAT?
+**Jawab:**
+Poin ini adalah tiket Anda untuk mendapatkan:
+1. **Reward Bulanan:** Hadiah menarik yang diundi setiap bulan.
+2. **Grand Prize:** Kesempatan mengikuti **Kunjungan Belajar ke Luar Negeri** (Studi Banding).
+
+**Tanya:** Kode referral saya tidak menambah poin, padahal saya sudah Trainer.
+**Jawab:**
+Jika Anda SUDAH Trainer tapi poin referral tetap tidak masuk:
+1. Pastikan teman yang Anda ajak sudah **Login** ke akun baru mereka.
+2. Minta mereka untuk **mengklik/mengakses kembali Link Referral** Anda setelah login.
+3. Sistem akan memverifikasi dan poin akan masuk otomatis.
+
+### Bantuan Teknis Lain
+
 ### Masalah Teknis Website
 **Tanya:** Saya mendapat error 502 Bad Gateway.
 **Jawab:**
