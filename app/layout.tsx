@@ -6,6 +6,7 @@ import { NotificationProvider } from '@/components/ui/Notification'
 import { ToastProvider } from '@/contexts/ToastContext'
 import ToastContainer from '@/components/ui/ToastContainer'
 import { GlobalToaster } from '@/components/GlobalToaster'
+import ChatWidget from '@/components/ChatWidget'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,6 +29,7 @@ export default function RootLayout({
               {children}
               <ToastContainer />
               <GlobalToaster />
+              <ChatWidget />
             </ToastProvider>
           </NotificationProvider>
         </AuthProvider>
