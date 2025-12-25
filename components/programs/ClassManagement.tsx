@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ClassWithTrainers, ClassInsert, ClassTrainerInsert, Trainer } from '@/types'
 import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, UserCheck, X, FileText, Search, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
 import { formatDate, formatTime } from '@/lib/utils'
 import { MultiSelectTrainer } from '@/components/ui/MultiSelectTrainer'
 import { useToast } from '@/hooks/useToast'
@@ -37,8 +36,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
     max_participants: undefined,
     location: null,
     room: null,
-    status: 'scheduled',
-    auto_enroll: false
+    status: 'scheduled'
   })
   const [participantLimitType, setParticipantLimitType] = useState<'unlimited' | 'limited'>('unlimited')
   const [participantLimit, setParticipantLimit] = useState(100)
@@ -75,7 +73,7 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
       // Fetch classes with a simpler query first
       const { data, error } = await supabase
         .from('classes')
-        .select('*, auto_enroll')
+        .select('*')
         .eq('program_id', programId)
         .order('start_date', { ascending: true })
 
@@ -863,8 +861,8 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                           key={page}
                           onClick={() => setCurrentPage(page)}
                           className={`px-3 py-1 rounded-lg text-sm transition-colors ${currentPage === page
-                            ? 'bg-primary-600 text-white'
-                            : 'border border-gray-300 hover:bg-gray-50'
+                              ? 'bg-primary-600 text-white'
+                              : 'border border-gray-300 hover:bg-gray-50'
                             }`}
                         >
                           {page}
@@ -1124,114 +1122,88 @@ export function ClassManagement({ programId, programTitle, currentUserId, isTrai
                     required
                   />
                 </div>
-
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit_auto_enroll"
-                  checked={editingClass.auto_enroll || false}
-                  onCheckedChange={(checked) =>
-                    setEditingClass({ ...editingClass, auto_enroll: checked === true })
-                  }
-                />
-                <div className="grid gap-1.5 leading-none">
-                  <label
-                    htmlFor="edit_auto_enroll"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Auto-Enroll Peserta Baru
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    Jika aktif, setiap pengguna baru akan otomatis terdaftar di kelas ini.
-                  </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    value={editingClass.end_date}
+                    onChange={(e) => setEditingClass({ ...editingClass, end_date: e.target.value })}
+                    required
+                  />
                 </div>
               </div>
+
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai</label>
-                <input
-                  type="date"
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  value={editingClass.end_date}
-                  onChange={(e) => setEditingClass({ ...editingClass, end_date: e.target.value })}
-                  required
-                />
+                  value={editingClass.status}
+                  onChange={(e) => setEditingClass({ ...editingClass, status: e.target.value as any })}
+                >
+                  <option value="scheduled">Dijadwalkan</option>
+                  <option value="ongoing">Berlangsung</option>
+                  <option value="completed">Selesai</option>
+                  <option value="cancelled">Dibatalkan</option>
+                </select>
               </div>
+
+              {!isTrainerMode && (
+                <MultiSelectTrainer
+                  trainers={trainers}
+                  selectedTrainers={selectedTrainers}
+                  onSelectionChange={setSelectedTrainers}
+                  primaryTrainer={primaryTrainer}
+                  onPrimaryChange={setPrimaryTrainer}
+                  label="Trainer"
+                />
+              )}
+              {isTrainerMode && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Info:</strong> Anda akan otomatis ditetapkan sebagai trainer utama untuk kelas ini.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingClass(null)
+                    setShowEditModal(false)
+                    setSelectedTrainers([])
+                    setPrimaryTrainer('')
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                >
+                  {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
           </div>
+        </div>
+      )}
 
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              value={editingClass.status}
-              onChange={(e) => setEditingClass({ ...editingClass, status: e.target.value as any })}
-            >
-              <option value="scheduled">Dijadwalkan</option>
-              <option value="ongoing">Berlangsung</option>
-              <option value="completed">Selesai</option>
-              <option value="cancelled">Dibatalkan</option>
-            </select>
-          </div>
-
-          {!isTrainerMode && (
-            <MultiSelectTrainer
-              trainers={trainers}
-              selectedTrainers={selectedTrainers}
-              onSelectionChange={setSelectedTrainers}
-              primaryTrainer={primaryTrainer}
-              onPrimaryChange={setPrimaryTrainer}
-              label="Trainer"
-            />
-          )}
-          {isTrainerMode && (
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Info:</strong> Anda akan otomatis ditetapkan sebagai trainer utama untuk kelas ini.
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={() => {
-                setEditingClass(null)
-                setShowEditModal(false)
-                setSelectedTrainers([])
-                setPrimaryTrainer('')
-              }}
-              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
-            >
-              {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div >
-  )
-}
-
-{/* Resources Management Modal */ }
-{
-  showResourcesModal && selectedClassForResources && (
-    <ClassResourcesManagement
-      classId={selectedClassForResources.id}
-      className={selectedClassForResources.name}
-      onClose={() => {
-        setShowResourcesModal(false)
-        setSelectedClassForResources(null)
-      }}
-    />
-  )
-}
-    </div >
+      {/* Resources Management Modal */}
+      {showResourcesModal && selectedClassForResources && (
+        <ClassResourcesManagement
+          classId={selectedClassForResources.id}
+          className={selectedClassForResources.name}
+          onClose={() => {
+            setShowResourcesModal(false)
+            setSelectedClassForResources(null)
+          }}
+        />
+      )}
+    </div>
   )
 }
