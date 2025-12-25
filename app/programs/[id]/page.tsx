@@ -10,6 +10,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { PublicNav } from '@/components/layout/PublicNav'
 import { ProgramStatisticsModal } from '@/components/programs/ProgramStatisticsModal'
+import { TrainerProgramLandingPage } from '@/components/programs/TrainerProgramLandingPage'
 
 interface ProgramWithClasses {
   id: string
@@ -73,12 +74,16 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
       if ((programData as any).trainer_id) {
         const { data: trainerData } = await supabase
           .from('trainers')
-          .select('*')
+          .select('*, user:user_profiles(*)')
           .eq('id', (programData as any).trainer_id)
           .single()
 
         if (trainerData) {
-          programWithTrainer.trainer = trainerData
+          programWithTrainer.trainer = {
+            ...trainerData,
+            full_name: (trainerData as any).user?.full_name || (trainerData as any).full_name,
+            photo_url: (trainerData as any).user?.avatar_url || (trainerData as any).photo_url
+          }
         }
       }
 
@@ -217,8 +222,22 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
     )
   }
 
+
+
   const isEnrolled = enrollmentStatus === 'approved'
   const isPending = enrollmentStatus === 'pending'
+
+  // If it's not the specific Gemini program, use the generic landing page
+  // The generic page handles both Trainer programs and other Admin programs
+  if (!program.title.includes('Gemini')) {
+    return (
+      <TrainerProgramLandingPage
+        program={program}
+        isEnrolled={isEnrolled}
+        isPending={isPending}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -426,8 +445,8 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
                 <span
                   key={idx}
                   className={`text-sm ${idx === featureCarouselIndex
-                      ? 'text-gray-900 font-medium underline decoration-2 underline-offset-4'
-                      : 'text-gray-400'
+                    ? 'text-gray-900 font-medium underline decoration-2 underline-offset-4'
+                    : 'text-gray-400'
                     }`}
                 >
                   {String(idx + 1).padStart(2, '0')}/{String(features.length).padStart(2, '0')}

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Upload, CheckCircle, XCircle } from 'lucide-react'
 import Link from 'next/link'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatDate, formatCurrency, compressImage } from '@/lib/utils'
 import { useAuth } from '@/components/AuthProvider'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { useNotification } from '@/components/ui/Notification'
@@ -23,6 +23,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
   const [selectedClass, setSelectedClass] = useState('')
   const [paymentProof, setPaymentProof] = useState<File | null>(null)
   const [paymentProofUrl, setPaymentProofUrl] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('') // Preview URL for compressed image
   const [error, setError] = useState('')
   const [referralCode, setReferralCode] = useState('')
   const [trainerClasses, setTrainerClasses] = useState<ClassWithTrainers[]>([])
@@ -149,9 +150,9 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           const disabilityOk = !!(participant as any)?.disability
           const programSourceOk = !!(participant as any)?.program_source
 
-          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk && 
-                            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk && 
-                            itBackgroundOk && disabilityOk && programSourceOk
+          const isComplete = nameOk && emailOk && phoneOk && genderOk && addressOk && provinsiOk &&
+            dateOfBirthOk && educationOk && educationStatusOk && employmentStatusOk &&
+            itBackgroundOk && disabilityOk && programSourceOk
 
           if (!isComplete) {
             // Build list of missing fields
@@ -180,7 +181,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
             console.log('➡️ Redirecting to edit profile page to complete data first')
             console.log('📋 Missing fields:', missing.join(', '))
-            
+
             setTimeout(() => {
               router.push(`/profile/edit?return=${encodeURIComponent(`/programs/${params.id}/enroll`)}`)
             }, 1500)
@@ -196,13 +197,13 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           message: 'Untuk mendaftar program, silakan lengkapi data profil Anda terlebih dahulu.',
           duration: 5000
         })
-        
+
         setTimeout(() => {
           router.push(`/profile/edit?return=${encodeURIComponent(`/programs/${params.id}/enroll`)}`)
         }, 1500)
         return
       }
-      
+
       // First try simple query to check if program exists
       const { data: simpleData, error: simpleError } = await supabase
         .from('programs')
@@ -245,53 +246,53 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       if (error) {
         console.error('❌ Full query error:', error)
         console.log('⚠️ Using simple data due to full query error')
-        
+
         // For simple data, we need to check classes separately
         const { data: classesData, error: classesError } = await supabase
           .from('classes')
           .select('*')
           .eq('program_id', params.id)
-        
+
         console.log('📚 Classes query result:', { classesData, classesError })
-        
+
         if (classesError) {
           console.error('❌ Classes query error:', classesError)
         }
-        
+
         if (!classesData || classesData.length === 0) {
           console.log('⚠️ Program has no available classes (simple data) - allowing enrollment without class selection')
         } else {
           console.log('✅ Found classes with simple query:', classesData.length)
         }
-        
+
         setProgram({
           ...(simpleData as any),
           classes: classesData || []
         })
         return
       }
-      
+
       if (!data) {
         console.log('⚠️ No data from full query, using simple data')
-        
+
         // For simple data, we need to check classes separately
         const { data: classesData, error: classesError } = await supabase
           .from('classes')
           .select('*')
           .eq('program_id', params.id)
-        
+
         console.log('📚 Classes query result (no data):', { classesData, classesError })
-        
+
         if (classesError) {
           console.error('❌ Classes query error (no data):', classesError)
         }
-        
+
         if (!classesData || classesData.length === 0) {
           console.log('⚠️ Program has no available classes (no data) - allowing enrollment without class selection')
         } else {
           console.log('✅ Found classes with simple query (no data):', classesData.length)
         }
-        
+
         setProgram({
           ...(simpleData as any),
           classes: classesData || []
@@ -302,7 +303,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       console.log('✅ Program found with classes:', (data as any).title)
       console.log('📚 Classes data:', (data as any).classes)
       console.log('📊 Classes count:', (data as any).classes?.length || 0)
-      
+
       // If we have classes, fetch trainer data for each class
       if ((data as any).classes && (data as any).classes.length > 0) {
         const classesWithTrainers = await Promise.all(
@@ -314,14 +315,14 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 trainer:trainers(*)
               `)
               .eq('class_id', classItem.id)
-            
+
             return {
               ...classItem,
               trainers: trainers || []
             }
           })
         )
-        
+
         setProgram({
           ...(data as any),
           classes: classesWithTrainers
@@ -349,7 +350,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
     try {
       // First, check if user has a participant record, create if not
       let participantId = profile.id
-      
+
       const { data: existingParticipant, error: participantError } = await supabase
         .from('participants')
         .select('id')
@@ -394,9 +395,9 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
       if (existingEnrollment) {
         const statusText = (existingEnrollment as any).status === 'pending' ? 'menunggu persetujuan' :
-                          (existingEnrollment as any).status === 'approved' ? 'sudah disetujui' :
-                          'ditolak'
-        
+          (existingEnrollment as any).status === 'approved' ? 'sudah disetujui' :
+            'ditolak'
+
         addNotification({
           type: 'warning',
           title: 'Sudah Terdaftar',
@@ -415,7 +416,10 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
         const { error: uploadError } = await supabase.storage
           .from('payment-proofs')
-          .upload(filePath, paymentProof)
+          .upload(filePath, paymentProof, {
+            contentType: paymentProof.type,
+            upsert: true
+          })
 
         if (uploadError) throw uploadError
 
@@ -452,7 +456,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       console.log('Enrollment created successfully:', enrollmentResult)
-      
+
       // Track referral if referral code was used
       if (referralData && enrollmentResult && enrollmentResult.length > 0) {
         try {
@@ -474,13 +478,13 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           console.error('Error in referral tracking:', trackError)
         }
       }
-      
+
       // Verify the enrollment was created with correct status
       if (enrollmentResult && enrollmentResult.length > 0) {
         const createdEnrollment = enrollmentResult[0]
         console.log('Created enrollment status:', createdEnrollment.status)
         console.log('Created enrollment payment_status:', createdEnrollment.payment_status)
-        
+
         // If it's a free program but enrollment is not approved, there might be an issue
         if (finalPrice === 0 && createdEnrollment.status !== 'approved') {
           console.warn('Free program enrollment was not auto-approved! Status:', createdEnrollment.status)
@@ -491,8 +495,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       addNotification({
         type: 'success',
         title: 'Pendaftaran Berhasil!',
-        message: program.price === 0 
-          ? 'Anda sudah terdaftar di program ini dan dapat langsung mengakses kelas.' 
+        message: program.price === 0
+          ? 'Anda sudah terdaftar di program ini dan dapat langsung mengakses kelas.'
           : 'Pendaftaran berhasil! Silakan tunggu konfirmasi dari admin untuk mengakses kelas.',
         duration: 6000
       })
@@ -512,7 +516,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       console.error('Error enrolling:', error)
       const errorMessage = 'Gagal mendaftar: ' + error.message
       setError(errorMessage)
-      
+
       // Show error notification
       addNotification({
         type: 'error',
@@ -525,7 +529,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validate file type
@@ -541,7 +545,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         })
         return
       }
-      
+
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         const errorMsg = 'Ukuran file maksimal 5MB'
@@ -555,16 +559,43 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         return
       }
 
-      setPaymentProof(file)
-      setError('')
-      
-      // Show success notification for file selection
-      addNotification({
-        type: 'success',
-        title: 'File Terpilih',
-        message: `File "${file.name}" berhasil dipilih`,
-        duration: 3000
-      })
+      try {
+        let fileToUpload = file
+        // Helper to check if file is image for preview/compression
+        if (file.type.startsWith('image/')) {
+          // Compress image
+          try {
+            console.log('Compressing image...', file.size)
+            fileToUpload = await compressImage(file)
+            console.log('Compressed image size:', fileToUpload.size)
+
+            // Create preview URL from compressed file
+            const objectUrl = URL.createObjectURL(fileToUpload)
+            setPreviewUrl(objectUrl)
+          } catch (compressError) {
+            console.error('Error compressing image:', compressError)
+            // Fallback to original file but still show preview
+            const objectUrl = URL.createObjectURL(file)
+            setPreviewUrl(objectUrl)
+          }
+        } else {
+          setPreviewUrl('') // No preview for PDF
+        }
+
+        setPaymentProof(fileToUpload)
+        setError('')
+
+        // Show success notification for file selection
+        addNotification({
+          type: 'success',
+          title: 'File Terpilih',
+          message: `File "${file.name}" berhasil dipilih`,
+          duration: 3000
+        })
+      } catch (err: any) {
+        console.error('Error processing file:', err)
+        setError('Gagal memproses file')
+      }
     }
   }
 
@@ -605,8 +636,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
               <ArrowLeft className="w-4 h-4 mr-2" />
               Kembali ke Daftar Program
             </Link>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
             >
               Coba Lagi
@@ -634,7 +665,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Informasi Program</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold text-gray-900">{program.title}</h3>
@@ -649,8 +680,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Tanggal:</span>
                   <span>
-                    {(program as any).registration_type === 'lifetime' ||                                                                               
-                     ((program as any).start_date === (program as any).end_date)
+                    {(program as any).registration_type === 'lifetime' ||
+                      ((program as any).start_date === (program as any).end_date)
                       ? 'Lifetime'
                       : `${formatDate((program as any).start_date)} - ${formatDate((program as any).end_date)}`
                     }
@@ -659,8 +690,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                 <div className="flex items-center text-sm text-gray-600">
                   <span className="font-medium w-20">Peserta:</span>
                   <span>
-                    {program.max_participants === null || program.max_participants === undefined 
-                      ? 'Unlimited' 
+                    {program.max_participants === null || program.max_participants === undefined
+                      ? 'Unlimited'
                       : `Max ${program.max_participants} orang`
                     }
                   </span>
@@ -769,8 +800,8 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
                   return (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-sm text-yellow-800">
-                        <strong>Info:</strong> {referralCode 
-                          ? 'Trainer yang direferensikan belum memiliki kelas yang tersedia untuk program ini.' 
+                        <strong>Info:</strong> {referralCode
+                          ? 'Trainer yang direferensikan belum memiliki kelas yang tersedia untuk program ini.'
                           : 'Program ini belum memiliki kelas yang tersedia.'
                         } Anda tetap dapat mendaftar dan akan diberitahu ketika kelas tersedia.
                       </p>
@@ -781,44 +812,85 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
 
               {/* Payment Proof Upload */}
               {finalPrice > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bukti Pembayaran *
-                  </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
-                    <div className="space-y-1 text-center">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="payment-proof"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                        >
-                          <span>Upload file</span>
-                          <input
-                            id="payment-proof"
-                            name="payment-proof"
-                            type="file"
-                            className="sr-only"
-                            accept="image/*,.pdf"
-                            onChange={handleFileChange}
-                            required
-                          />
-                        </label>
-                        <p className="pl-1">atau drag and drop</p>
+                <div className="space-y-6">
+                  {/* Payment Instructions & Bank Details */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                    <h3 className="text-md font-bold text-blue-900 mb-3">Instruksi Pembayaran</h3>
+                    <p className="text-sm text-blue-800 mb-4">
+                      Silakan transfer pembayaran ke salah satu rekening berikut atas nama <strong>PT REFORMASI INDONESIA MAJU</strong> (GARUDA-21):
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-3 mb-4">
+
+
+                      <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Bank Mandiri</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-lg font-bold text-gray-900 font-mono">1840057588889</p>
+                          </div>
+                          <p className="text-xs text-gray-600">PT REFORMASI INDONESIA MAJU</p>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG, PDF hingga 5MB
-                      </p>
+                    </div>
+
+                    <div className="text-sm text-blue-800 bg-white/50 p-3 rounded-lg border border-blue-100">
+                      <p className="font-semibold mb-1">Langkah selanjutnya:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-blue-900">
+                        <li>Transfer sejumlah <strong>{formatCurrency(finalPrice)}</strong></li>
+                        <li>Simpan/Screenshot bukti transfer Anda</li>
+                        <li>Upload bukti transfer pada form di bawah ini</li>
+                        <li>Konfirmasi pendaftaran ke WhatsApp: <a href="https://wa.me/628112666456" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-blue-700">08112666456</a></li>
+                      </ol>
                     </div>
                   </div>
-                  {paymentProof && (
-                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-600 flex items-center">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        File terpilih: {paymentProof.name}
-                      </p>
+
+                  <div>
+
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bukti Pembayaran *
+                    </label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                      <div className="space-y-1 text-center">
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label
+                            htmlFor="payment-proof"
+                            className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                          >
+                            <span>Upload file</span>
+                            <input
+                              id="payment-proof"
+                              name="payment-proof"
+                              type="file"
+                              className="sr-only"
+                              accept="image/*,.pdf"
+                              onChange={handleFileChange}
+                              required
+                            />
+                          </label>
+                          <p className="pl-1">atau drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          PNG, JPG, PDF hingga 5MB
+                        </p>
+                      </div>
                     </div>
-                  )}
+                    {paymentProof && (
+                      <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-sm text-green-600 flex items-start">
+                          <CheckCircle className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                          <span className="break-all">{paymentProof.name}</span>
+                        </div>
+                        {previewUrl && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                            <img src={previewUrl} alt="Preview Bukti Bayar" className="max-w-full h-auto max-h-64 rounded-lg border border-gray-200" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -857,7 +929,7 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }

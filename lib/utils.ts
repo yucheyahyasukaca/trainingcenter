@@ -42,14 +42,14 @@ export function formatTime(timeString: string): string {
 // Convert markdown text to HTML with support for bullets and numbered lists
 export function markdownToHtml(text: string): string {
   if (!text) return ''
-  
+
   // Split by lines to process line-by-line for better control
   const lines = text.split('\n')
   let htmlContent = ''
-  
+
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i]
-    
+
     // Process headings first (must be at start of line)
     if (line.match(/^### /)) {
       // H3
@@ -64,22 +64,22 @@ export function markdownToHtml(text: string): string {
       // Bullet list item
       line = line.replace(/^- (.+)$/, '<li>$1</li>')
       // Check if previous line was also a list item
-      if (i === 0 || !lines[i-1].match(/^- /)) {
+      if (i === 0 || !lines[i - 1].match(/^- /)) {
         line = '<ul style="list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0;">' + line
       }
       // Check if next line is not a list item
-      if (i === lines.length - 1 || !lines[i+1].match(/^- /)) {
+      if (i === lines.length - 1 || !lines[i + 1].match(/^- /)) {
         line = line + '</ul>'
       }
     } else if (line.match(/^\d+\. /)) {
       // Numbered list item
       line = line.replace(/^\d+\. (.+)$/, '<li>$1</li>')
       // Check if previous line was also a list item
-      if (i === 0 || !lines[i-1].match(/^\d+\. /)) {
+      if (i === 0 || !lines[i - 1].match(/^\d+\. /)) {
         line = '<ol style="list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0;">' + line
       }
       // Check if next line is not a list item
-      if (i === lines.length - 1 || !lines[i+1].match(/^\d+\. /)) {
+      if (i === lines.length - 1 || !lines[i + 1].match(/^\d+\. /)) {
         line = line + '</ol>'
       }
     } else if (line.trim() === '') {
@@ -93,10 +93,59 @@ export function markdownToHtml(text: string): string {
         .replace(/!\[([^\]]*)\]\(([^)]*)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto rounded-lg my-2" />')
         .replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:underline">$1</a>') + '</p>'
     }
-    
+
     htmlContent += line
   }
-  
+
   return htmlContent
 }
 
+export function compressImage(file: File, maxWidth = 800, quality = 0.7): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // Only compress images
+    if (!file.type.startsWith('image/')) {
+      resolve(file)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target?.result as string
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width)
+          width = maxWidth
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx?.drawImage(img, 0, 0, width, height)
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Canvas is empty'))
+              return
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            })
+            resolve(compressedFile)
+          },
+          file.type,
+          quality
+        )
+      }
+      img.onerror = (error) => reject(error)
+    }
+    reader.onerror = (error) => reject(error)
+  })
+}

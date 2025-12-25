@@ -27,7 +27,8 @@ export default function NewClassPage() {
     description: '',
     start_date: '',
     end_date: '',
-    max_participants: ''
+    max_participants: '',
+    image_file: null as File | null
   })
 
   useEffect(() => {
@@ -86,7 +87,36 @@ export default function NewClassPage() {
         min_trainer_level: (profile as any).trainer_level || 'junior',
         program_type: 'regular',
         registration_type: 'limited',
-        is_free: Number(formData.price) === 0
+        is_free: Number(formData.price) === 0,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        image_url: null as string | null
+      }
+
+      // Handle Image Upload
+      if (formData.image_file) {
+        try {
+          const fileExt = formData.image_file.name.split('.').pop()
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+          const filePath = `thumbnails/${fileName}`
+
+          // Compress/Resize logic could be added here similar to webinars
+          // For now simple upload
+          const { error: uploadError } = await supabase.storage
+            .from('program-assets')
+            .upload(filePath, formData.image_file)
+
+          if (uploadError) throw uploadError
+
+          const { data: publicUrlData } = supabase.storage
+            .from('program-assets')
+            .getPublicUrl(filePath)
+
+          programData.image_url = publicUrlData.publicUrl
+        } catch (error) {
+          console.error('Error uploading image:', error)
+          toast.error('Warning', 'Gagal mengupload gambar, program akan dibuat tanpa gambar.')
+        }
       }
 
       console.log('Creating program:', programData)
@@ -137,7 +167,8 @@ export default function NewClassPage() {
       if (trainerError) throw trainerError
 
       toast.success('Berhasil', 'Program Pelatihan berhasil dibuat!')
-      router.push('/trainer/classes')
+      // Redirect to the program detail page so the trainer can manage classes immediately
+      router.push(`/programs/${insertedProgram.id}/classes/${insertedClass.id}`)
     } catch (error: any) {
       console.error('Error creating class:', error)
       toast.error('Gagal', 'Gagal membuat program pelatihan: ' + error.message)
@@ -212,6 +243,72 @@ export default function NewClassPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Program Thumbnail */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Thumbnail Program
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:bg-gray-50 transition-colors cursor-pointer relative group">
+                  <div className="space-y-1 text-center">
+                    {formData.image_file ? (
+                      <div className="relative">
+                        <img
+                          src={URL.createObjectURL(formData.image_file)}
+                          alt="Thumbnail preview"
+                          className="mx-auto h-48 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setFormData(prev => ({ ...prev, image_file: null }))
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mx-auto h-12 w-12 text-gray-400">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                        <div className="flex text-sm text-gray-600 justify-center">
+                          <span className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                            <span>Upload gambar</span>
+                          </span>
+                          <p className="pl-1">atau drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF hingga 2MB (Rasio 16:9, cth: 1280x720px)</p>
+                      </>
+                    )}
+                    <input
+                      id="thumbnail-upload"
+                      name="thumbnail-upload"
+                      type="file"
+                      className="sr-only"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast.error('Error', 'Ukuran file maksimal 2MB')
+                            return
+                          }
+                          setFormData(prev => ({ ...prev, image_file: file }))
+                        }
+                      }}
+                    />
+                    <label htmlFor="thumbnail-upload" className="absolute inset-0 cursor-pointer"></label>
+                  </div>
+                </div>
               </div>
 
               {/* Name */}

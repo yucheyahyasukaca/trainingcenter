@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, BookOpen, Users, Calendar, Clock, FileText, MessageCircle, Eye, Edit } from 'lucide-react'
+import { ArrowLeft, BookOpen, Users, Calendar, Clock, FileText, MessageCircle, Eye, Edit, Camera } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/components/AuthProvider'
 import { formatDate, formatTime } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
+import { ClassManagement } from '@/components/programs/ClassManagement'
 
 export default function ClassDetailPage({
   params
@@ -14,10 +17,56 @@ export default function ClassDetailPage({
   params: { id: string; classId: string }
 }) {
   const router = useRouter()
+  const toast = useToast()
   const { profile, loading: authLoading } = useAuth()
   const [classData, setClassData] = useState<any>(null)
   const [programData, setProgramData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Error', 'Ukuran file maksimal 2MB')
+      return
+    }
+
+    try {
+      setIsUploading(true)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      const filePath = `thumbnails/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('program-assets')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage
+        .from('program-assets')
+        .getPublicUrl(filePath)
+
+      const imageUrl = publicUrlData.publicUrl
+
+      const { error: updateError } = await supabase
+        .from('programs')
+        .update({ image_url: imageUrl })
+        .eq('id', params.id)
+
+      if (updateError) throw updateError
+
+      setProgramData((prev: any) => ({ ...prev, image_url: imageUrl }))
+      toast.success('Berhasil', 'Thumbnail berhasil diperbarui')
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      toast.error('Error', 'Gagal mengupload thumbnail')
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   useEffect(() => {
     if (!authLoading && profile) {
@@ -122,40 +171,93 @@ export default function ClassDetailPage({
 
         {/* Header */}
         <div className="mb-8">
-          <Link
-            href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {(profile as any)?.role === 'trainer' ? 'Kembali ke Program Pelatihan Saya' : 'Kembali ke Program Pelatihan'}
-          </Link>
+          <div className="flex justify-between items-center mb-4">
+            <Link
+              href={(profile as any)?.role === 'trainer' ? '/trainer/classes' : `/programs/${params.id}/classes`}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {(profile as any)?.role === 'trainer' ? 'Kembali ke Program Pelatihan Saya' : 'Kembali ke Program Pelatihan'}
+            </Link>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-primary-100 rounded-lg">
-                <BookOpen className="w-6 h-6 text-primary-600" />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {classData.name}
-                </h1>
-                <p className="text-gray-600 mb-2">
-                  Program: {programData.title}
-                </p>
-                {classData.description && (
-                  <p className="text-gray-500">{classData.description}</p>
-                )}
-              </div>
-              <div className="text-right">
-                <span className={`px-3 py-1 text-sm font-medium rounded-full ${classData.status === 'ongoing'
+            <Link
+              href={`/programs/${params.id}`}
+              target="_blank"
+              className="inline-flex items-center gap-2 text-sm px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+            >
+              <Eye className="w-4 h-4" />
+              Preview Halaman Public
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6 group relative">
+            <div className={`w-full h-48 sm:h-64 relative ${programData.image_url ? 'bg-gray-100' : 'bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-center'}`}>
+              {programData.image_url ? (
+                <Image
+                  src={programData.image_url}
+                  alt={classData.name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-gray-400">
+                  <BookOpen className="w-16 h-16 mb-2" />
+                  <span className="text-sm">Belum ada thumbnail</span>
+                </div>
+              )}
+
+              {/* Upload Overlay for Trainers */}
+              {(profile as any)?.role === 'trainer' && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <label className="cursor-pointer flex flex-col items-center justify-center p-4 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors border border-white/50">
+                    <Camera className="w-8 h-8 text-white mb-2" />
+                    <span className="text-white font-medium">Ubah Thumbnail Program</span>
+                    <span className="text-white/80 text-xs mt-1">Rasio 16:9 disarankan (cth: 1280x720px), Max 2MB</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mb-2"></div>
+                    <span className="text-sm text-gray-600 font-medium">Mengupload...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    {classData.name}
+                  </h1>
+                  <p className="text-gray-600 mb-2">
+                    Program: {programData.title}
+                  </p>
+                  {classData.description && (
+                    <p className="text-gray-500">{classData.description}</p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className={`px-3 py-1 text-sm font-medium rounded-full ${classData.status === 'ongoing'
                     ? 'bg-green-100 text-green-800'
                     : classData.status === 'scheduled'
                       ? 'bg-blue-100 text-blue-800'
                       : 'bg-gray-100 text-gray-800'
-                  }`}>
-                  {classData.status === 'ongoing' ? 'Berlangsung' :
-                    classData.status === 'scheduled' ? 'Dijadwalkan' : 'Selesai'}
-                </span>
+                    }`}>
+                    {classData.status === 'ongoing' ? 'Berlangsung' :
+                      classData.status === 'scheduled' ? 'Dijadwalkan' : 'Selesai'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -245,8 +347,28 @@ export default function ClassDetailPage({
                 </Link>
               </div>
             </div>
+
           </div>
         </div>
+
+        {/* Class Management Section (Full Width) */}
+        {(profile as any)?.role === 'trainer' && (
+          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Manajemen Kelas Program</h2>
+              <p className="text-gray-600 mt-1">
+                Kelola semua kelas yang ada dalam program ini.
+              </p>
+            </div>
+            <ClassManagement
+              programId={params.id}
+              programTitle={programData.title}
+              currentUserId={profile?.id}
+              isTrainerMode={true}
+              hideHeader={true}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
