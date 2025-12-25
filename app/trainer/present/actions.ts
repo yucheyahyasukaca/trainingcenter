@@ -4,6 +4,8 @@ import { createServerClient } from '@/lib/supabase-server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { sendEmail } from '@/lib/mail'
+import { generateHebatSubmissionAdminEmail } from '@/lib/email-templates'
 
 const schema = z.object({
     socialLink: z.string().url('Mohon masukkan URL yang valid'),
@@ -33,7 +35,13 @@ export async function submitActualization(formData: FormData) {
     // Get trainer ID
     const { data: trainer, error: trainerError } = await supabase
         .from('trainers')
-        .select('id')
+        .select(`
+            id,
+            user_profiles (
+                full_name,
+                email
+            )
+        `)
         .eq('user_id', user.id)
         .single()
 
@@ -59,12 +67,6 @@ export async function submitActualization(formData: FormData) {
         .getPublicUrl(fileName)
 
     // Database insert
-    // Mapping:
-    // category: 'A' (Aktualisasi)
-    // focus: 'A' (Dummy)
-    // story: 'Aktualisasi Submission' (Dummy)
-    // solution: socialLink
-    // documentation_url: publicUrl (Screenshot)
     const { error: dbError } = await supabase
         .from('hebat_submissions')
         .insert({
@@ -80,6 +82,28 @@ export async function submitActualization(formData: FormData) {
     if (dbError) {
         console.error('Database error:', dbError)
         return { error: 'Gagal menyimpan data. Silakan coba lagi.' }
+    }
+
+    // Send Email to Admins
+    try {
+        const adminEmailContent = generateHebatSubmissionAdminEmail({
+            trainerName: trainer.user_profiles?.full_name || 'Unknown',
+            trainerEmail: trainer.user_profiles?.email || 'No Email',
+            submissionCategory: 'A',
+            submissionSolution: socialLink,
+            submissionStory: 'Aktualisasi Submission dari ' + (trainer.user_profiles?.full_name || 'User'),
+            submissionDate: new Date().toLocaleDateString('id-ID'),
+            adminDashboardUrl: `https://academy.garuda-21.com/admin/hebat/submissions`
+        })
+
+        const recipients = ['telemarketing@garuda-21.com', 'yucheyahya@gmail.com']
+
+        await Promise.all(recipients.map(recipient =>
+            sendEmail(recipient, `[Aktualisasi] Submission Baru dari ${trainer.user_profiles?.full_name}`, adminEmailContent)
+        ))
+
+    } catch (emailError) {
+        console.error('Failed to send admin notification email:', emailError)
     }
 
     revalidatePath('/trainer/dashboard')

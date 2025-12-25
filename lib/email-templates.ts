@@ -13,9 +13,9 @@ export interface WelcomeEmailData {
 }
 
 export function generateWelcomeEmail(data: WelcomeEmailData): string {
-  const { 
-    participantName, 
-    programTitle, 
+  const {
+    participantName,
+    programTitle,
     programDescription,
     userReferralCode,
     referralLink,
@@ -167,3 +167,102 @@ export function generateWelcomeEmail(data: WelcomeEmailData): string {
   `.trim()
 }
 
+
+export interface HebatSubmissionAdminData {
+  trainerName: string
+  trainerEmail: string
+  submissionCategory: string // E (Eksplorasi) or A (Aktualisasi)
+  submissionSolution: string
+  submissionStory: string
+  submissionDate: string
+  adminDashboardUrl: string
+}
+
+export function generateHebatSubmissionAdminEmail(data: HebatSubmissionAdminData): string {
+  const {
+    trainerName,
+    trainerEmail,
+    submissionCategory,
+    submissionSolution,
+    submissionStory,
+    submissionDate,
+    adminDashboardUrl
+  } = data
+
+  const categoryLabel = submissionCategory === 'E' ? 'Eksplorasi' : 'Aktualisasi'
+
+  return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Submission HEBAT Baru Menunggu Approval</title>
+</head>
+<body style="font-family: sans-serif; background-color: #f5f5f5; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <h1 style="color: #2563eb; margin-top: 0;">Submission Baru HEBAT</h1>
+    
+    <p>Halo Admin,</p>
+    <p>Terdapat submission baru pada program HEBAT yang memerlukan validasi Anda.</p>
+    
+    <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+      <p style="margin: 5px 0;"><strong>Trainer:</strong> ${trainerName} (${trainerEmail})</p>
+      <p style="margin: 5px 0;"><strong>Kategori:</strong> ${categoryLabel}</p>
+      <p style="margin: 5px 0;"><strong>Solusi/Link:</strong> ${submissionSolution}</p>
+      <p style="margin: 5px 0;"><strong>Tanggal:</strong> ${submissionDate}</p>
+    </div>
+
+    <p style="font-style: italic; color: #666;">"${submissionStory}"</p>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${adminDashboardUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Review Submission</a>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim()
+}
+
+export interface HebatApprovedData {
+  userName: string
+  submissionCategory: string
+  pointsEarned: number
+  dashboardUrl: string
+}
+
+export function generateHebatApprovedEmail(data: HebatApprovedData): string {
+  const { userName, submissionCategory, pointsEarned, dashboardUrl } = data
+
+  const categoryLabel = submissionCategory === 'E' ? 'Eksplorasi' : 'Aktualisasi'
+
+  return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Submission HEBAT Anda Telah Disetujui!</title>
+</head>
+<body style="font-family: sans-serif; background-color: #f5f5f5; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="text-align: center; margin-bottom: 20px;">
+       <h1 style="color: #059669; margin-top: 0;">Selamat! 🎉</h1>
+    </div>
+    
+    <p>Halo <strong>${userName}</strong>,</p>
+    <p>Kabar gembira! Submission Anda untuk kategori <strong>${categoryLabel}</strong> pada program HEBAT telah <strong>DISETUJUI</strong> oleh Tim Admin.</p>
+    
+    <div style="background-color: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 15px; border-radius: 6px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0; font-size: 18px; font-weight: bold;">+${pointsEarned} Poin</p>
+      <p style="margin: 5px 0 0 0; font-size: 14px;">Telah ditambahkan ke akun Anda</p>
+    </div>
+
+    <p>Terima kasih telah berkontribusi dan berbagi praktik baik. Teruslah menginspirasi!</p>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="${dashboardUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Lihat Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim()
+}
