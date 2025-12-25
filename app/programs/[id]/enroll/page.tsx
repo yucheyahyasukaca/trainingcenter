@@ -408,23 +408,33 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
       }
 
       // Upload payment proof if needed
+      // Upload payment proof if needed
       let proofUrl = ''
       if (program.price > 0 && paymentProof) {
         const fileExt = paymentProof.name.split('.').pop()
         const fileName = `${profile.id}_${program.id}_${Date.now()}.${fileExt}`
         const filePath = `${profile.id}/${fileName}`
 
-        const { error: uploadError } = await supabase.storage
-          .from('payment-proofs')
-          .upload(filePath, paymentProof, {
-            contentType: paymentProof.type,
-            upsert: true
-          })
+        console.log('Uploading payment proof via proxy API...', filePath)
 
-        if (uploadError) throw uploadError
+        const formData = new FormData()
+        formData.append('file', paymentProof)
+        formData.append('path', filePath)
 
-        // Use public URL directly (no signed URL needed)
-        proofUrl = `https://supabase.garuda-21.com/storage/v1/object/public/payment-proofs/${filePath}`
+        const uploadResponse = await fetch('/api/enrollment/upload-proof', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}))
+          console.error('Upload proxy error:', errorData)
+          throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`)
+        }
+
+        const result = await uploadResponse.json()
+        console.log('Upload success:', result)
+        proofUrl = result.url
       }
 
       // Create enrollment
