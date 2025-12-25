@@ -24,10 +24,7 @@ export default function ChatWidget() {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // Hide chatbot on learn pages
-    if (pathname?.startsWith('/learn')) {
-        return null;
-    }
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -79,6 +76,12 @@ export default function ChatWidget() {
             setIsLoading(false);
         }
     };
+
+
+    // Hide chatbot on learn pages
+    if (pathname?.startsWith('/learn')) {
+        return null;
+    }
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
