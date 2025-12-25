@@ -100,7 +100,7 @@ export function markdownToHtml(text: string): string {
   return htmlContent
 }
 
-export function compressImage(file: File, maxWidth = 800, quality = 0.7): Promise<File> {
+export function compressImage(file: File, maxWidth = 800, quality = 0.7, outputType?: string): Promise<File> {
   return new Promise((resolve, reject) => {
     // Only compress images
     if (!file.type.startsWith('image/')) {
@@ -126,7 +126,14 @@ export function compressImage(file: File, maxWidth = 800, quality = 0.7): Promis
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext('2d')
+        // Fill white background for JPEGs to handle transparent PNGs converting to black
+        if ((outputType || file.type) === 'image/jpeg') {
+          ctx!.fillStyle = '#FFFFFF'
+          ctx!.fillRect(0, 0, width, height)
+        }
         ctx?.drawImage(img, 0, 0, width, height)
+
+        const targetType = outputType || file.type
 
         canvas.toBlob(
           (blob) => {
@@ -134,13 +141,19 @@ export function compressImage(file: File, maxWidth = 800, quality = 0.7): Promis
               reject(new Error('Canvas is empty'))
               return
             }
-            const compressedFile = new File([blob], file.name, {
-              type: file.type,
+            // Change extension if type changed
+            let fileName = file.name
+            if (targetType === 'image/jpeg' && !fileName.toLowerCase().endsWith('.jpg') && !fileName.toLowerCase().endsWith('.jpeg')) {
+              fileName = fileName.replace(/\.[^/.]+$/, "") + ".jpg"
+            }
+
+            const compressedFile = new File([blob], fileName, {
+              type: targetType,
               lastModified: Date.now(),
             })
             resolve(compressedFile)
           },
-          file.type,
+          targetType,
           quality
         )
       }

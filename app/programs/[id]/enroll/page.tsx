@@ -426,13 +426,20 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           body: formData
         })
 
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json().catch(() => ({}))
-          console.error('Upload proxy error:', errorData)
-          throw new Error(errorData.error || `Upload failed with status ${uploadResponse.status}`)
+        const responseText = await uploadResponse.text()
+        let result
+        try {
+          result = JSON.parse(responseText)
+        } catch (e) {
+          console.error('SERVER ERROR (Non-JSON response):', responseText)
+          throw new Error(`Server returned non-JSON error. Status: ${uploadResponse.status}`)
         }
 
-        const result = await uploadResponse.json()
+        if (!uploadResponse.ok) {
+          console.error('Upload proxy error:', result)
+          throw new Error(result.error || `Upload failed with status ${uploadResponse.status}`)
+        }
+
         console.log('Upload success:', result)
         proofUrl = result.url
       }
@@ -576,8 +583,15 @@ export default function EnrollProgramPage({ params }: { params: { id: string } }
           // Compress image
           try {
             console.log('Compressing image...', file.size)
-            fileToUpload = await compressImage(file)
+            // Force convert to JPEG for better compression to avoid Nginx 1MB limit
+            fileToUpload = await compressImage(file, 800, 0.7, 'image/jpeg')
             console.log('Compressed image size:', fileToUpload.size)
+
+            // Check if still too big (unlikely with JPEG 800px)
+            if (fileToUpload.size > 1000 * 1024) {
+              // Try one more time with lower quality
+              fileToUpload = await compressImage(file, 600, 0.5, 'image/jpeg')
+            }
 
             // Create preview URL from compressed file
             const objectUrl = URL.createObjectURL(fileToUpload)
