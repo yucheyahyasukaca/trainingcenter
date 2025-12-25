@@ -17,26 +17,33 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing file' }, { status: 400 })
         }
 
-        // Validate file type (image or pdf)
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
-        if (!allowedTypes.includes(file.type)) {
+        // Use simple validation consistent with forum upload
+        // We expect images or PDFs.
+        const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf']
+        if (!validTypes.includes(file.type)) {
+            console.error('Invalid file type:', file.type)
             return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
         }
 
-        // Generate secure filename
+        // Normalize filename
         const normalizeFileName = (name: string) => {
             return name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\s+/g, '_').toLowerCase()
         }
 
         const secureFileName = normalizeFileName(file.name)
         // If path is provided (e.g. userId/filename), use it, otherwise generate one
-        const finalPath = path ? path : `${Date.now()}_${secureFileName}`
+        // Ensure path doesn't have leading slash
+        const cleanPath = path.startsWith('/') ? path.substring(1) : path
+        const finalPath = cleanPath ? cleanPath : `${Date.now()}_${secureFileName}`
+
+        console.log('Final path:', finalPath)
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string
 
         if (!supabaseUrl || !serviceKey) {
             console.error('Missing Supabase configuration')
+            // Return JSON even for 500
             return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
         }
 
@@ -49,10 +56,13 @@ export async function POST(req: NextRequest) {
 
         const bucketId = 'payment-proofs'
         const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer) // Convert to Buffer for nodejs runtime
+
+        console.log('Uploading to bucket:', bucketId)
 
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from(bucketId)
-            .upload(finalPath, arrayBuffer, {
+            .upload(finalPath, buffer, {
                 contentType: file.type,
                 upsert: true,
             })
@@ -65,14 +75,7 @@ export async function POST(req: NextRequest) {
             }, { status: 500 })
         }
 
-        // Get public URL
-        // Construct manually to avoid another round trip or potential issue if getPublicUrl is restricted
-        // But getPublicUrl is usually local string manipulation.
-        // Let's use the standard way first.
-
-        // For custom domain, we might need to be careful. 
-        // The previous code manually constructed: `https://supabase.garuda-21.com/storage/v1/object/public/payment-proofs/${filePath}`
-        // Let's rely on standard method but log it.
+        console.log('Upload successful:', uploadData)
 
         const { data: publicUrlData } = supabase.storage
             .from(bucketId)
@@ -82,8 +85,9 @@ export async function POST(req: NextRequest) {
             url: publicUrlData.publicUrl,
             path: finalPath
         }, { status: 200 })
+
     } catch (err: any) {
-        console.error('Upload API error:', err)
+        console.error('Upload API Fatal Error:', err)
         return NextResponse.json({
             error: err?.message || 'Upload failed',
             stack: err?.stack
