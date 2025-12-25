@@ -22,6 +22,7 @@ interface ProgramWithClasses {
   end_date: string
   max_participants: number | null
   status: string
+  image_url: string | null
   classes?: any[]
   trainer?: any
 }
@@ -52,6 +53,7 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
         .from('programs')
         .select(`
           *,
+          image_url,
           classes (
             id,
             name,
@@ -282,7 +284,13 @@ export default function ProgramLandingPage({ params }: { params: { id: string } 
             <div className="relative order-2 lg:order-1">
               <div className="relative rounded-2xl overflow-hidden">
                 <Image
-                  src="/herogemini.png"
+                  src={
+                    program.image_url
+                      ? (program.image_url.startsWith('http')
+                        ? program.image_url
+                        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/program-assets/${program.image_url}`)
+                      : '/herogemini.png'
+                  }
                   alt={program.title}
                   width={800}
                   height={600}

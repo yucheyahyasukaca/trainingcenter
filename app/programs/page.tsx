@@ -226,8 +226,8 @@ export default function ProgramsPage() {
               <button
                 onClick={() => setFilterCategory('all')}
                 className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === 'all'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                   }`}
               >
                 Semua Kategori
@@ -237,8 +237,8 @@ export default function ProgramsPage() {
                   key={category}
                   onClick={() => setFilterCategory(category)}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${filterCategory === category
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
                     }`}
                 >
                   {category}
@@ -283,7 +283,13 @@ export default function ProgramsPage() {
                   {/* Program Image */}
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src="/herogemini.png"
+                      src={
+                        (program as any).image_url
+                          ? ((program as any).image_url.startsWith('http')
+                            ? (program as any).image_url
+                            : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/program-assets/${(program as any).image_url}`)
+                          : '/herogemini.png'
+                      }
                       alt={program.title}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -406,4 +412,3 @@ export default function ProgramsPage() {
     </div>
   )
 }
-
