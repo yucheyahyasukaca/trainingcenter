@@ -126,10 +126,10 @@ export default function TrainersPage() {
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
-                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                  <div className="h-24 bg-gray-200 rounded-lg mb-4"></div>
                   <div className="h-6 bg-gray-200 rounded mb-2"></div>
                   <div className="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
                   <div className="h-10 bg-gray-200 rounded"></div>
@@ -147,74 +147,73 @@ export default function TrainersPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredTrainers.map((trainer) => (
-                <div 
-                  key={trainer.id} 
-                  className="group bg-white rounded-2xl border-2 border-gray-200 hover:border-primary-300 hover:shadow-xl transition-all duration-300 overflow-hidden"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+              {filteredTrainers.map((trainer) => {
+                const initials = (trainer.name || '?')
+                  .replace(/[.,]/g, ' ')
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w: string) => w[0])
+                  .join('')
+                  .toUpperCase()
+                return (
+                <Link
+                  key={trainer.id}
+                  href={`/trainer-profile/view/${trainer.id}`}
+                  className="group flex flex-col bg-white rounded-2xl border border-gray-200 hover:border-primary-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden"
                 >
-                  {/* Profile Image - Full Section */}
-                  <div className="h-96 bg-gray-100 relative overflow-hidden">
-                    {trainer.avatar_url ? (
-                      <img
-                        src={trainer.avatar_url}
-                        alt={trainer.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary-100 via-primary-200 to-red-100 flex items-center justify-center">
-                        <UserCog className="w-32 h-32 text-primary-600/60" />
-                      </div>
-                    )}
-                    <div className="absolute top-4 right-4">
-                      <div className="flex items-center px-3 py-1 bg-white/95 backdrop-blur-sm rounded-full shadow-lg">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="ml-1 text-sm font-semibold text-gray-900">4.8</span>
-                      </div>
+                  {/* Banner + foto bulat */}
+                  <div className="relative h-20 bg-gradient-to-br from-primary-500 via-primary-600 to-red-500">
+                    <div className="absolute top-3 right-3 flex items-center px-2 py-0.5 bg-white/95 rounded-full shadow-sm">
+                      <Star className="w-3.5 h-3.5 text-yellow-500 fill-current" />
+                      <span className="ml-1 text-xs font-semibold text-gray-900">4.8</span>
+                    </div>
+                    <div className="absolute left-1/2 -bottom-10 -translate-x-1/2 w-20 h-20 rounded-full ring-4 ring-white bg-primary-50 overflow-hidden shadow-md flex items-center justify-center">
+                      {trainer.avatar_url ? (
+                        <img
+                          src={trainer.avatar_url}
+                          alt={trainer.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-bold text-primary-600">{initials}</span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    {/* Specialization Badge & Status */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full">
+                  <div className="flex flex-col flex-1 items-center text-center px-5 pt-12 pb-5">
+                    <h3 className="text-base font-bold text-gray-900 leading-snug group-hover:text-primary-600 transition-colors line-clamp-2">
+                      {trainer.name}
+                    </h3>
+                    <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+                      <span className="inline-block px-2.5 py-0.5 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full">
                         {trainer.specialization}
                       </span>
                       {trainer.status !== 'active' && (
-                        <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+                        <span className="inline-block px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">
                           {trainer.status}
                         </span>
                       )}
                     </div>
-
-                    {/* Name and Title */}
-                    <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
-                      {trainer.name}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                      {trainer.experience_years || 0} Tahun pengalaman di industri
+                    <p className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                      <Briefcase className="w-3.5 h-3.5" />
+                      {trainer.experience_years || 0} tahun pengalaman
                     </p>
-
-                    {/* Experience Info */}
-                    <div className="space-y-2 mb-4">
-                      {trainer.bio && (
-                        <p className="text-sm text-gray-600 line-clamp-3">
-                          {trainer.bio}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Action Button */}
-                    <Link
-                      href={`/trainer-profile/view/${trainer.id}`}
-                      className="w-full inline-flex items-center justify-center px-4 py-3 bg-gradient-to-r from-primary-600 to-red-600 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-red-700 transition-all group/btn"
-                    >
-                      Lihat Profil Lengkap
-                      <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                    </Link>
+                    {trainer.bio && (
+                      <p className="mt-3 text-sm text-gray-600 line-clamp-2">
+                        {trainer.bio}
+                      </p>
+                    )}
+                    <span className="mt-4 pt-4 w-full border-t border-gray-100 inline-flex items-center justify-center text-sm font-semibold text-primary-600 group-hover:text-primary-700">
+                      Lihat Profil
+                      <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
+                    </span>
                   </div>
-                </div>
-              ))}
+                </Link>
+                )
+              })}
             </div>
           )}
 
