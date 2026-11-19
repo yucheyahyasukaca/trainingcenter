@@ -338,7 +338,7 @@ export default function LoginPage() {
                   onChange={handleChange}
                   required
                   className="input pl-10"
-                  placeholder="admin@garuda21.com"
+                  placeholder="nama@email.com"
                   autoComplete="email"
                 />
               </div>
