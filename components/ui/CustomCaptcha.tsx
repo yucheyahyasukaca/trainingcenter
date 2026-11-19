@@ -53,8 +53,8 @@ export default function CustomCaptcha({ onVerify }: CustomCaptchaProps) {
     }
 
     return (
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div className="flex flex-col space-y-3">
+        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="flex flex-col space-y-2">
                 <label className="text-sm font-medium text-gray-700">
                     Verifikasi Keamanan <span className="text-red-500">*</span>
                 </label>

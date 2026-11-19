@@ -282,10 +282,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-red-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+      <div className="w-full max-w-md lg:max-w-4xl lg:grid lg:grid-cols-2 lg:gap-x-12 lg:gap-y-4 lg:items-start">
         {/* Logo & Title */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-32 h-32 sm:w-36 sm:h-36 mb-6">
+        <div className="text-center mb-5 lg:mb-0 lg:row-span-2 lg:self-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 lg:w-40 lg:h-40 mb-3 lg:mb-6">
             <Image
               src="/logo-06.png"
               alt="Garuda Academy Logo"
@@ -294,7 +294,7 @@ export default function LoginPage() {
               className="object-contain w-full h-full"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Login</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-1 lg:mb-2">Login</h1>
           <p className="text-gray-600">Silakan login untuk melanjutkan</p>
 
           {/* Referral Code Info */}
@@ -316,7 +316,7 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -419,7 +419,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-6 text-center space-y-3">
+        <div className="mt-4 lg:mt-0 text-center space-y-2">
           <p className="text-sm text-gray-600">
             <button
               type="button"
@@ -445,7 +445,7 @@ export default function LoginPage() {
             </a>
           </div>
 
-          <div className="pt-4 text-xs text-center text-gray-400">
+          <div className="pt-2 text-xs text-center text-gray-400">
             <button
               onClick={() => {
                 const confirmed = window.confirm('Ini akan menghapus semua data sesi tersimpan dan me-refresh halaman. Lanjutkan?')
