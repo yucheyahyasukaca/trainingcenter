@@ -16,7 +16,33 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Client for client-side usage with proper cookie handling for middleware
-export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+// Kunci (lock) sesi antar-tab. Bawaan supabase-js menunggu tanpa batas waktu: bila tab lain
+// (atau proses yang macet) memegang kunci, SEMUA permintaan di tab ini ikut menggantung dan
+// halaman berputar terus. Di sini menunggu maksimal 5 detik, lalu lanjut tanpa kunci.
+const LOCK_WAIT_MS = 5000
+const safeLock = async <R,>(name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
+  if (typeof navigator === 'undefined' || !(navigator as any).locks) return fn()
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), LOCK_WAIT_MS)
+  try {
+    return await (navigator as any).locks.request(name, { signal: ctrl.signal }, async () => {
+      clearTimeout(timer)
+      return fn()
+    })
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      console.warn('⚠️ Kunci sesi tidak tersedia, melanjutkan tanpa kunci:', name)
+      return fn()
+    }
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: { lock: safeLock },
+})
 
 // Server-side client with anon key for API routes (to work with RLS)
 export const createServerClient = () => {
