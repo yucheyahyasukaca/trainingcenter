@@ -168,12 +168,12 @@ export function TrainerHebatDashboard() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Perjalanan HEBAT Anda</h2>
-                    <p className="text-gray-600">Kumpulkan poin dan jadilah Trainer HEBAT!</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Perjalanan HEBAT Anda</h2>
+                    <p className="text-sm sm:text-base text-gray-600">Kumpulkan poin dan jadilah Trainer HEBAT!</p>
                 </div>
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center space-x-2">
+                <div className="self-start whitespace-nowrap bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-xl shadow-lg flex items-center space-x-2">
                     <Award className="w-5 h-5" />
                     <span className="font-bold text-lg">{points?.total_points || 0} Poin</span>
                 </div>
@@ -193,7 +193,7 @@ export function TrainerHebatDashboard() {
                             className={`relative bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-xl transition-all duration-300 group ${isEffectiveLocked ? 'opacity-75 bg-gray-50' : ''}`}
                         >
                             {/* Letter Badge */}
-                            <div className={`absolute -top-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-300 ${card.color === 'blue' ? 'bg-blue-500' :
+                            <div className={`absolute -top-2 -right-1 sm:-top-3 sm:-right-3 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl font-bold text-white shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-300 ${card.color === 'blue' ? 'bg-blue-500' :
                                 card.color === 'purple' ? 'bg-purple-500' :
                                     card.color === 'orange' ? 'bg-orange-500' :
                                         card.color === 'pink' ? 'bg-pink-500' :

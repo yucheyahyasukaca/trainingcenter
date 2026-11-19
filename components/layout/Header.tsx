@@ -82,7 +82,7 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
   const roleInfo = getRoleBadge(profile?.role)
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-2.5 lg:py-4">
       <div className="flex items-center justify-between">
         {/* Mobile Menu Button - Hidden when search is open */}
         {!isMobileSearchOpen && (
@@ -120,7 +120,7 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
         {!isMobileSearchOpen && (
           <button
             onClick={() => setIsMobileSearchOpen(true)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="lg:hidden ml-auto p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Search className="w-6 h-6 text-gray-600" />
           </button>
@@ -128,7 +128,7 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
 
         {/* Right side buttons - Hidden when mobile search is open */}
         {!isMobileSearchOpen && (
-          <div className="flex items-center space-x-4 ml-6">
+          <div className="flex items-center space-x-1 sm:space-x-4 ml-1 sm:ml-6">
           {/* Notifications Bell */}
           <div className="relative">
             <button 
@@ -298,13 +298,13 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
             )}
           </div>
 
-          <div className="relative pl-4 border-l border-gray-200">
+          <div className="relative pl-1 sm:pl-4 sm:border-l sm:border-gray-200">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center space-x-3 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+              className="flex items-center space-x-2 sm:space-x-3 hover:bg-gray-50 rounded-lg p-1 sm:p-2 transition-colors"
             >
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-gray-900 max-w-[180px] truncate">
                   {loading ? 'Loading...' : profile?.full_name || user?.email || 'User'}
                 </p>
                 <p className={`text-xs ${roleInfo.class}`}>{roleInfo.text}</p>
@@ -312,7 +312,7 @@ function HeaderContent({ onMenuClick }: HeaderProps) {
               <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="hidden sm:block w-4 h-4 text-gray-400" />
             </button>
 
             {/* Dropdown Menu */}

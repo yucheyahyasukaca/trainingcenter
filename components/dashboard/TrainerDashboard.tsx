@@ -313,24 +313,24 @@ export function TrainerDashboard() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header with modern gradient */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-xl sm:shadow-2xl">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
             <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Dashboard Trainer</h1>
-              <p className="text-blue-100 text-base sm:text-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-1.5 sm:mb-2">Dashboard Trainer</h1>
+              <p className="text-blue-100 text-sm sm:text-lg leading-snug">
                 Selamat datang kembali, <span className="font-semibold">{profile?.full_name}</span>! 👋
               </p>
-              <p className="text-blue-200 text-sm mt-1">
+              <p className="text-blue-200 text-xs sm:text-sm mt-1">
                 Kelola kelas dan materi pelatihan Anda
               </p>
             </div>
-            <div className="flex items-center justify-center sm:justify-end">
-              <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg">
-                <div className={`w-4 h-4 rounded-full ${levelInfo.color === 'purple' ? 'bg-purple-400' :
+            <div className="flex items-center justify-start sm:justify-end">
+              <div className="flex items-center space-x-3 bg-white/20 backdrop-blur-sm rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2 sm:py-4 shadow-lg">
+                <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${levelInfo.color === 'purple' ? 'bg-purple-400' :
                     levelInfo.color === 'blue' ? 'bg-blue-400' :
                       levelInfo.color === 'green' ? 'bg-green-400' : 'bg-gray-400'
                   }`}></div>
