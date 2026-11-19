@@ -43,7 +43,7 @@ export function EnrollmentStatusChart() {
   if (loading) {
     return (
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Status Pendaftaran</h2>
+        <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Status Pendaftaran</h2>
         <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
       </div>
     )
@@ -51,8 +51,8 @@ export function EnrollmentStatusChart() {
 
   return (
     <div className="card">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Status Pendaftaran</h2>
-      <ResponsiveContainer width="100%" height={300}>
+      <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Status Pendaftaran</h2>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
             data={data}

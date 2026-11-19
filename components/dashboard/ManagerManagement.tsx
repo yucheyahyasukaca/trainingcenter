@@ -197,11 +197,11 @@ export function ManagerManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Manajemen Manager</h2>
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Manajemen Manager</h2>
           <p className="text-gray-600">Kelola manager dan tugaskan ke divisi tertentu</p>
         </div>
         <button
@@ -214,19 +214,19 @@ export function ManagerManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {divisions.map(division => {
           const Icon = division.icon
           const count = managers.filter(m => m.division === division.id).length
           return (
-            <div key={division.id} className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
+            <div key={division.id} className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
               <div className="flex items-center space-x-4">
                 <div className={`w-12 h-12 ${division.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-600 truncate">{division.name}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{count}</p>
                   <p className="text-xs text-gray-500 mt-1 truncate">{division.description}</p>
                 </div>
               </div>
@@ -367,8 +367,8 @@ export function ManagerManagement() {
       {/* Add/Edit Manager Modal */}
       {(showAddForm || editingManager) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-xl p-4 sm:p-6 w-full max-w-md">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
               {editingManager ? 'Edit Manager' : 'Tambah Manager Baru'}
             </h3>
             

@@ -61,7 +61,7 @@ export function ProgramsChart() {
   if (loading) {
     return (
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Pendaftar per Kategori</h2>
+        <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Pendaftar per Kategori</h2>
         <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
       </div>
     )
@@ -69,8 +69,8 @@ export function ProgramsChart() {
 
   return (
     <div className="card">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Pendaftar per Kategori</h2>
-      <ResponsiveContainer width="100%" height={300}>
+      <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Pendaftar per Kategori</h2>
+      <ResponsiveContainer width="100%" height={260}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="category" />

@@ -58,7 +58,7 @@ function AdminDashboardContent() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Mobile Notification Toast */}
       <MobileNotificationToast />
       
@@ -87,13 +87,13 @@ function AdminDashboardContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-primary-100 text-primary-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                 <span className="truncate">{tab.label}</span>
               </button>
             )
@@ -109,7 +109,7 @@ function AdminDashboardContent() {
 
 
           {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <ProgramsChart />
             <EnrollmentStatusChart />
           </div>
@@ -118,7 +118,7 @@ function AdminDashboardContent() {
           <WebinarStatistics />
 
           {/* System Overview & Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <SystemOverview />
             <RecentEnrollments />
           </div>
@@ -131,11 +131,11 @@ function AdminDashboardContent() {
       )}
 
       {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <UsersChart />
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analisis Segera Hadir</h3>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Analisis Segera Hadir</h3>
               <p className="text-gray-600">Fitur analisis lanjutan akan segera tersedia.</p>
             </div>
           </div>

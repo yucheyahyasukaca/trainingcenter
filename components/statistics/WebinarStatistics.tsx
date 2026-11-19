@@ -161,7 +161,7 @@ export function WebinarStatistics() {
   if (loading) {
     return (
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Statistik Webinar</h2>
+        <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Statistik Webinar</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -176,19 +176,19 @@ export function WebinarStatistics() {
 
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-900">Statistik Webinar</h2>
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h2 className="text-base sm:text-xl font-bold text-gray-900">Statistik Webinar</h2>
         <Video className="w-6 h-6 text-primary-600" />
       </div>
 
       {/* Statistics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4 sm:mb-6">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
           <div className="flex items-center space-x-2 mb-2">
             <Video className="w-5 h-5 text-blue-600" />
             <p className="text-sm text-gray-600">Total Webinar</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalWebinars}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.totalWebinars}</p>
         </div>
 
         <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
@@ -196,7 +196,7 @@ export function WebinarStatistics() {
             <Calendar className="w-5 h-5 text-green-600" />
             <p className="text-sm text-gray-600">Akan Datang</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.upcomingWebinars}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.upcomingWebinars}</p>
         </div>
 
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
@@ -204,7 +204,7 @@ export function WebinarStatistics() {
             <Award className="w-5 h-5 text-purple-600" />
             <p className="text-sm text-gray-600">Selesai</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.completedWebinars}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.completedWebinars}</p>
         </div>
 
         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
@@ -212,7 +212,7 @@ export function WebinarStatistics() {
             <Users className="w-5 h-5 text-orange-600" />
             <p className="text-sm text-gray-600">Total Pendaftar</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalRegistrations}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.totalRegistrations}</p>
         </div>
 
         <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border border-teal-200">
@@ -220,7 +220,7 @@ export function WebinarStatistics() {
             <Users className="w-5 h-5 text-teal-600" />
             <p className="text-sm text-gray-600">Kehadiran</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalAttendees}</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.totalAttendees}</p>
         </div>
 
         <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
@@ -228,16 +228,16 @@ export function WebinarStatistics() {
             <TrendingUp className="w-5 h-5 text-pink-600" />
             <p className="text-sm text-gray-600">Rata-rata Kehadiran</p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.averageAttendance.toFixed(1)}%</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.averageAttendance.toFixed(1)}%</p>
         </div>
       </div>
 
       {/* Top Webinars */}
       <div className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Webinar Berdasarkan Pendaftar</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Top Webinar Berdasarkan Pendaftar</h3>
         <div className="space-y-3">
           {stats.topWebinars.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">Belum ada data webinar</p>
+            <p className="text-gray-600 text-center py-5 sm:py-8">Belum ada data webinar</p>
           ) : (
             stats.topWebinars.map((webinar, index) => (
               <div key={webinar.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-4">
@@ -259,15 +259,15 @@ export function WebinarStatistics() {
                 <div className="flex items-center justify-between md:justify-end space-x-2 md:space-x-6 w-full md:w-auto flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-gray-200">
                   <div className="text-center flex-1 md:flex-none min-w-[80px]">
                     <p className="text-xs text-gray-500 mb-1">Pendaftar</p>
-                    <p className="text-lg font-bold text-blue-600">{webinar.registrations}</p>
+                    <p className="text-base sm:text-lg font-bold text-blue-600">{webinar.registrations}</p>
                   </div>
                   <div className="text-center flex-1 md:flex-none min-w-[80px]">
                     <p className="text-xs text-gray-500 mb-1">Hadir</p>
-                    <p className="text-lg font-bold text-green-600">{webinar.attendees}</p>
+                    <p className="text-base sm:text-lg font-bold text-green-600">{webinar.attendees}</p>
                   </div>
                   <div className="text-center flex-1 md:flex-none min-w-[100px]">
                     <p className="text-xs text-gray-500 mb-1">Kehadiran</p>
-                    <p className="text-lg font-bold text-purple-600">{webinar.attendance_rate.toFixed(1)}%</p>
+                    <p className="text-base sm:text-lg font-bold text-purple-600">{webinar.attendance_rate.toFixed(1)}%</p>
                   </div>
                 </div>
               </div>

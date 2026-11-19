@@ -108,7 +108,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -128,14 +128,14 @@ export default function AdminLayout({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6">
           {children}
         </main>
         {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 py-4 px-4 lg:px-6">
-          <div className="text-center text-sm text-gray-600">
+        <footer className="flex-shrink-0 bg-white border-t border-gray-200 py-2 sm:py-3 px-4 lg:px-6">
+          <div className="text-center text-xs sm:text-sm text-gray-600">
             © {new Date().getFullYear()} <span className="font-semibold text-primary-600">GARUDA-21</span>. All rights reserved.
           </div>
         </footer>

@@ -96,7 +96,7 @@ export function RecentEnrollments() {
   if (loading) {
     return (
       <div className="card">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Pendaftaran Terbaru</h2>
+        <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Pendaftaran Terbaru</h2>
         <div className="animate-pulse space-y-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-16 bg-gray-200 rounded"></div>
@@ -108,8 +108,28 @@ export function RecentEnrollments() {
 
   return (
     <div className="card">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Pendaftaran Terbaru</h2>
-      <div className="overflow-x-auto">
+      <h2 className="text-base sm:text-xl font-bold text-gray-900 mb-4">Pendaftaran Terbaru</h2>
+      {/* HP: daftar kartu */}
+      <div className="md:hidden divide-y divide-gray-100 -mx-1">
+        {enrollments.length === 0 && <p className="text-sm text-gray-500 py-4 text-center">Belum ada pendaftaran.</p>}
+        {enrollments.map((enrollment) => (
+          <div key={enrollment.id} className="py-3 px-1 space-y-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-gray-900 min-w-0 break-words">{enrollment.program?.title || 'N/A'}</p>
+              <span className="text-[11px] text-gray-500 whitespace-nowrap flex-shrink-0">{formatDate(enrollment.enrollment_date)}</span>
+            </div>
+            <p className="text-xs text-gray-600 break-all">
+              {enrollment.participant?.name || 'N/A'} · {enrollment.participant?.email || 'N/A'}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              <span className={getStatusBadge(enrollment.status)}>{enrollment.status}</span>
+              <span className={getPaymentBadge(enrollment.payment_status)}>{enrollment.payment_status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Tablet/desktop: tabel */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200">

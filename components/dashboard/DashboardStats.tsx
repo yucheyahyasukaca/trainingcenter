@@ -119,9 +119,9 @@ export function DashboardStats() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-pulse">
+          <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 animate-pulse">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -137,17 +137,17 @@ export function DashboardStats() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
       {statItems.map((item) => {
         const Icon = item.icon
         return (
-          <div key={item.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow overflow-hidden">
+          <div key={item.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-6 hover:shadow-md transition-shadow overflow-hidden">
             <div className="flex items-start justify-between h-full">
-              <div className="flex-1 min-w-0 pr-3">
-                <p className="text-sm font-medium text-gray-600 truncate">{item.label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2 truncate">{item.value}</p>
+              <div className="flex-1 min-w-0 pr-2 sm:pr-3">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">{item.label}</p>
+                <p className="text-base sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{item.value}</p>
                 {item.trend && (
-                  <p className="text-sm text-green-600 font-medium mt-1">{item.trend}</p>
+                  <p className="text-[11px] sm:text-sm text-green-600 font-medium mt-0.5 sm:mt-1 truncate">{item.trend}</p>
                 )}
                 {item.status && (
                   <p className={`text-sm font-medium mt-1 ${
@@ -158,8 +158,8 @@ export function DashboardStats() {
                   </p>
                 )}
               </div>
-              <div className={`${item.lightColor} p-3 rounded-lg flex-shrink-0 w-12 h-12 flex items-center justify-center`}>
-                <Icon className={`w-6 h-6 ${item.textColor}`} />
+              <div className={`${item.lightColor} p-2 sm:p-3 rounded-lg flex-shrink-0 w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center`}>
+                <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${item.textColor}`} />
               </div>
             </div>
           </div>

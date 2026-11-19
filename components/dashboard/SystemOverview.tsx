@@ -105,9 +105,9 @@ export function SystemOverview() {
   ]
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">System Overview</h3>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900">System Overview</h3>
         <div className="flex items-center space-x-2">
           <Activity className="w-5 h-5 text-green-600" />
           <span className="text-sm text-green-600 font-medium">All Systems Operational</span>
@@ -115,7 +115,7 @@ export function SystemOverview() {
       </div>
 
       {/* System Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-4 mb-4 sm:mb-6">
         {systemStats.map((stat, index) => {
           const Icon = stat.icon
           // Map color strings to tailwind classes dynamically or use a lookup
