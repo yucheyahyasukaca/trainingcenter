@@ -210,9 +210,9 @@ export default function LandingPage() {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-4 lg:space-x-6">
+            <div className="hidden lg:flex items-center space-x-3 xl:space-x-6">
               {/* Search Bar */}
-              <div className="flex items-center relative">
+              <div className="hidden xl:flex items-center relative">
                 <Search className="absolute left-3 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
@@ -222,7 +222,7 @@ export default function LandingPage() {
               </div>
 
               {/* Header Menu */}
-              <nav className="flex items-center space-x-6">
+              <nav className="flex items-center space-x-4 xl:space-x-6">
                 <Link
                   href="/webinars"
                   className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
@@ -256,7 +256,7 @@ export default function LandingPage() {
               </nav>
 
               {/* Auth Buttons */}
-              <div className="flex items-center space-x-3 lg:space-x-4">
+              <div className="flex items-center space-x-2 xl:space-x-4">
                 <Link
                   href="/login"
                   className="inline-flex items-center px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-colors border border-gray-200 hover:border-primary-600 rounded-lg"
@@ -389,8 +389,8 @@ export default function LandingPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
 
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-12 items-center">
+            <div className="space-y-6 xl:space-y-8">
               <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-primary-100 to-red-100 rounded-full mb-6 animate-fade-in">
                 <Sparkles className="w-4 h-4 text-primary-600 animate-pulse" />
                 <span className="text-sm font-semibold text-primary-700">
@@ -398,7 +398,7 @@ export default function LandingPage() {
                 </span>
               </div>
 
-              <h1 className="text-5xl lg:text-7xl font-extrabold text-gray-900 leading-tight animate-slide-up">
+              <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-7xl font-extrabold text-gray-900 leading-tight animate-slide-up">
                 Bergerak,
                 <br />
                 <span className="relative inline-block">
@@ -409,7 +409,7 @@ export default function LandingPage() {
                 </span>
               </h1>
 
-              <p className="text-xl text-gray-600 leading-relaxed max-w-2xl animate-fade-in animation-delay-200">
+              <p className="text-lg xl:text-xl text-gray-600 leading-relaxed max-w-2xl animate-fade-in animation-delay-200">
                 Program pelatihan eksklusif yang dirancang untuk profesional, akademisi, peneliti, dan pemimpin teknologi
                 yang ingin menguasai AI dan teknologi tingkat lanjut untuk menciptakan dampak nyata di era digital.
               </p>
@@ -448,20 +448,13 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <div className="relative bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-200 transform hover:scale-105 transition-transform duration-500">
+              <div className="relative bg-white rounded-2xl shadow-2xl p-5 sm:p-6 xl:p-8 border border-gray-200 xl:transform xl:hover:scale-105 transition-transform duration-500">
                 {/* Program Baru Card - Di atas stats */}
                 <Link href="/programs" className="block mb-6 p-5 bg-gradient-to-br from-primary-600 via-red-600 to-pink-600 rounded-xl text-white relative overflow-hidden group hover:shadow-xl transition-all duration-300">
                   {/* Decorative background elements */}
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-8 translate-x-8"></div>
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl translate-y-6 -translate-x-6"></div>
 
-                  {/* New badge */}
-                  <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                    <div className="flex items-center space-x-1">
-                      <Bell className="w-3 h-3" />
-                      <span className="text-xs font-bold">NEW</span>
-                    </div>
-                  </div>
 
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-3">
@@ -470,7 +463,13 @@ export default function LandingPage() {
                           <Sparkles className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-xs font-medium opacity-90 mb-1">Program Terbaru</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-xs font-medium opacity-90">Program Terbaru</p>
+                            <span className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold">
+                              <Bell className="w-3 h-3" />
+                              NEW
+                            </span>
+                          </div>
                           <h3 className="text-lg font-bold leading-tight">Gemini untuk Pendidik</h3>
                         </div>
                       </div>
