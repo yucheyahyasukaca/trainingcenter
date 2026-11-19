@@ -3,7 +3,15 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
+// Dipanggil dari halaman depan setiap kunjungan: simpan 5 menit di memori.
+const CACHE_MS = 5 * 60_000
+let cache: { at: number; body: any } | null = null
+const CACHE_HEADERS = { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' }
+
 export async function GET() {
+    if (cache && Date.now() - cache.at < CACHE_MS) {
+        return NextResponse.json(cache.body, { headers: CACHE_HEADERS })
+    }
     const supabase = createServerClient()
 
     try {
@@ -58,7 +66,7 @@ export async function GET() {
 
         if (trainerError) throw trainerError
 
-        return NextResponse.json({
+        const body = {
             enrollments: {
                 value: `+${currentMonthCount || 0}`,
                 change: growthLabel
@@ -71,7 +79,9 @@ export async function GET() {
                 value: activeTrainersCount || 0,
                 change: 'Expert' // Hardcoded for now
             }
-        })
+        }
+        cache = { at: Date.now(), body }
+        return NextResponse.json(body, { headers: CACHE_HEADERS })
 
     } catch (error) {
         console.error('Error fetching dashboard stats:', error)

@@ -6,7 +6,7 @@ import { NotificationProvider } from '@/components/ui/Notification'
 import { ToastProvider } from '@/contexts/ToastContext'
 import ToastContainer from '@/components/ui/ToastContainer'
 import { GlobalToaster } from '@/components/GlobalToaster'
-import ChatWidget from '@/components/ChatWidget'
+import ChatWidgetLazy from '@/components/ChatWidgetLazy'
 
 import ServiceWorkerRegister from '@/components/ServiceWorkerRegister'
 
@@ -31,7 +31,7 @@ export default function RootLayout({
               {children}
               <ToastContainer />
               <GlobalToaster />
-              <ChatWidget />
+              <ChatWidgetLazy />
               <ServiceWorkerRegister />
             </ToastProvider>
           </NotificationProvider>

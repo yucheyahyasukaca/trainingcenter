@@ -25,7 +25,7 @@ export default function WebinarsListPage() {
   useEffect(() => {
     async function fetchWebinars() {
       try {
-        const res = await fetch('/api/webinars', { cache: 'no-store' })
+        const res = await fetch('/api/webinars')
         const json = await res.json()
         setWebinars(json.webinars || [])
       } finally {
