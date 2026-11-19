@@ -805,18 +805,18 @@ export default function AmplifyDashboard() {
                                 <h3 className="text-base sm:text-lg font-bold text-gray-900 text-left mb-4">Riwayat Pelatihan</h3>
                                 {studentSubmissions.map((sub, idx) => (
                                     <div key={idx} className="border border-gray-200 rounded-xl p-4 text-left hover:bg-gray-50 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-bold text-gray-900">{sub.topic}</div>
-                                                <div className="text-sm text-gray-500 flex items-center mt-1">
-                                                    <span className="mr-3">{new Date(sub.training_date).toLocaleDateString('id-ID')}</span>
-                                                    <span className="mr-3">•</span>
-                                                    <span className="mr-3">{sub.student_count} Siswa</span>
-                                                    <span className="mr-3">•</span>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
+                                            <div className="min-w-0">
+                                                <div className="font-bold text-gray-900 break-words">{sub.topic}</div>
+                                                <div className="text-xs sm:text-sm text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                                                    <span>{new Date(sub.training_date).toLocaleDateString('id-ID')}</span>
+                                                    <span aria-hidden="true">•</span>
+                                                    <span className="whitespace-nowrap">{sub.student_count} Siswa</span>
+                                                    <span aria-hidden="true">•</span>
                                                     <span className="capitalize">{sub.training_format}</span>
                                                 </div>
                                             </div>
-                                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${sub.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                            <div className={`self-start flex-shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium ${sub.status === 'approved' ? 'bg-green-100 text-green-800' :
                                                 sub.status === 'rejected' ? 'bg-red-100 text-red-800' :
                                                     'bg-yellow-100 text-yellow-800'
                                                 }`}>

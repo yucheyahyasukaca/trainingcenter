@@ -347,17 +347,17 @@ export function TrainerDashboard() {
       </div>
 
       {/* HEBAT Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         <div className="lg:col-span-3">
           <TrainerHebatDashboard />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+        <div className="lg:col-span-2 space-y-5 sm:space-y-8">
           {/* Trainer Stats - Modern Cards */}
           <div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-12">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-12">
               {loading ? (
                 // Loading skeleton
                 Array.from({ length: 4 }).map((_, index) => (
@@ -388,17 +388,17 @@ export function TrainerDashboard() {
                       <div className="group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 cursor-pointer">
                         <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50"></div>
                         <div className="relative z-10 p-4 sm:p-6">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${stat.color === 'blue' ? 'bg-blue-500' :
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className={`flex-shrink-0 w-9 h-9 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${stat.color === 'blue' ? 'bg-blue-500' :
                                 stat.color === 'green' ? 'bg-green-500' :
                                   stat.color === 'orange' ? 'bg-orange-500' :
                                     stat.color === 'purple' ? 'bg-purple-500' : 'bg-gray-500'
                               }`}>
                               <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
-                            <div className="text-right">
-                              <p className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors">{stat.value}</p>
-                              <p className="text-xs text-gray-600">{stat.title}</p>
+                            <div className="text-right min-w-0">
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900 group-hover:text-gray-700 transition-colors leading-none">{stat.value}</p>
+                              <p className="text-[11px] sm:text-xs text-gray-600 mt-1 leading-tight">{stat.title}</p>
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
@@ -424,16 +424,16 @@ export function TrainerDashboard() {
           </div>
 
           {/* Active Classes */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-              <h2 className="text-2xl font-bold text-gray-900">Kelas Aktif</h2>
+          <div className="mb-5 sm:mb-8">
+            <div className="flex items-center space-x-3 mb-4 sm:mb-6">
+              <div className="w-1 h-6 sm:h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Kelas Aktif</h2>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div key={index} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
                     <div className="animate-pulse">
                       <div className="h-4 bg-gray-300 rounded w-3/4 mb-4"></div>
                       <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
@@ -443,7 +443,7 @@ export function TrainerDashboard() {
                 ))}
               </div>
             ) : upcomingClasses.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <div className="text-center py-6 sm:py-12 bg-white rounded-xl border border-gray-200">
                 <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Tidak ada kelas yang sedang berlangsung</p>
                 <Link href="/trainer/classes/new" className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
@@ -453,9 +453,9 @@ export function TrainerDashboard() {
               </div>
             ) : (
               <div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   {upcomingClasses.map((classItem) => (
-                    <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+                    <div key={classItem.id} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg transition-shadow">
                       <div className="flex items-start justify-between mb-4">
                         <span className={getStatusBadge(classItem.status)}>
                           {getStatusText(classItem.status)}
@@ -478,7 +478,7 @@ export function TrainerDashboard() {
                         </div>
                       </div>
 
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">{classItem.name}</h3>
                       {classItem.programs && (
                         <p className="text-sm text-gray-600 mb-4">{classItem.programs.title}</p>
                       )}
@@ -511,7 +511,7 @@ export function TrainerDashboard() {
                 <div className="mt-6 text-center">
                   <Link
                     href="/trainer/classes"
-                    className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center px-4 sm:px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Lihat Semua Kelas
@@ -522,14 +522,14 @@ export function TrainerDashboard() {
           </div>
 
           {/* Recent Classes */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-3 mb-6">
+          <div className="mb-5 sm:mb-8">
+            <div className="flex items-center space-x-3 mb-4 sm:mb-6">
               <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-              <h2 className="text-2xl font-bold text-gray-900">Kelas Terbaru</h2>
+              <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Kelas Terbaru</h2>
             </div>
 
             {loading ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
                 <div className="animate-pulse space-y-4">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div key={index} className="flex items-center justify-between py-3">
@@ -543,13 +543,13 @@ export function TrainerDashboard() {
                 </div>
               </div>
             ) : recentClasses.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <div className="text-center py-6 sm:py-12 bg-white rounded-xl border border-gray-200">
                 <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">Belum ada kelas yang dibuat</p>
               </div>
             ) : (
               <div>
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
                   <div className="space-y-4">
                     {recentClasses.map((classItem) => (
                       <div key={classItem.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
@@ -582,7 +582,7 @@ export function TrainerDashboard() {
                 <div className="mt-4 text-center">
                   <Link
                     href="/trainer/classes"
-                    className="inline-flex items-center px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center px-4 sm:px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Lihat Semua Kelas
@@ -594,7 +594,7 @@ export function TrainerDashboard() {
         </div>
 
         {/* Right Column - Leaderboard */}
-        <div className="space-y-8">
+        <div className="space-y-5 sm:space-y-8">
           <HebatLeaderboard />
         </div>
       </div>
