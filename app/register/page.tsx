@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [referralCode, setReferralCode] = useState<string | null>(null)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [showLoginPw, setShowLoginPw] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
@@ -402,37 +403,37 @@ export default function RegisterPage() {
 
       {/* Login Modal */}
       {isLoginOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setIsLoginOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl mx-4">
-            <div className="flex items-center justify-between p-5 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Masuk</h3>
-              <button onClick={() => setIsLoginOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-gray-200 flex-shrink-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Masuk</h3>
+              <button onClick={() => setIsLoginOpen(false)} aria-label="Tutup" className="w-8 h-8 -mr-1 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100">✕</button>
             </div>
 
-            <div className="p-5">
-              <form onSubmit={handleLogin} className="space-y-4">
+            <div className="p-4 sm:p-5 overflow-y-auto">
+              <form onSubmit={handleLogin} className="space-y-3 sm:space-y-4">
                 <input
                   type="email"
                   placeholder="email@garuda-21.com"
-                  className="input w-full"
+                  className="input w-full text-sm sm:text-base"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
                 <div className="relative">
                   <input
-                    type="password"
-                    placeholder="••••••••"
-                    className="input w-full pr-10"
+                    type={showLoginPw ? 'text' : 'password'}
+                    placeholder="Password"
+                    className="input w-full pr-10 text-sm sm:text-base"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">👁️</div>
+                  <button type="button" onClick={() => setShowLoginPw(v => !v)} aria-label="Tampilkan password" className="absolute right-3 top-1/2 -translate-y-1/2 text-base opacity-60">{showLoginPw ? '🙈' : '👁️'}</button>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
                   <label className="inline-flex items-center gap-2 text-gray-600">
                     <input type="checkbox" className="rounded border-gray-300" />
                     Remember me
@@ -440,7 +441,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowResetPasswordModal(true)}
-                    className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer relative z-10"
+                    className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer relative z-10 whitespace-nowrap"
                   >
                     Lupa Password?
                   </button>
@@ -452,17 +453,17 @@ export default function RegisterPage() {
 
                 <CustomCaptcha onVerify={setIsCaptchaVerified} />
 
-                <button type="submit" disabled={loading || !isCaptchaVerified} className="w-full btn-primary py-3">
+                <button type="submit" disabled={loading || !isCaptchaVerified} className="w-full btn-primary py-2.5 sm:py-3 text-sm sm:text-base">
                   {loading ? 'Memproses...' : 'Masuk'}
                 </button>
 
-                <div className="flex items-center gap-4 my-2">
+                <div className="text-[11px] leading-snug text-gray-500 text-center">
                   Dengan melakukan login, Anda setuju dengan syarat & ketentuan Garuda Academy. This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.
                 </div>
 
-                <div className="relative flex py-2 items-center">
+                <div className="relative flex py-1 items-center">
                   <div className="flex-grow border-t border-gray-300"></div>
-                  <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">Atau</span>
+                  <span className="flex-shrink-0 mx-3 text-gray-400 text-xs sm:text-sm">Atau</span>
                   <div className="flex-grow border-t border-gray-300"></div>
                 </div>
 
@@ -473,7 +474,7 @@ export default function RegisterPage() {
                     <button
                       type="button"
                       onClick={() => toast.error('Google Login belum siap atau belum dikonfigurasi. Harap refresh halaman.')}
-                      className="w-full border border-gray-300 rounded-lg py-3 font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                      className="w-full border border-gray-300 rounded-lg py-2.5 sm:py-3 text-sm sm:text-base font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
                     >
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path
