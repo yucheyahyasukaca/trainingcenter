@@ -120,7 +120,7 @@ export default function EksplorasiPage() {
 
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-indigo-50 p-6 md:p-12 font-sans">
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-indigo-50 px-2 py-4 sm:p-6 md:p-12 font-sans">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-5 sm:mb-8">
@@ -134,14 +134,14 @@ export default function EksplorasiPage() {
 
                     <div className="text-center space-y-4">
                         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                            <h1 className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
+                            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
                                 EKSPLORASI
                             </h1>
-                            <span className="bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg shadow-indigo-200">
+                            <span className="bg-indigo-600 text-white px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-200">
                                 Laporan Kegiatan
                             </span>
                         </div>
-                        <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
                             Ceritakan aksi nyata Anda: Solusi Gems spesifik apa yang Anda ciptakan untuk memecahkan masalah
                             di bidang pendidikan, atau cerita pelatihan AI yang Anda lakukan kepada rekan guru. Tunjukkan hasil dan dampaknya!
                         </p>
@@ -150,30 +150,30 @@ export default function EksplorasiPage() {
 
                 <form action={handleSubmit} ref={formRef} className="space-y-4 sm:space-y-6">
                     {/* Card 1: Fokus Kegiatan */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                <CheckCircle2 className="w-6 h-6" />
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-6">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Fokus Kegiatan Anda <span className="text-red-500">*</span>
                             </h2>
                         </div>
 
-                        <p className="text-slate-500 mb-4 text-sm">Pilih satu fokus utama dari cerita praktik yang akan Anda bagikan.</p>
+                        <p className="text-slate-500 mb-3 sm:mb-4 text-[13px] sm:text-sm">Pilih satu fokus utama dari cerita praktik yang akan Anda bagikan.</p>
 
-                        <div className="space-y-4">
-                            <label className="relative flex items-start p-4 rounded-xl border-2 border-slate-200 cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all group">
+                        <div className="space-y-3 sm:space-y-4">
+                            <label className="relative flex items-start p-3 sm:p-4 rounded-xl border-2 border-slate-200 cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all group">
                                 <input type="radio" name="focus" value="A" className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500" required />
-                                <div className="ml-4">
+                                <div className="ml-3 sm:ml-4">
                                     <span className="block text-slate-900 font-semibold group-hover:text-indigo-700">A. Aksi Nyata AI di Kelas</span>
                                     <span className="block text-slate-500 text-sm mt-1">Fokus pada praktik penggunaan Gems dalam pembelajaran</span>
                                 </div>
                             </label>
 
-                            <label className="relative flex items-start p-4 rounded-xl border-2 border-slate-200 cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all group">
+                            <label className="relative flex items-start p-3 sm:p-4 rounded-xl border-2 border-slate-200 cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all group">
                                 <input type="radio" name="focus" value="B" className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500" required />
-                                <div className="ml-4">
+                                <div className="ml-3 sm:ml-4">
                                     <span className="block text-slate-900 font-semibold group-hover:text-indigo-700">B. Aksi Nyata AI untuk Guru</span>
                                     <span className="block text-slate-500 text-sm mt-1">Fokus pada sesi pengimbasan/pelatihan kepada guru lain</span>
                                 </div>
@@ -182,54 +182,54 @@ export default function EksplorasiPage() {
                     </div>
 
                     {/* Card 2: Cerita Hasil */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                <Lightbulb className="w-6 h-6" />
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-6">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Cerita Hasil dan Dampak Nyata <span className="text-red-500">*</span>
                             </h2>
                         </div>
 
-                        <p className="text-slate-500 mb-4 text-sm">
+                        <p className="text-slate-500 mb-3 sm:mb-4 text-[13px] sm:text-sm">
                             Bagikan kisah Anda secara ringkas. Jelaskan output (hasil akhir) dari praktik/pengajaran Anda dan dampak positif apa yang dirasakan (oleh Anda, siswa, atau rekan guru).
                         </p>
 
                         <div className="relative">
                             <textarea
                                 name="story"
-                                className="w-full min-h-[150px] p-4 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-y text-slate-700 placeholder:text-slate-400"
+                                className="w-full min-h-[130px] p-3 sm:p-4 text-sm sm:text-base rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-y text-slate-700 placeholder:text-slate-400"
                                 placeholder="Ceritakan pengalaman Anda secara detail..."
                                 minLength={50}
                                 maxLength={1000}
                                 required
                             ></textarea>
-                            <div className="absolute bottom-3 right-3 text-xs text-slate-400">
+                            <div className="absolute bottom-2 right-3 text-[10px] sm:text-xs bg-white/90 pl-1 text-slate-400">
                                 Minimal 50 karakter, maksimal 1000 karakter
                             </div>
                         </div>
                     </div>
 
                     {/* Card 3: Solusi AI */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                <FileText className="w-6 h-6" />
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-6">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Solusi AI yang Diimplementasikan <span className="text-red-500">*</span>
                             </h2>
                         </div>
 
-                        <p className="text-slate-500 mb-4 text-sm">
+                        <p className="text-slate-500 mb-3 sm:mb-4 text-[13px] sm:text-sm">
                             Apa inovasi/solusi AI yang Anda buat atau ajarkan? Sebutkan dengan jelas.
                         </p>
 
                         <input
                             type="text"
                             name="solution"
-                            className="w-full p-4 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 placeholder:text-slate-400"
+                            className="w-full p-3 sm:p-4 text-sm sm:text-base rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-slate-700 placeholder:text-slate-400"
                             placeholder='Contoh: "Membuat Gems di Gemini AI untuk merancang Modul Ajar Kurikulum Merdeka," atau "Sesi pelatihan..."'
                             maxLength={200}
                             required
@@ -240,17 +240,17 @@ export default function EksplorasiPage() {
                     </div>
 
                     {/* Card 4: Upload Bukti */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                                <Upload className="w-6 h-6" />
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-6">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                             <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Unggah Bukti Dokumentasi (Wajib) <span className="text-red-500">*</span>
                             </h2>
                         </div>
 
-                        <p className="text-slate-500 mb-4 text-sm">
+                        <p className="text-slate-500 mb-3 sm:mb-4 text-[13px] sm:text-sm">
                             Sertakan bukti visual kegiatan Anda. Contoh: Screenshot hasil kerja dari Gems, foto saat praktik di kelas, atau foto saat Anda melakukan pengimbasan/pelatihan.
                         </p>
 
@@ -293,7 +293,7 @@ export default function EksplorasiPage() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center">
-                                    <Upload className="w-12 h-12 text-slate-400 mb-4" />
+                                    <Upload className="w-9 h-9 sm:w-12 sm:h-12 text-slate-400 mb-2 sm:mb-4" />
                                     <p className="text-slate-700 font-medium text-base sm:text-lg mb-2">
                                         Klik atau drag file ke area ini
                                     </p>
@@ -312,11 +312,11 @@ export default function EksplorasiPage() {
                     </div>
 
                     {/* Submit Button */}
-                    <div className="flex justify-center pt-6">
+                    <div className="flex justify-center pt-3 sm:pt-6">
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-indigo-600 text-white px-12 py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-xl shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                            className="bg-indigo-600 text-white w-full sm:w-auto justify-center px-6 sm:px-12 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-xl shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>
@@ -332,7 +332,7 @@ export default function EksplorasiPage() {
             </div>
 
             {/* History Section */}
-            <div className="max-w-4xl mx-auto mt-12">
+            <div className="max-w-4xl mx-auto mt-8 sm:mt-12">
                 <h2 className="text-lg sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6">Riwayat Laporan Anda</h2>
                 <div className="space-y-4">
                     {submissions.length === 0 ? (
