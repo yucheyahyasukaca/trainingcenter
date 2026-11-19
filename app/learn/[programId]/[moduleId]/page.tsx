@@ -1373,18 +1373,18 @@ export default function LearnPage({ params }: { params: { programId: string; mod
         </div>
 
         {/* Content layout */}
-        <div className="max-w-4xl mx-auto w-full px-4 py-6 pb-20">
+        <div className="max-w-4xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 pb-20">
           {/* Completion Message - Show when all materials are completed */}
           {overallProgress === 100 && (
-            <div className="mb-8 p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl shadow-lg">
+            <div className="mb-5 sm:mb-8 p-4 sm:p-8 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 sm:border-2 rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                  <Award className="w-12 h-12 text-green-600" />
+                <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-green-100 rounded-full mb-3 sm:mb-4">
+                  <Award className="w-8 h-8 sm:w-12 sm:h-12 text-green-600" />
                 </div>
-                <h2 className="text-3xl font-bold text-green-900 mb-2">
+                <h2 className="text-xl sm:text-3xl font-bold text-green-900 mb-1.5 sm:mb-2 leading-snug">
                   Selamat! Pembelajaran Sudah Selesai
                 </h2>
-                <p className="text-lg text-green-700 mb-6">
+                <p className="text-sm sm:text-lg text-green-700 mb-4 sm:mb-6">
                   Anda telah menyelesaikan semua materi pembelajaran dengan sempurna.
                 </p>
 
@@ -1392,7 +1392,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                   <button
                     onClick={generateCertificate}
                     disabled={certificateStatus === 'generating'}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto justify-center inline-flex items-center gap-2 sm:gap-3 px-4 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 text-base sm:text-lg font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {certificateStatus === 'generating' ? (
                       <>
@@ -1410,14 +1410,14 @@ export default function LearnPage({ params }: { params: { programId: string; mod
 
                 {certificateStatus === 'generated' && certificateData && (
                   <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-800 rounded-lg">
+                    <div className="w-full sm:w-auto justify-center text-sm sm:text-base inline-flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-green-100 text-green-800 rounded-lg">
                       <CheckCircle className="w-5 h-5" />
                       <span className="font-semibold">Sertifikat sudah digenerate</span>
                     </div>
                     <div className="flex items-center justify-center gap-4">
                       <Link
                         href="/my-certificates"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
+                        className="w-full sm:w-auto justify-center text-sm sm:text-base inline-flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                       >
                         <Download className="w-5 h-5" />
                         Lihat / Unduh Sertifikat
@@ -1634,7 +1634,7 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
   }
 
   return (
-    <div className="reading-content" style={{
+    <div className="reading-content px-4 py-6 sm:px-8 sm:py-12 rounded-lg sm:rounded-xl" style={{
       backgroundColor: theme.contentBg,
       color: theme.text,
       fontFamily: readingSettings.fontType === 'serif' ? 'Georgia, "Times New Roman", serif' :
@@ -1644,25 +1644,23 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
         readingSettings.fontSize === 'large' ? '18px' : '16px',
       maxWidth: readingSettings.readingWidth === 'medium' ? '800px' : '900px',
       margin: '0 auto',
-      padding: '3rem 2rem',
-      borderRadius: '12px',
       transition: 'all 0.3s ease',
       textAlign: 'left',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
       lineHeight: '1.7'
     }}>
       {/* Content Header */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight" style={{ color: theme.text }}>
+      <div className="mb-5 sm:mb-8 text-center">
+        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 leading-tight" style={{ color: theme.text }}>
           {content.title}
         </h1>
         {content.description && (
-          <p className="text-xl opacity-80 max-w-2xl mx-auto" style={{ color: theme.text }}>
+          <p className="text-base sm:text-xl opacity-80 max-w-2xl mx-auto" style={{ color: theme.text }}>
             {content.description}
           </p>
         )}
         {progress?.status === 'completed' && (
-          <div className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-full">
+          <div className="mt-6 inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base bg-green-100 text-green-700 rounded-full">
             <CheckCircle className="w-5 h-5" />
             <span className="font-semibold">Selesai</span>
           </div>
@@ -1691,7 +1689,7 @@ function ContentRenderer({ content, theme, readingSettings, progress, onComplete
       {/* For assignments: Show info that task must be submitted first */}
       {progress?.status !== 'completed' && content.content_type === 'assignment' && (
         <div className="mt-12 flex justify-center">
-          <div className="inline-flex items-center gap-3 px-8 py-4 bg-yellow-50 border-2 border-yellow-200 text-yellow-800 rounded-xl">
+          <div className="inline-flex items-center gap-3 px-4 py-3 sm:px-8 sm:py-4 text-sm sm:text-base bg-yellow-50 border-2 border-yellow-200 text-yellow-800 rounded-xl">
             <Info className="w-6 h-6" />
             <span className="font-medium">Submit tugas terlebih dahulu untuk menandai selesai</span>
           </div>
@@ -1838,7 +1836,7 @@ function DocumentContent({ content }: any) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 sm:p-6">
         <div className="flex items-center gap-4">
           <File className="w-12 h-12 text-purple-600" />
           <div className="flex-1">
@@ -2354,7 +2352,7 @@ function AssignmentContent({ content, onComplete }: any) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 sm:p-6">
         <h3 className="text-xl font-bold text-orange-900 mb-4">Instruksi Tugas</h3>
         <div
           className="text-orange-800 whitespace-pre-wrap"
@@ -2378,7 +2376,7 @@ function AssignmentContent({ content, onComplete }: any) {
         )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
         <h4 className="font-bold text-gray-900 mb-4">Submit Tugas Anda</h4>
         {isLoadingSubmission ? (
           <div className="py-8 text-center text-gray-500">
@@ -2487,7 +2485,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out">
         {/* Header */}
-        <div className="px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-4 py-4 sm:px-8 sm:py-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
               <Settings className="w-5 h-5 text-white" />
@@ -2503,7 +2501,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-8 space-y-8">
+        <div className="flex-1 overflow-auto p-4 sm:p-8 space-y-6 sm:space-y-8">
           {/* Tema */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -2543,7 +2541,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={theme.key}
                   onClick={() => onUpdate('theme', theme.key)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.theme === theme.key
+                  className={`relative p-4 sm:p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.theme === theme.key
                     ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg scale-[1.02]'
                     : 'border-gray-200 hover:border-blue-300 hover:shadow-md hover:scale-[1.01] bg-white'
                     }`}
@@ -2663,7 +2661,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                   )}
                   <div className="text-center">
                     <div
-                      className="text-4xl font-bold text-gray-900 mb-2"
+                      className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2"
                       style={{ fontSize: size.size }}
                     >
                       {size.icon}
@@ -2701,7 +2699,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
                 <button
                   key={width.key}
                   onClick={() => onUpdate('readingWidth', width.key)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.readingWidth === width.key
+                  className={`relative p-4 sm:p-6 rounded-2xl border-2 transition-all duration-300 group ${settings.readingWidth === width.key
                     ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg scale-[1.02]'
                     : 'border-gray-200 hover:border-indigo-300 hover:shadow-md hover:scale-[1.01] bg-white'
                     }`}
@@ -2729,7 +2727,7 @@ function AdaptiveReadingModal({ open, onClose, settings, onUpdate }: any) {
         </div>
 
         {/* Footer */}
-        <div className="px-8 py-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="px-4 py-4 sm:px-8 sm:py-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="text-center text-sm text-gray-500">
             Pengaturan akan disimpan otomatis
           </div>
@@ -2754,7 +2752,7 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
       <div className="absolute inset-0 bg-black/40 transition-opacity duration-300" onClick={onClose} />
       <div className="absolute right-0 top-0 h-full w-full sm:w-[480px] bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-out">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-4 py-3 sm:px-6 sm:py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
               <FileText className="w-4 h-4 text-white" />
@@ -2767,7 +2765,7 @@ function ContentDrawer({ open, onClose, contents, progress, overallProgress, cur
         </div>
 
         {/* Progress Section */}
-        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
+        <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-gray-800">Kemajuan Belajar</h4>
             <span className="text-sm font-bold text-green-600">{overallProgress}%</span>
