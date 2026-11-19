@@ -120,7 +120,7 @@ export default function PresentPage() {
     }, [])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 p-3 sm:p-6 md:p-12 font-sans">
+        <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 px-1.5 py-3 sm:p-6 md:p-12 font-sans">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-5 sm:mb-8">
@@ -134,7 +134,7 @@ export default function PresentPage() {
 
                     <div className="text-center space-y-4">
                         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                            <h1 className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
+                            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
                                 PRESENT
                             </h1>
                             <span className="bg-pink-500 text-white px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-xs sm:text-sm font-semibold shadow-lg shadow-pink-200 inline-flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
@@ -153,7 +153,7 @@ export default function PresentPage() {
 
                 <div className="space-y-5 sm:space-y-8">
                     {/* Arahan Section */}
-                    <div className="bg-white rounded-2xl border-2 border-blue-400 p-6 md:p-8 shadow-sm">
+                    <div className="bg-white rounded-2xl border-2 border-blue-400 p-3.5 sm:p-6 md:p-8 shadow-sm">
                         <div className="flex items-center gap-2 mb-4 sm:mb-6 text-pink-500 font-bold text-base sm:text-xl">
                             <div className="w-8 h-8 rounded-full border-2 border-pink-500 flex items-center justify-center">
                                 <span className="text-base sm:text-lg">❖</span>
@@ -162,37 +162,37 @@ export default function PresentPage() {
                         </div>
 
                         <div className="space-y-4 sm:space-y-6">
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">1</div>
-                                <div>
+                            <div className="flex gap-3 sm:gap-4">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 text-sm sm:text-base rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">1</div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-slate-800 mb-1">Ceritakan Kisah Anda</h3>
                                     <p className="text-slate-600 text-sm mb-2">Buat postingan yang menceritakan dampak atau hasil dari pembelajaran Anda. Anda dapat memilih salah satu fokus cerita:</p>
-                                    <ul className="list-disc list-inside text-slate-600 text-sm space-y-1 ml-2">
+                                    <ul className="list-disc pl-4 text-slate-600 text-sm space-y-1.5">
                                         <li><span className="font-semibold">Solusi AI Agent:</span> Praktik AI Agent spesifik apa yang Anda ciptakan dan apa solusi apa yang berhasil Anda buat?</li>
                                         <li><span className="font-semibold">Pelatihan yang Berdampak:</span> Kisah sukses saat Anda melakukan pelatihan/pengimbasan AI kepada rekan guru di sekitar Anda.</li>
                                     </ul>
                                 </div>
                             </div>
 
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">2</div>
-                                <div>
+                            <div className="flex gap-3 sm:gap-4">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 text-sm sm:text-base rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">2</div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-slate-800 mb-1">Sertakan Bukti</h3>
                                     <p className="text-slate-600 text-sm">Lampirkan foto, screenshot, atau video yang sudah Anda post.</p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">3</div>
-                                <div>
+                            <div className="flex gap-3 sm:gap-4">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 text-sm sm:text-base rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">3</div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-slate-800 mb-1">Unggah di Media Sosial</h3>
                                     <p className="text-slate-600 text-sm">Publikasikan di platform pilihan Anda (Instagram, LinkedIn, Facebook, atau lainnya).</p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-4">
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">4</div>
-                                <div>
+                            <div className="flex gap-3 sm:gap-4">
+                                <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 text-sm sm:text-base rounded-full bg-pink-500 text-white flex items-center justify-center font-bold">4</div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-slate-800 mb-1">Wajib Gunakan Hashtag dan Tag</h3>
                                     <p className="text-slate-600 text-sm">Pastikan Anda menyertakan hashtag dan tag berikut di postingan Anda:</p>
                                 </div>
@@ -201,7 +201,7 @@ export default function PresentPage() {
                     </div>
 
                     {/* Hashtag & Tag Section */}
-                    <div className="bg-pink-50 rounded-2xl border border-pink-100 p-6 md:p-8">
+                    <div className="bg-pink-50 rounded-2xl border border-pink-100 p-3.5 sm:p-6 md:p-8">
                         <h3 className="text-center font-bold text-slate-800 mb-4 sm:mb-6">Wajib Gunakan Hashtag dan Tag</h3>
 
                         <div className="space-y-4">
@@ -247,9 +247,9 @@ export default function PresentPage() {
                     </div>
 
                     {/* Form Submission */}
-                    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                    <div className="bg-white rounded-2xl p-3.5 sm:p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
                         <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                                 <Share2 className="w-6 h-6" />
                             </div>
                             <h2 className="text-base sm:text-xl font-bold text-slate-800">
