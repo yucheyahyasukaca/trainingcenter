@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/AuthProvider'
 import { markdownToHtml } from '@/lib/utils'
@@ -54,6 +54,15 @@ export default function LearnPage({ params }: { params: { programId: string; mod
   const [userReferralCodes, setUserReferralCodes] = useState<any[]>([])
   const [hasLockedModules, setHasLockedModules] = useState<boolean>(false)
   const [certificateStatus, setCertificateStatus] = useState<'none' | 'generating' | 'generated' | 'error'>('none')
+  // Kartu "Selamat": terbuka selama sertifikat belum dibuat; otomatis tertutup sekali saat sudah ada.
+  const [completionOpen, setCompletionOpen] = useState(true)
+  const completionAutoCollapsed = useRef(false)
+  useEffect(() => {
+    if (certificateStatus === 'generated' && !completionAutoCollapsed.current) {
+      completionAutoCollapsed.current = true
+      setCompletionOpen(false)
+    }
+  }, [certificateStatus])
   const [certificateData, setCertificateData] = useState<any>(null)
   const [certificateError, setCertificateError] = useState<string>('')
   const [autoCompleteDone, setAutoCompleteDone] = useState<boolean>(false)
@@ -1377,13 +1386,30 @@ export default function LearnPage({ params }: { params: { programId: string; mod
           {/* Completion Message - Show when all materials are completed */}
           {overallProgress === 100 && (
             <div className="mb-5 sm:mb-8 p-4 sm:p-8 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 sm:border-2 rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 bg-green-100 rounded-full mb-3 sm:mb-4">
-                  <Award className="w-8 h-8 sm:w-12 sm:h-12 text-green-600" />
-                </div>
-                <h2 className="text-xl sm:text-3xl font-bold text-green-900 mb-1.5 sm:mb-2 leading-snug">
-                  Selamat! Pembelajaran Sudah Selesai
-                </h2>
+              <button
+                type="button"
+                onClick={() => setCompletionOpen(o => !o)}
+                aria-expanded={completionOpen}
+                className="w-full flex items-center gap-3 text-left"
+              >
+                <span className="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 sm:w-14 sm:h-14 bg-green-100 rounded-full">
+                  <Award className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-base sm:text-2xl font-bold text-green-900 leading-snug">
+                    Selamat! Pembelajaran Sudah Selesai
+                  </span>
+                  {!completionOpen && (
+                    <span className="block text-xs sm:text-sm text-green-700 mt-0.5">
+                      {certificateStatus === 'generated' ? 'Sertifikat sudah tersedia · ketuk untuk membuka' : 'Ketuk untuk membuka'}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown className={`flex-shrink-0 w-5 h-5 text-green-700 transition-transform duration-200 ${completionOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {completionOpen && (
+              <div className="text-center mt-4 sm:mt-6">
                 <p className="text-sm sm:text-lg text-green-700 mb-4 sm:mb-6">
                   Anda telah menyelesaikan semua materi pembelajaran dengan sempurna.
                 </p>
@@ -1447,6 +1473,7 @@ export default function LearnPage({ params }: { params: { programId: string; mod
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
 

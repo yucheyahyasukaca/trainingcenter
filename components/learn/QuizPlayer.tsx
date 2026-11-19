@@ -335,16 +335,16 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
   // Show Results
   if (showResults && results) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Results Header */}
-        <div className={`rounded-lg p-6 ${
+        <div className={`rounded-lg p-4 sm:p-6 ${
           results.percentage >= 75 ? 'bg-green-50 border-2 border-green-200' : 'bg-red-50 border-2 border-red-200'
         }`}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {results.percentage >= 75 ? (
-              <Award className="w-12 h-12 text-green-600" />
+              <Award className="w-9 h-9 sm:w-12 sm:h-12 text-green-600" />
             ) : (
-              <X className="w-12 h-12 text-red-600" />
+              <X className="w-9 h-9 sm:w-12 sm:h-12 text-red-600" />
             )}
             <div>
               <h2 className={`text-2xl font-bold ${
@@ -368,11 +368,11 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
 
         {/* Question by Question Results */}
         <div className="space-y-4">
-          <h3 className="text-xl font-bold text-gray-900">Pembahasan</h3>
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">Pembahasan</h3>
           {results.questionResults.map((result: any, index: number) => (
             <div
               key={result.question.id}
-              className={`border-2 rounded-lg p-4 ${
+              className={`border-2 rounded-lg p-3 sm:p-4 ${
                 result.isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
               }`}
             >
@@ -462,9 +462,9 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
   const currentAnswer = answers[currentQuestion.id]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Progress */}
-      <div className="bg-gray-50 rounded-lg p-4">
+      <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">
             Pertanyaan {currentQuestionIndex + 1} dari {questions.length}
@@ -482,27 +482,27 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
       </div>
 
       {/* Question */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="px-3 py-1 text-sm font-medium rounded-full bg-primary-100 text-primary-700">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4">
+          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-medium rounded-full bg-primary-100 text-primary-700">
             {currentQuestion.points} poin
           </span>
-          <span className="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-700 capitalize">
+          <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-medium rounded-full bg-gray-100 text-gray-700 capitalize">
             {currentQuestion.question_type.replace('_', ' ')}
           </span>
         </div>
 
-        <h3 className="text-xl font-bold text-gray-900 mb-6">
+        <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6 leading-snug">
           {currentQuestion.question_text}
         </h3>
 
         {/* Multiple Choice */}
         {currentQuestion.question_type === 'multiple_choice' && (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {currentQuestion.options?.map((option, index) => (
               <label
                 key={option.id}
-                className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                className={`flex items-start gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   currentAnswer?.selected_option_id === option.id
                     ? 'border-primary-500 bg-primary-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -513,12 +513,12 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
                   name={`question-${currentQuestion.id}`}
                   checked={currentAnswer?.selected_option_id === option.id}
                   onChange={() => handleAnswer(currentQuestion.id, { selected_option_id: option.id })}
-                  className="w-5 h-5 text-primary-600"
+                  className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary-600"
                 />
-                <span className="text-sm font-medium text-gray-500 w-6">
+                <span className="text-sm font-medium text-gray-500 w-5 sm:w-6 flex-shrink-0 mt-0.5">
                   {String.fromCharCode(65 + index)}.
                 </span>
-                <span className="text-gray-900 flex-1">{option.option_text}</span>
+                <span className="text-sm sm:text-base text-gray-900 flex-1 min-w-0 leading-snug break-words">{option.option_text}</span>
               </label>
             ))}
           </div>
@@ -526,11 +526,11 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
 
         {/* True/False */}
         {currentQuestion.question_type === 'true_false' && (
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {['Benar', 'Salah'].map((option) => (
               <label
                 key={option}
-                className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                className={`flex items-start gap-2.5 sm:gap-3 p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   currentAnswer?.answer_text === option
                     ? 'border-primary-500 bg-primary-50'
                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -541,9 +541,9 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
                   name={`question-${currentQuestion.id}`}
                   checked={currentAnswer?.answer_text === option}
                   onChange={() => handleAnswer(currentQuestion.id, { answer_text: option })}
-                  className="w-5 h-5 text-primary-600"
+                  className="w-5 h-5 mt-0.5 flex-shrink-0 text-primary-600"
                 />
-                <span className="text-gray-900">{option}</span>
+                <span className="text-sm sm:text-base text-gray-900 leading-snug">{option}</span>
               </label>
             ))}
           </div>
@@ -569,11 +569,11 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <button
           onClick={goToPreviousQuestion}
           disabled={currentQuestionIndex === 0}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 sm:flex-none text-center px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Sebelumnya
         </button>
@@ -582,7 +582,7 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
           <button
             onClick={handleSubmitQuiz}
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+            className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
           >
             {submitting ? 'Mengirim...' : 'Submit Quiz'}
             <ChevronRight className="w-5 h-5" />
@@ -590,7 +590,7 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
         ) : (
           <button
             onClick={goToNextQuestion}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="flex-1 sm:flex-none justify-center inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
             Selanjutnya
             <ChevronRight className="w-5 h-5" />
@@ -599,9 +599,9 @@ export function QuizPlayer({ contentId, onComplete }: QuizPlayerProps) {
       </div>
 
       {/* Question Navigator */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Navigasi Pertanyaan</p>
-        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+      <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+        <p className="text-sm font-medium text-gray-700 mb-2 sm:mb-3">Navigasi Pertanyaan</p>
+        <div className="grid grid-cols-8 sm:grid-cols-10 gap-1.5 sm:gap-2">
           {questions.map((q, index) => (
             <button
               key={q.id}
