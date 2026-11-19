@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const formData = await request.formData()
         const file = formData.get('file') as File

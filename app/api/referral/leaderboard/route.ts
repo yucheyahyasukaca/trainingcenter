@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
+import { validateAuth, isAdminRole, maskEmailsDeep } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/referral/leaderboard - Get referral leaderboard for admin
 export async function GET(request: NextRequest) {
   try {
+    let viewer
+    try { viewer = await validateAuth(request) } catch { return NextResponse.json({ error: 'Silakan login terlebih dahulu' }, { status: 401 }) }
+    const isAdmin = isAdminRole(viewer.profile.role)
     const supabase = createAdminClient()
     const { searchParams } = new URL(request.url)
 
     const period = searchParams.get('period') || 'all'
     const search = searchParams.get('search') || ''
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 200)
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
 
     // Use the optimized database function
     const { data: leaderboardData, error } = await supabase
@@ -33,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: leaderboardData || [],
+      data: isAdmin ? (leaderboardData || []) : maskEmailsDeep(leaderboardData || []),
       period: period
     })
 

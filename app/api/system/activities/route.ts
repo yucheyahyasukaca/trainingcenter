@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+    const denied = await guardAdmin(request)
+    if (denied) return denied
     try {
         const activities = []
 

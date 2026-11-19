@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,6 +9,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createServerClient()
     const { id: policyId } = await params
@@ -71,6 +75,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createServerClient()
     const { id: policyId } = await params

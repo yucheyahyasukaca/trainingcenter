@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
+import { validateAuth, isAdminRole, maskEmailsDeep } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/referral/user-leaderboard - Get user referral leaderboard for admin
 export async function GET(request: NextRequest) {
   try {
+    let viewer
+    try { viewer = await validateAuth(request) } catch { return NextResponse.json({ error: 'Silakan login terlebih dahulu' }, { status: 401 }) }
+    const isAdmin = isAdminRole(viewer.profile.role)
     const supabase = createAdminClient()
 
     // Get all users who have referral codes (not just role = 'user')
@@ -179,7 +183,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: sortedLeaderboard,
+      data: isAdmin ? sortedLeaderboard : maskEmailsDeep(sortedLeaderboard),
       period: period
     })
 

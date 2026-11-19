@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`signup:${clientIp(request)}`, 60, 3600000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     const { email, password, fullName } = await request.json()
 
@@ -11,6 +16,12 @@ export async function POST(request: NextRequest) {
         { error: 'Email, password, and full name are required' },
         { status: 400 }
       )
+    }
+
+    if (typeof email !== 'string' || typeof password !== 'string' || typeof fullName !== 'string' ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254 ||
+        password.length < 8 || password.length > 128 || fullName.length > 200) {
+      return NextResponse.json({ error: 'Data pendaftaran tidak valid (password minimal 8 karakter)' }, { status: 400 })
     }
 
     // Get Supabase URL and service role key

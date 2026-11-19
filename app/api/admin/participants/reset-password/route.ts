@@ -102,6 +102,7 @@ function generatePasswordResetEmail(data: {
 }
 
 import { withAdmin } from '@/lib/api-auth'
+import { internalHeaders } from '@/lib/api-auth'
 
 // POST /api/admin/participants/reset-password - Reset user password (Admin only)
 export const POST = withAdmin(async (request, auth) => {
@@ -173,7 +174,7 @@ export const POST = withAdmin(async (request, auth) => {
 
       fetch(`${baseUrl}/api/email/send`, {
         method: 'POST',
-        headers: {
+        headers: { ...internalHeaders(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createServerClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 // GET /api/admin/tickets/[id] - Get single ticket with messages (admin only)
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createServerClient()
     const supabaseAdmin = getSupabaseAdmin()
@@ -76,6 +80,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createServerClient()
     const supabaseAdmin = getSupabaseAdmin()

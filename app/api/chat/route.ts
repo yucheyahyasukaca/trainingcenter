@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 import { TECH_SUPPORT_KNOWLEDGE } from "@/lib/knowledge/tech-support-data";
 import { getAppBaseUrl } from "@/lib/url-utils";
+import { internalHeaders } from '@/lib/api-auth'
 
 // ---------------------------------------------------------------------------
 // OpenAI (chat completions) + pengaman pemakaian.
@@ -147,6 +148,7 @@ const functions: any = {
             const response = await fetch(`${getAppBaseUrl()}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: {
+                    ...internalHeaders(),
                     'Content-Type': 'application/json',
                     // Add a secret header or rely on the internal nature if strictly server-side, 
                     // but here we are calling a public endpoint from server-side.
@@ -194,7 +196,7 @@ const functions: any = {
 
             const response = await fetch(`${getAppBaseUrl()}/api/email/send`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { ...internalHeaders(), 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     to: salesEmail,
                     subject: `HOT LEAD: ${school} - ${pic} `,

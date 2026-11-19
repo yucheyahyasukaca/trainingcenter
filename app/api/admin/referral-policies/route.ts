@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/admin/referral-policies - Get all referral policies
 export async function GET(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createAdminClient()
 
@@ -51,6 +55,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/referral-policies - Create new referral policy
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabase = createAdminClient()
 

@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Buffer } from 'buffer'
+import { guardUser } from '@/lib/api-auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
-    console.log('Payment Proof Upload API called [Raw Fetch]')
+    const denied = await guardUser(req)
+    if (denied) return denied
+    if (!rateLimit(`upload:${clientIp(req)}`, 60, 600_000)) {
+        return NextResponse.json({ error: 'Terlalu banyak unggahan. Coba lagi nanti.' }, { status: 429 })
+    }
     try {
         const form = await req.formData()
         const file = form.get('file') as File | null
         const path = (form.get('path') as string) || ''
+        if (path.includes('..') || path.includes('\\') || path.length > 300) {
+            return NextResponse.json({ error: 'Path tidak valid' }, { status: 400 })
+        }
 
         if (!file) {
             console.error('Missing file')

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY as string

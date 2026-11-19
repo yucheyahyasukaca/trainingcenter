@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { replaceTemplateVariables, type TemplateUserData } from '@/lib/email-template-utils'
 import { cleanEmailHTML } from '@/lib/html-utils'
 import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
+import { guardAdmin, internalHeaders } from '@/lib/api-auth'
 
 // Helper function to generate email signature HTML
 function generateSignatureHTML(template: any): string {
@@ -213,6 +214,9 @@ async function fetchRecipients(supabase: any, target: string, specificEmails?: s
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         const body = await req.json()
         const { templateId, target, specificEmails, senderId, excelRecipients } = body
@@ -592,7 +596,7 @@ export async function POST(req: NextRequest) {
 
                 await fetch(emailApiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...internalHeaders(), 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         to: recipient.email,
                         subject: personalizedSubject,

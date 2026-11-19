@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { generateCertificatePDF } from '@/lib/certificate-generator'
 import QRCode from 'qrcode'
+import { guardAdmin } from '@/lib/api-auth'
 
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()

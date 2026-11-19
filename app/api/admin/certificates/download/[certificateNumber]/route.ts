@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { guardAdmin } from '@/lib/api-auth'
 
 // GET /api/admin/certificates/download/[certificateNumber] - Download certificate PDF
 export async function GET(request: NextRequest, { params }: { params: Promise<{ certificateNumber: string }> }) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { certificateNumber } = await params

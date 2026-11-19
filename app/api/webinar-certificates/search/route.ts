@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 // POST /api/webinar-certificates/search - Search webinar participants (with or without certificates)
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`wcsearch:${clientIp(request)}`, 20, 60000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()

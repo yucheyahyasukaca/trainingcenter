@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const searchParams = request.nextUrl.searchParams
         const email = searchParams.get('email')
@@ -158,6 +162,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const searchParams = request.nextUrl.searchParams
         const id = searchParams.get('id')

@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
+import { internalHeaders, isInternalRequest } from '@/lib/api-auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-// Generate secure random password
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const GENERIC_OK = 'Jika email terdaftar, password baru telah dikirim ke email Anda. Silakan cek inbox dan folder spam.'
+
+// Password acak kuat (CSPRNG), mudah diketik: 12 karakter tanpa karakter yang membingungkan.
 function generateSecurePassword(): string {
-  // Generate a random password: Garuda-21 + random 6 digits
-  const randomNum = Math.floor(100000 + Math.random() * 900000)
-  return `Garuda-21${randomNum}`
+  const alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  for (let i = 0; i < 12; i++) out += alphabet[crypto.randomInt(alphabet.length)]
+  return `Garuda-${out}`
 }
 
 // Generate password reset email
@@ -118,251 +125,94 @@ function generatePasswordResetEmail(data: {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const rawEmail = typeof body?.email === 'string' ? body.email : ''
 
-    if (!email) {
-      return NextResponse.json(
-        { error: 'Email wajib diisi' },
-        { status: 400 }
-      )
+    if (!rawEmail) {
+      return NextResponse.json({ error: 'Email wajib diisi' }, { status: 400 })
+    }
+    const normalizedEmail = rawEmail.toLowerCase().trim()
+    if (normalizedEmail.length > 254 || !EMAIL_RE.test(normalizedEmail)) {
+      return NextResponse.json({ error: 'Format email tidak valid' }, { status: 400 })
+    }
+
+    // Pembatasan laju: per IP (kecuali panggilan internal) dan per email.
+    const internal = isInternalRequest(request)
+    if (!internal && !rateLimit(`reset-ip:${clientIp(request)}`, 15, 3_600_000)) {
+      return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+    }
+    // Per email: tetap kembalikan respons yang sama agar tidak membocorkan status akun.
+    if (!rateLimit(`reset-email:${normalizedEmail}`, 1, 10 * 60_000)) {
+      return NextResponse.json({ success: true, message: GENERIC_OK })
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('❌ Supabase configuration missing:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseServiceKey
-      })
-      return NextResponse.json(
-        { error: 'Supabase configuration missing' },
-        { status: 500 }
-      )
+      console.error('Supabase configuration missing')
+      return NextResponse.json({ error: 'Layanan sedang bermasalah' }, { status: 500 })
     }
 
-    // Use service role key to bypass RLS
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Find user by email (using admin API bypasses RLS)
-    console.log('🔍 Searching for user with email:', email)
-    const normalizedEmail = email.toLowerCase().trim()
-    console.log('🔍 Email normalized:', normalizedEmail)
-
-    let user = null
-    let listUsersError = null
-
-    // Method 1: Search in auth.users via admin API
-    try {
-      const { data: allUsers, error: error } = await supabase.auth.admin.listUsers()
-      listUsersError = error
-
-      if (error) {
-        console.error('❌ Error listing users:', error)
-      } else if (allUsers?.users) {
-        // Search with exact match (case insensitive, trimmed)
-        user = allUsers.users.find(u => {
-          const userEmail = u.email?.toLowerCase().trim()
-          return userEmail === normalizedEmail
-        })
-
-        // Log sample emails for debugging if not found
-        if (!user && allUsers.users.length > 0) {
-          const sampleEmails = allUsers.users.slice(0, 10).map(u => u.email).filter(Boolean)
-          console.log('📋 Sample user emails (first 10):', sampleEmails)
-          console.log('🔍 Checking if email exists with different case...')
-        }
-      }
-    } catch (err: any) {
-      console.error('❌ Exception listing users:', err)
-      listUsersError = err
-    }
-
-    // Method 2: If not found in auth.users, try to find via user_profiles (fallback)
-    if (!user) {
-      console.log('🔍 User not found in auth.users, trying user_profiles...')
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profiles')
-          .select('id, email')
-          .ilike('email', normalizedEmail)
-          .maybeSingle()
-
-        if (profile && !profileError) {
-          console.log('✅ Found user via user_profiles:', profile.id)
-          // Try to get user from auth using the ID
-          const { data: userData, error: getUserError } = await supabase.auth.admin.getUserById(profile.id)
-          if (userData?.user && !getUserError) {
-            user = userData.user
-            console.log('✅ Retrieved user from auth using profile ID')
-          } else {
-            console.warn('⚠️ Found profile but could not get auth user:', getUserError)
-            // Use profile ID as fallback
-            user = { id: profile.id, email: profile.email } as any
-          }
-        } else if (profileError) {
-          console.error('❌ Error searching user_profiles:', profileError)
-        }
-      } catch (profileErr: any) {
-        console.error('❌ Exception searching user_profiles:', profileErr)
-      }
-    }
-
-    if (listUsersError && !user) {
-      return NextResponse.json(
-        { error: 'Gagal mencari user. Silakan coba lagi nanti.' },
-        { status: 500 }
-      )
-    }
-
-    console.log('👤 User search result:', {
-      found: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      searchMethod: user ? (user.id ? 'auth.users' : 'user_profiles') : 'none'
-    })
-
-    if (!user) {
-      // Don't reveal if email exists or not for security
-      console.log('⚠️ User not found for email:', normalizedEmail)
-      console.log('⚠️ Returning success message (security best practice)')
-      return NextResponse.json({
-        success: true,
-        message: 'Jika email terdaftar, password baru telah dikirim ke email Anda.'
-      })
-    }
-
-    console.log('✅ User found:', {
-      id: user.id,
-      email: user.email,
-      confirmed: (user as any).email_confirmed_at ? 'Yes' : 'No'
-    })
-
-    // Generate new secure password
-    const newPassword = generateSecurePassword()
-    console.log('🔑 Generated new password for user:', user.id)
-
-    // Update user password
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
-      user.id,
-      { password: newPassword }
-    )
-
-    if (updateError) {
-      console.error('❌ Error updating password:', updateError)
-      return NextResponse.json(
-        { error: 'Gagal mereset password. Silakan coba lagi nanti.' },
-        { status: 500 }
-      )
-    }
-
-    console.log('✅ Password updated successfully for user:', user.id)
-
-    // Get user profile for name (service role should bypass RLS)
-    console.log('📝 Fetching user profile for user:', user.id)
-    const { data: profile, error: profileError } = await supabase
+    // Cari akun lewat user_profiles (terindeks) -- TIDAK lagi memuat seluruh daftar user.
+    let { data: profile } = await supabase
       .from('user_profiles')
-      .select('full_name')
-      .eq('id', user.id)
+      .select('id, email, full_name')
+      .eq('email', normalizedEmail)
       .maybeSingle()
-
-    if (profileError) {
-      console.error('⚠️ Error fetching user profile (non-critical):', profileError)
-      console.error('Profile error details:', {
-        code: profileError.code,
-        message: profileError.message,
-        details: profileError.details,
-        hint: profileError.hint
-      })
-      // Continue anyway, we can use email as name
-    } else {
-      console.log('✅ User profile fetched:', {
-        hasProfile: !!profile,
-        name: profile?.full_name
-      })
+    if (!profile) {
+      const escaped = normalizedEmail.replace(/[\\%_]/g, (c) => `\\${c}`)
+      const res = await supabase
+        .from('user_profiles')
+        .select('id, email, full_name')
+        .ilike('email', escaped)
+        .limit(1)
+        .maybeSingle()
+      profile = res.data
     }
 
-    const participantName = profile?.full_name || user.email || 'Pengguna'
+    if (!profile) {
+      return NextResponse.json({ success: true, message: GENERIC_OK })
+    }
 
-    // Send email with new password
-    let emailSent = false
-    let emailError: any = null
+    const newPassword = generateSecurePassword()
+    const { error: updateError } = await supabase.auth.admin.updateUserById(profile.id, { password: newPassword })
+    if (updateError) {
+      console.error('Error updating password:', updateError.message)
+      return NextResponse.json({ error: 'Gagal mereset password. Silakan coba lagi nanti.' }, { status: 500 })
+    }
 
     try {
       const baseUrl = getAppBaseUrl()
-      const emailBaseUrl = getEmailBaseUrl()
-      const loginUrl = `${emailBaseUrl}/login`
-
       const emailHtml = generatePasswordResetEmail({
-        participantName,
-        email: user.email!,
+        participantName: profile.full_name || profile.email || 'Pengguna',
+        email: profile.email,
         newPassword,
-        loginUrl
+        loginUrl: `${getEmailBaseUrl()}/login`,
       })
-
-      // Send email and wait for response
-      console.log('📧 Attempting to send password reset email to:', user.email)
-      console.log('📧 Base URL:', baseUrl)
-
       const emailResponse = await fetch(`${baseUrl}/api/email/send`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { ...internalHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: user.email!,
+          to: profile.email,
           subject: 'Password Baru Anda | GARUDA-21 Training Center',
           html: emailHtml,
-          useQueue: false // Send immediately, don't queue
-        })
+          useQueue: false,
+        }),
       })
-
-      const emailData = await emailResponse.json().catch(() => ({ error: 'Failed to parse response' }))
-
       if (!emailResponse.ok) {
-        emailError = emailData
-        console.error('❌ Error sending password reset email:', emailData)
-        console.error('Response status:', emailResponse.status)
-        // Log error but don't fail the request
-      } else {
-        emailSent = true
-        console.log('✅ Password reset email sent successfully:', emailData)
+        console.error('Password reset email failed, status:', emailResponse.status)
       }
     } catch (emailErr: any) {
-      emailError = emailErr
-      console.error('❌ Error preparing/sending password reset email:', emailErr)
-      console.error('Error details:', {
-        message: emailErr.message,
-        stack: emailErr.stack
-      })
+      console.error('Error sending password reset email:', emailErr?.message)
     }
 
-    // Log final status
-    if (emailSent) {
-      console.log('✅ Password reset completed successfully. Email sent to:', user.email)
-    } else {
-      console.warn('⚠️ Password reset completed but email may not have been sent:', {
-        email: user.email,
-        error: emailError
-      })
-    }
-
-    // Always return success (don't reveal if email exists)
-    return NextResponse.json({
-      success: true,
-      message: 'Jika email terdaftar, password baru telah dikirim ke email Anda. Silakan cek inbox dan folder spam.'
-    })
+    return NextResponse.json({ success: true, message: GENERIC_OK })
   } catch (err: any) {
-    console.error('Error in password reset:', err)
-    return NextResponse.json(
-      { error: err.message || 'Gagal mereset password' },
-      { status: 500 }
-    )
+    console.error('Error in password reset:', err?.message)
+    return NextResponse.json({ error: 'Gagal mereset password' }, { status: 500 })
   }
 }
-

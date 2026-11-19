@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validateAuth, isAdminRole } from '@/lib/api-auth'
 
 // GET /api/certificate/user/[userId] - Get user's certificates
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
+    let viewer
+    try { viewer = await validateAuth(request) } catch { return NextResponse.json({ error: 'Silakan login terlebih dahulu' }, { status: 401 }) }
     const supabaseAdmin = getSupabaseAdmin()
     const { userId } = await params
+    if (viewer.user.id !== userId && !isAdminRole(viewer.profile.role)) {
+      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    }
     const { searchParams } = new URL(request.url)
     const recipientType = searchParams.get('recipient_type') || 'participant'
     const status = searchParams.get('status')

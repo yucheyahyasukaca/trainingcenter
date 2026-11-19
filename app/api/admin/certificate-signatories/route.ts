@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { guardAdmin } from '@/lib/api-auth'
 
 // GET - Get all signatories for a template
 export async function GET(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
@@ -68,6 +72,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new signatory (supports multipart form-data with optional signature file)
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
 
@@ -160,6 +167,9 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update signatory
 export async function PUT(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
@@ -200,6 +210,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete signatory
 export async function DELETE(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)

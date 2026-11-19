@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getAppBaseUrl, getEmailBaseUrl } from '@/lib/url-utils'
+import { internalHeaders } from '@/lib/api-auth'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -162,6 +164,10 @@ function generateAccountWelcomeEmail(data: {
 }
 
 export async function POST(request: NextRequest, { params }: Params) {
+  if (!rateLimit(`wguest:${clientIp(request)}`, 30, 60000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     const body = await request.json()
     const {
@@ -545,7 +551,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       // Send email asynchronously (don't wait)
       fetch(`${baseUrl}/api/email/send`, {
         method: 'POST',
-        headers: {
+        headers: { ...internalHeaders(),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

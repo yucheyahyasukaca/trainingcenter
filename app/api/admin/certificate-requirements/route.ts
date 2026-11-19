@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { guardAdmin } from '@/lib/api-auth'
 
 // GET /api/admin/certificate-requirements - Get certificate requirements
 export async function GET(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
@@ -71,6 +75,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/certificate-requirements - Create certificate requirement
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()
@@ -125,6 +132,9 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/admin/certificate-requirements/[id] - Update certificate requirement
 export async function PUT(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
@@ -188,6 +198,9 @@ export async function PUT(request: NextRequest) {
 
 // DELETE /api/admin/certificate-requirements/[id] - Delete certificate requirement
 export async function DELETE(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)

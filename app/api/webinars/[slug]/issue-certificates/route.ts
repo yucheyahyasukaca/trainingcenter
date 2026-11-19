@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { randomUUID } from 'crypto'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,10 @@ interface Params {
 }
 
 export async function POST(request: Request, { params }: Params) {
+  if (!rateLimit(`wissue:${clientIp(request)}`, 30, 60000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     // Resolve params (Next.js 14+ uses async params)
     const resolvedParams = await Promise.resolve(params)

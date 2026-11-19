@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         console.log('📤 Upload header API called')
         

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createServerClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,9 @@ interface Params {
 
 // PUT /api/admin/webinars/[id]/participants/[participantId] - Update participant
 export async function PUT(request: NextRequest, { params }: Params) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const supabaseAdmin = getSupabaseAdmin()
         const { id: webinarId, participantId } = params
@@ -83,6 +87,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
 // DELETE /api/admin/webinars/[id]/participants/[participantId] - Delete participant
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const supabaseAdmin = getSupabaseAdmin()
         const { id: webinarId, participantId } = params

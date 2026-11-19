@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const runtime = 'nodejs'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         const { id } = await params
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
@@ -25,6 +29,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         const { id } = await params
         const body = await req.json()
@@ -139,6 +146,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardAdmin(req)
+  if (denied) return denied
+
     try {
         const { id } = await params
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string

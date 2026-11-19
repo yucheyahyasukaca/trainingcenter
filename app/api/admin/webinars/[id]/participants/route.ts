@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { createServerClient } from '@/lib/supabase-server'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +11,9 @@ interface Params {
 
 // POST /api/admin/webinars/[id]/participants - Manually add a participant
 export async function POST(request: NextRequest, { params }: Params) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const supabaseAdmin = getSupabaseAdmin()
         const webinarId = params.id

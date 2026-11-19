@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import si from 'systeminformation'
+import { guardAdmin } from '@/lib/api-auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
+    const denied = await guardAdmin(request)
+    if (denied) return denied
     try {
         // 1. Server Status (Implicitly Online if this code runs)
         const serverStatus = {

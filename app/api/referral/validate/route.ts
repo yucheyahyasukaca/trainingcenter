@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 // POST /api/referral/validate - Validate referral code
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`refval:${clientIp(request)}`, 60, 60000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     const supabase = createServerClient()
 

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { guardAdmin } from '@/lib/api-auth'
 
 export async function POST(request: NextRequest) {
+  const denied = await guardAdmin(request)
+  if (denied) return denied
+
     try {
         const formData = await request.formData()
         const file = formData.get('file') as File

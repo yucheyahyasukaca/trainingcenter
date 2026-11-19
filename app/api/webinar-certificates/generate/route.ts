@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { randomUUID } from 'crypto'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 // POST /api/webinar-certificates/generate - Generate certificate on-demand for a participant
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`wcgen:${clientIp(request)}`, 20, 60000)) {
+    return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' }, { status: 429 })
+  }
+
   try {
     const supabaseAdmin = getSupabaseAdmin()
     const body = await request.json()
