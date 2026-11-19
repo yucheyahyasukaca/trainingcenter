@@ -35,6 +35,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(currentUser)
       
       if (currentUser) {
+        // Pasang profil sementara segera setelah sesi terbaca. Bila server lambat dan
+        // timeout memutus loading, pengguna tidak salah dianggap belum login.
+        setProfile(prev => prev ?? {
+          id: currentUser.id,
+          email: currentUser.email || '',
+          full_name: currentUser.user_metadata?.full_name || currentUser.email || 'User',
+          role: 'user' as const,
+          avatar_url: undefined,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         console.log('📋 Loading user profile...')
         try {
           const userProfile = await getUserProfile(currentUser.id)
@@ -97,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           return prev
         })
-      }, 5000) // 5 seconds timeout (reduced from 10)
+      }, 10000) // 10 seconds timeout (server bisa lambat saat ramai)
     }
     checkLoading()
 
