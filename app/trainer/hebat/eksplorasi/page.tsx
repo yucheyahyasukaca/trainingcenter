@@ -123,17 +123,17 @@ export default function EksplorasiPage() {
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-indigo-50 p-6 md:p-12 font-sans">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-5 sm:mb-8">
                     <Link
                         href="/trainer/dashboard"
-                        className="inline-flex items-center text-slate-600 hover:text-slate-900 transition-colors mb-6 group"
+                        className="inline-flex items-center text-slate-600 hover:text-slate-900 transition-colors mb-4 sm:mb-6 group"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                         Kembali ke Portal
                     </Link>
 
                     <div className="text-center space-y-4">
-                        <div className="flex items-center justify-center gap-3">
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
                             <h1 className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
                                 EKSPLORASI
                             </h1>
@@ -148,14 +148,14 @@ export default function EksplorasiPage() {
                     </div>
                 </div>
 
-                <form action={handleSubmit} ref={formRef} className="space-y-6">
+                <form action={handleSubmit} ref={formRef} className="space-y-4 sm:space-y-6">
                     {/* Card 1: Fokus Kegiatan */}
                     <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
                             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                                 <CheckCircle2 className="w-6 h-6" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800">
+                            <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Fokus Kegiatan Anda <span className="text-red-500">*</span>
                             </h2>
                         </div>
@@ -183,11 +183,11 @@ export default function EksplorasiPage() {
 
                     {/* Card 2: Cerita Hasil */}
                     <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                                 <Lightbulb className="w-6 h-6" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800">
+                            <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Cerita Hasil dan Dampak Nyata <span className="text-red-500">*</span>
                             </h2>
                         </div>
@@ -213,11 +213,11 @@ export default function EksplorasiPage() {
 
                     {/* Card 3: Solusi AI */}
                     <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
                             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                                 <FileText className="w-6 h-6" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800">
+                            <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Solusi AI yang Diimplementasikan <span className="text-red-500">*</span>
                             </h2>
                         </div>
@@ -241,11 +241,11 @@ export default function EksplorasiPage() {
 
                     {/* Card 4: Upload Bukti */}
                     <div className="bg-white rounded-2xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex items-center gap-3 mb-6">
+                        <div className="flex items-center gap-3 mb-4 sm:mb-6">
                             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                                 <Upload className="w-6 h-6" />
                             </div>
-                            <h2 className="text-xl font-bold text-slate-800">
+                            <h2 className="text-base sm:text-xl font-bold text-slate-800">
                                 Unggah Bukti Dokumentasi (Wajib) <span className="text-red-500">*</span>
                             </h2>
                         </div>
@@ -255,7 +255,7 @@ export default function EksplorasiPage() {
                         </p>
 
                         <div
-                            className={`relative border-2 border-dashed rounded-2xl p-8 transition-all text-center cursor-pointer ${dragActive
+                            className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-8 transition-all text-center cursor-pointer ${dragActive
                                 ? 'border-indigo-500 bg-indigo-50'
                                 : 'border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
                                 }`}
@@ -294,15 +294,15 @@ export default function EksplorasiPage() {
                             ) : (
                                 <div className="flex flex-col items-center">
                                     <Upload className="w-12 h-12 text-slate-400 mb-4" />
-                                    <p className="text-slate-700 font-medium text-lg mb-2">
+                                    <p className="text-slate-700 font-medium text-base sm:text-lg mb-2">
                                         Klik atau drag file ke area ini
                                     </p>
-                                    <p className="text-slate-500 text-sm mb-6">
+                                    <p className="text-slate-500 text-sm mb-4 sm:mb-6">
                                         JPG, JPEG, PNG (Maks. 4MB)
                                     </p>
                                     <button
                                         type="button"
-                                        className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
+                                        className="bg-indigo-600 text-white px-4 sm:px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200"
                                     >
                                         Pilih File
                                     </button>
@@ -316,7 +316,7 @@ export default function EksplorasiPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-indigo-600 text-white px-12 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-xl shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                            className="bg-indigo-600 text-white px-12 py-4 rounded-xl font-bold text-base sm:text-lg hover:bg-indigo-700 transition-all transform hover:scale-105 shadow-xl shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>
@@ -333,15 +333,15 @@ export default function EksplorasiPage() {
 
             {/* History Section */}
             <div className="max-w-4xl mx-auto mt-12">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6">Riwayat Laporan Anda</h2>
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6">Riwayat Laporan Anda</h2>
                 <div className="space-y-4">
                     {submissions.length === 0 ? (
-                        <div className="text-center p-8 bg-white rounded-2xl border border-slate-200 text-slate-500">
+                        <div className="text-center p-4 sm:p-8 bg-white rounded-2xl border border-slate-200 text-slate-500">
                             Belum ada laporan yang dikirim.
                         </div>
                     ) : (
                         submissions.map((sub) => (
-                            <div key={sub.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div key={sub.id} className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-2">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${sub.status === 'approved' ? 'bg-green-100 text-green-700' :
@@ -363,7 +363,7 @@ export default function EksplorasiPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
                                         <div className="text-xs text-slate-500">Poin Didapatkan</div>
-                                        <div className="text-xl font-bold text-indigo-600">
+                                        <div className="text-base sm:text-xl font-bold text-indigo-600">
                                             {sub.status !== 'rejected' ? '+5 Poin' : '0 Poin'}
                                         </div>
                                     </div>

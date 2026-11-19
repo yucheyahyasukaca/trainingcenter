@@ -303,7 +303,7 @@ export default function AmplifyDashboard() {
     const referralLink = referralCode ? `${typeof window !== 'undefined' ? window.location.origin : ''}/referral/${referralCode}` : 'Memuat...'
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-12">
+        <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8 pb-12">
             {/* Header / Back Button */}
             <div>
                 <Link href="/trainer/dashboard" className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors mb-4">
@@ -312,8 +312,8 @@ export default function AmplifyDashboard() {
                 </Link>
 
                 <div className="text-center space-y-4">
-                    <div className="flex items-center justify-center space-x-3">
-                        <h1 className="text-4xl font-bold text-slate-800">BERBAGI</h1>
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                        <h1 className="text-2xl sm:text-4xl font-bold text-slate-800">BERBAGI</h1>
                         <span className="bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center">
                             <Share2 className="w-4 h-4 mr-2" />
                             Referral System
@@ -326,37 +326,37 @@ export default function AmplifyDashboard() {
             </div>
 
             {/* Total Points Section */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <div className="flex items-center justify-center mb-6 space-x-2">
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center justify-center mb-4 sm:mb-6 space-x-2">
                     <TrendingUp className="w-5 h-5 text-blue-600" />
-                    <h2 className="text-lg font-bold text-gray-900">Total Poin BERBAGI</h2>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900">Total Poin BERBAGI</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                     {/* GTK Points */}
-                    <div className="border border-gray-100 rounded-xl p-6 text-center hover:shadow-md transition-shadow">
+                    <div className="border border-gray-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-md transition-shadow">
                         <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Users className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{stats.gtk_points}</div>
+                        <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.gtk_points}</div>
                         <div className="text-sm text-gray-500">Poin GTK</div>
                     </div>
 
                     {/* Student Points */}
-                    <div className="border border-gray-100 rounded-xl p-6 text-center hover:shadow-md transition-shadow">
+                    <div className="border border-gray-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-md transition-shadow">
                         <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
                             <GraduationCap className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div className="text-3xl font-bold text-gray-900 mb-1">{stats.student_points}</div>
+                        <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.student_points}</div>
                         <div className="text-sm text-gray-500">Poin Siswa</div>
                     </div>
 
                     {/* Total Points */}
-                    <div className="bg-blue-600 rounded-xl p-6 text-center text-white shadow-lg transform scale-105">
+                    <div className="bg-blue-600 rounded-xl p-4 sm:p-6 text-center text-white shadow-lg transform scale-105">
                         <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Target className="w-6 h-6 text-white" />
                         </div>
-                        <div className="text-3xl font-bold mb-1">{stats.total_points}</div>
+                        <div className="text-xl sm:text-3xl font-bold mb-1">{stats.total_points}</div>
                         <div className="text-sm text-blue-100">Total Poin</div>
                     </div>
                 </div>
@@ -401,13 +401,13 @@ export default function AmplifyDashboard() {
             {activeTab === 'gtk' ? (
                 <>
                     {/* How to Collect Points (GTK) */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                        <div className="flex items-center mb-6 space-x-2">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center mb-4 sm:mb-6 space-x-2">
                             <Target className="w-5 h-5 text-orange-500" />
-                            <h2 className="text-lg font-bold text-gray-900">Cara Mengumpulkan Poin dari Referral GTK</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900">Cara Mengumpulkan Poin dari Referral GTK</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                             <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl">
                                 <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                                     <Share2 className="w-4 h-4 text-blue-600" />
@@ -429,12 +429,12 @@ export default function AmplifyDashboard() {
                     </div>
 
                     {/* Bottom Section: Referral Link & Stats */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                         {/* Referral Link */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+                        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
                             <div className="flex items-center mb-4 space-x-2">
                                 <Share2 className="w-5 h-5 text-blue-500" />
-                                <h2 className="text-lg font-bold text-gray-900">Link Referral</h2>
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900">Link Referral</h2>
                             </div>
                             <p className="text-sm text-gray-500 mb-4">Salin dan bagikan link referral Anda</p>
 
@@ -469,32 +469,32 @@ export default function AmplifyDashboard() {
                         </div>
 
                         {/* Statistics */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                            <div className="flex items-center mb-6 space-x-2">
+                        <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+                            <div className="flex items-center mb-4 sm:mb-6 space-x-2">
                                 <TrendingUp className="w-5 h-5 text-green-500" />
-                                <h2 className="text-lg font-bold text-gray-900">Statistik Referral</h2>
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900">Statistik Referral</h2>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-3 gap-4 mb-4 sm:mb-6">
                                 <div className="bg-blue-50 rounded-xl p-4 text-center">
                                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                                         <Users className="w-4 h-4 text-blue-600" />
                                     </div>
-                                    <div className="text-xl font-bold text-gray-900">{stats.registered}</div>
+                                    <div className="text-base sm:text-xl font-bold text-gray-900">{stats.registered}</div>
                                     <div className="text-xs text-gray-500">Terdaftar</div>
                                 </div>
                                 <div className="bg-green-50 rounded-xl p-4 text-center">
                                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
                                         <CheckCircle className="w-4 h-4 text-green-600" />
                                     </div>
-                                    <div className="text-xl font-bold text-gray-900">{stats.completed}</div>
+                                    <div className="text-base sm:text-xl font-bold text-gray-900">{stats.completed}</div>
                                     <div className="text-xs text-gray-500">Selesai</div>
                                 </div>
                                 <div className="bg-orange-50 rounded-xl p-4 text-center">
                                     <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-2">
                                         <Target className="w-4 h-4 text-orange-600" />
                                     </div>
-                                    <div className="text-xl font-bold text-gray-900">{stats.total_earned_points}</div>
+                                    <div className="text-base sm:text-xl font-bold text-gray-900">{stats.total_earned_points}</div>
                                     <div className="text-xs text-gray-500">Poin</div>
                                 </div>
                             </div>
@@ -511,13 +511,13 @@ export default function AmplifyDashboard() {
             ) : (
                 <>
                     {/* How to Collect Points (Student) */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                        <div className="flex items-center mb-6 space-x-2">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center mb-4 sm:mb-6 space-x-2">
                             <Target className="w-5 h-5 text-purple-500" />
-                            <h2 className="text-lg font-bold text-gray-900">Cara Mengumpulkan Poin dari Pelatihan Siswa</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900">Cara Mengumpulkan Poin dari Pelatihan Siswa</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                             <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl">
                                 <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                                     <Users className="w-4 h-4 text-green-600" />
@@ -575,16 +575,16 @@ export default function AmplifyDashboard() {
                     </div>
 
                     {/* Submission Form */}
-                    <div className="bg-white rounded-2xl border border-blue-200 p-6 shadow-sm">
-                        <div className="flex items-center mb-6 space-x-2">
+                    <div className="bg-white rounded-2xl border border-blue-200 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center mb-4 sm:mb-6 space-x-2">
                             <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                                 <Copy className="w-4 h-4 text-blue-600" />
                             </div>
-                            <h2 className="text-lg font-bold text-gray-900">Submit Dokumentasi Pelatihan Siswa</h2>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900">Submit Dokumentasi Pelatihan Siswa</h2>
                         </div>
 
-                        <form onSubmit={handleStudentSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <form onSubmit={handleStudentSubmit} className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tanggal Pelatihan <span className="text-red-500">*</span>
@@ -620,7 +620,7 @@ export default function AmplifyDashboard() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Topik/Materi yang Diajarkan <span className="text-red-500">*</span>
@@ -711,7 +711,7 @@ export default function AmplifyDashboard() {
                                 <p className="text-xs text-blue-500 mb-2">
                                     Sertakan foto dokumentasi kegiatan pelatihan sebagai bukti pendukung. (Maks. 1 File, 4MB)
                                 </p>
-                                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+                                <div className="mt-1 flex justify-center px-4 sm:px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-400 transition-colors">
                                     <div className="space-y-1 text-center">
                                         <svg
                                             className="mx-auto h-12 w-12 text-gray-400"
@@ -789,20 +789,20 @@ export default function AmplifyDashboard() {
                     </div>
 
                     {/* History Section */}
-                    <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm min-h-[200px] flex flex-col items-center justify-center text-center">
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm min-h-[200px] flex flex-col items-center justify-center text-center">
                         {studentSubmissions.length === 0 ? (
                             <>
                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                     <TrendingUp className="w-8 h-8 text-gray-400" />
                                 </div>
-                                <h3 className="text-lg font-medium text-gray-900 mb-1">Belum ada riwayat pelatihan yang disubmit</h3>
+                                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-1">Belum ada riwayat pelatihan yang disubmit</h3>
                                 <p className="text-gray-500 text-sm">
                                     Submit dokumentasi pelatihan pertama Anda menggunakan form di atas
                                 </p>
                             </>
                         ) : (
                             <div className="w-full space-y-4">
-                                <h3 className="text-lg font-bold text-gray-900 text-left mb-4">Riwayat Pelatihan</h3>
+                                <h3 className="text-base sm:text-lg font-bold text-gray-900 text-left mb-4">Riwayat Pelatihan</h3>
                                 {studentSubmissions.map((sub, idx) => (
                                     <div key={idx} className="border border-gray-200 rounded-xl p-4 text-left hover:bg-gray-50 transition-colors">
                                         <div className="flex justify-between items-start">
@@ -833,7 +833,7 @@ export default function AmplifyDashboard() {
             )}
 
             {/* Tips */}
-            <div className="bg-purple-50 rounded-2xl border border-purple-100 p-6 text-center">
+            <div className="bg-purple-50 rounded-2xl border border-purple-100 p-4 sm:p-6 text-center">
                 <div className="flex items-center justify-center mb-2 space-x-2">
                     <Lightbulb className="w-5 h-5 text-yellow-500" />
                     <h3 className="font-bold text-gray-900">Tips Tambahan</h3>

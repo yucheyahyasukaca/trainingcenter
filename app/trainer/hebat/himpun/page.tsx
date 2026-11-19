@@ -195,7 +195,7 @@ export default function HimpunModulesPage() {
         <div className="min-h-screen bg-slate-50">
             {/* Header */}
             <div className="bg-white border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <Link href="/trainer/dashboard" className="inline-flex items-center text-slate-500 hover:text-blue-600 mb-4 transition-colors">
                         <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
                         Kembali ke Portal
@@ -205,8 +205,8 @@ export default function HimpunModulesPage() {
                             <BookOpen className="w-8 h-8 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-900">HIMPUN</h1>
-                            <p className="text-slate-600 mt-1 text-lg">
+                            <h1 className="text-xl sm:text-3xl font-bold text-slate-900">HIMPUN</h1>
+                            <p className="text-slate-600 mt-1 text-base sm:text-lg">
                                 Selesaikan program pembelajaran untuk raih Sertifikasi gratis
                             </p>
                         </div>
@@ -214,15 +214,15 @@ export default function HimpunModulesPage() {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
+            <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8 py-5 sm:py-8">
+                <div className="flex flex-col lg:flex-row gap-4 sm:gap-8">
                     {/* Sidebar */}
-                    <div className="lg:w-80 flex-shrink-0 space-y-6">
+                    <div className="lg:w-80 flex-shrink-0 space-y-4 sm:space-y-6">
                         {/* Progress Widget */}
-                        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                            <h3 className="font-bold text-slate-900 mb-6">Progress Pembelajaran</h3>
+                        <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-900 mb-4 sm:mb-6">Progress Pembelajaran</h3>
 
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                                 <div>
                                     <div className="flex justify-between text-sm mb-2">
                                         <span className="font-medium text-slate-700">Modul Pembelajaran</span>
@@ -259,7 +259,7 @@ export default function HimpunModulesPage() {
                         </div>
 
                         {/* Target Widget */}
-                        <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
+                        <div className="bg-blue-50 rounded-2xl p-4 sm:p-6 border border-blue-100">
                             <div className="flex items-center gap-2 mb-3">
                                 <Sparkles className="w-5 h-5 text-blue-600" />
                                 <h3 className="font-bold text-slate-900">Target Anda</h3>
@@ -272,7 +272,7 @@ export default function HimpunModulesPage() {
 
                     {/* Main Grid */}
                     <div className="flex-1">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                             {modules.map((module) => (
                                 <div key={module.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
                                     {/* Card Image */}
@@ -297,12 +297,12 @@ export default function HimpunModulesPage() {
                                     </div>
 
                                     {/* Card Content */}
-                                    <div className="p-6 flex flex-col flex-1">
-                                        <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                    <div className="p-4 sm:p-6 flex flex-col flex-1">
+                                        <h3 className="text-base sm:text-xl font-bold text-slate-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                                             {module.title}
                                         </h3>
 
-                                        <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
+                                        <div className="flex items-center gap-4 text-sm text-slate-500 mb-4 sm:mb-6">
                                             <span className="flex items-center gap-1 text-orange-600 font-medium bg-orange-50 px-2 py-1 rounded-lg">
                                                 <Award className="w-4 h-4" />
                                                 {module.points} Poin
@@ -313,7 +313,7 @@ export default function HimpunModulesPage() {
                                             </span>
                                         </div>
 
-                                        <p className="text-slate-600 text-sm mb-6 line-clamp-3 flex-1">
+                                        <p className="text-slate-600 text-sm mb-4 sm:mb-6 line-clamp-3 flex-1">
                                             {module.description}
                                         </p>
 

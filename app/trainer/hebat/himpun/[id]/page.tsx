@@ -249,7 +249,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
         switch (currentModule.content_type) {
             case 'video':
                 return (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
                             {currentModule.content_data?.video_url ? (
                                 <iframe
@@ -265,7 +265,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                             )}
                         </div>
                         {currentModule.content_data?.transcript && (
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                            <div className="bg-slate-50 p-4 sm:p-6 rounded-xl border border-slate-200">
                                 <h3 className="font-bold text-slate-900 mb-3">Transkrip Video</h3>
                                 <p className="text-slate-700 whitespace-pre-wrap">{currentModule.content_data.transcript}</p>
                             </div>
@@ -275,10 +275,10 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
 
             case 'document':
                 return (
-                    <div className="bg-slate-50 p-8 rounded-xl border border-slate-200 text-center">
+                    <div className="bg-slate-50 p-4 sm:p-8 rounded-xl border border-slate-200 text-center">
                         <File className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">Dokumen Materi</h3>
-                        <p className="text-slate-600 mb-6">
+                        <h3 className="text-base sm:text-xl font-bold text-slate-900 mb-2">Dokumen Materi</h3>
+                        <p className="text-slate-600 mb-4 sm:mb-6">
                             Silakan unduh atau baca dokumen materi berikut ini.
                         </p>
                         {currentModule.content_data?.document_url && (
@@ -286,7 +286,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                                 href={currentModule.content_data.document_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="inline-flex items-center px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 <Download className="w-5 h-5 mr-2" />
                                 Buka Dokumen
@@ -297,14 +297,14 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
 
             case 'quiz':
                 return (
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-start gap-4">
                             <div className="p-3 bg-green-100 rounded-lg">
                                 <HelpCircle className="w-6 h-6 text-green-600" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Pertanyaan Quiz</h3>
-                                <p className="text-slate-700 text-lg mb-6">{currentModule.content_data?.question}</p>
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">Pertanyaan Quiz</h3>
+                                <p className="text-slate-700 text-base sm:text-lg mb-4 sm:mb-6">{currentModule.content_data?.question}</p>
                                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
                                     <p className="text-sm text-yellow-800">
                                         Silakan jawab pertanyaan ini dalam hati atau catat jawaban Anda sebagai bagian dari refleksi pembelajaran.
@@ -317,14 +317,14 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
 
             case 'assignment':
                 return (
-                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex items-start gap-4">
                             <div className="p-3 bg-orange-100 rounded-lg">
                                 <Upload className="w-6 h-6 text-orange-600" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-2">Tugas</h3>
-                                <div className="prose prose-slate max-w-none mb-6">
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">Tugas</h3>
+                                <div className="prose prose-slate max-w-none mb-4 sm:mb-6">
                                     <p className="whitespace-pre-wrap">{currentModule.content_data?.instructions}</p>
                                 </div>
                                 {currentModule.content_data?.due_date && (
@@ -380,10 +380,10 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                 fixed inset-y-0 left-0 z-30 w-80 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-screen md:sticky md:top-0 overflow-y-auto
                 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <Link
                         href="/trainer/hebat/himpun"
-                        className="inline-flex items-center text-slate-600 hover:text-slate-900 transition-colors mb-8"
+                        className="inline-flex items-center text-slate-600 hover:text-slate-900 transition-colors mb-5 sm:mb-8"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Kembali ke Daftar
@@ -447,11 +447,11 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="max-w-4xl mx-auto px-1 sm:px-6 lg:px-8 py-5 sm:py-8">
                     {/* Module Info */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-slate-900 mb-4">{currentModule.title}</h1>
-                        <div className="flex items-center gap-6 text-sm text-slate-500 mb-6">
+                    <div className="mb-5 sm:mb-8">
+                        <h1 className="text-xl sm:text-3xl font-bold text-slate-900 mb-4">{currentModule.title}</h1>
+                        <div className="flex items-center gap-4 sm:gap-6 text-sm text-slate-500 mb-4 sm:mb-6">
                             <span className="flex items-center gap-2">
                                 <Clock className="w-4 h-4" />
                                 {currentModule.duration_minutes} menit
@@ -469,11 +469,11 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                                 {currentModule.content_type}
                             </span>
                         </div>
-                        <p className="text-slate-600 text-lg leading-relaxed">{currentModule.description}</p>
+                        <p className="text-slate-600 text-base sm:text-lg leading-relaxed">{currentModule.description}</p>
                     </div>
 
                     {/* Content Area */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-8">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 mb-5 sm:mb-8">
                         {renderContent()}
                     </div>
 
@@ -482,7 +482,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                         {prevModule ? (
                             <Link
                                 href={`/trainer/hebat/himpun/${prevModule.id}`}
-                                className="inline-flex items-center px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
+                                className="inline-flex items-center px-4 sm:px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors"
                             >
                                 <ChevronLeft className="w-5 h-5 mr-2" />
                                 <div className="text-left">
@@ -498,7 +498,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                             nextModule ? (
                                 <Link
                                     href={`/trainer/hebat/himpun/${nextModule.id}`}
-                                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
+                                    className="inline-flex items-center px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200"
                                 >
                                     <div className="text-right">
                                         <div className="text-xs text-blue-100">Selanjutnya</div>
@@ -509,7 +509,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                             ) : (
                                 <Link
                                     href="/trainer/hebat/himpun"
-                                    className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
+                                    className="inline-flex items-center px-4 sm:px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
                                 >
                                     Selesai
                                     <CheckCircle className="w-5 h-5 ml-2" />
@@ -519,7 +519,7 @@ export default function ModuleDetailPage({ params }: { params: { id: string } })
                             <button
                                 onClick={handleComplete}
                                 disabled={completing}
-                                className="inline-flex items-center px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg shadow-blue-200 disabled:opacity-50 disabled:transform-none"
+                                className="inline-flex items-center px-4 sm:px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg shadow-blue-200 disabled:opacity-50 disabled:transform-none"
                             >
                                 {completing ? (
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
