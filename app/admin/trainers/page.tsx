@@ -170,8 +170,8 @@ export default function AdminTrainersPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -182,10 +182,10 @@ export default function AdminTrainersPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all ${
                 statusFilter === 'all'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -195,7 +195,7 @@ export default function AdminTrainersPage() {
             </button>
             <button
               onClick={() => setStatusFilter('active')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all ${
                 statusFilter === 'active'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -205,7 +205,7 @@ export default function AdminTrainersPage() {
             </button>
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all ${
                 statusFilter === 'pending'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -215,7 +215,7 @@ export default function AdminTrainersPage() {
             </button>
             <button
               onClick={() => setStatusFilter('suspended')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg font-medium transition-all ${
                 statusFilter === 'suspended'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-primary-600'
@@ -228,7 +228,7 @@ export default function AdminTrainersPage() {
       </div>
 
       {/* Trainers List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 md:p-6">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -248,7 +248,41 @@ export default function AdminTrainersPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile: kartu */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {filteredTrainers.map((trainer) => (
+              <div key={trainer.id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-start gap-3">
+                  {trainer.avatar_url ? (
+                    <img src={trainer.avatar_url} alt={trainer.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                      <UserCog className="w-5 h-5 text-primary-600" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 break-words">{trainer.name}</p>
+                      <span className={`${getStatusBadge(trainer.status)} flex-shrink-0`}>{getStatusText(trainer.status)}</span>
+                    </div>
+                    <p className="text-xs text-gray-600 break-all mt-0.5">{trainer.email || '-'}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-xs text-gray-500">
+                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 font-medium rounded">{trainer.specialization || '-'}</span>
+                      <span>{trainer.experience_years || 0} tahun</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2 -ml-2">
+                      <Link href={`/trainer-profile/view/${trainer.id}`} className="p-2 text-green-600 hover:bg-green-50 rounded-lg" title="Lihat Profil"><Eye className="w-4 h-4" /></Link>
+                      <Link href={`/trainers/${trainer.id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit Trainer"><Edit className="w-4 h-4" /></Link>
+                      <button onClick={() => handleDelete(trainer.id, trainer.name)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Hapus Trainer"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop: tabel */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -332,6 +366,7 @@ export default function AdminTrainersPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

@@ -130,15 +130,15 @@ export default function HebatModulesPage() {
     )
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="px-0 py-1 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Modul HIMPUN</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Modul HIMPUN</h1>
                     <p className="text-gray-600">Kelola materi pembelajaran untuk fitur HIMPUN</p>
                 </div>
                 <Link
                     href="/admin/hebat/modules/new"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                     <Plus className="w-5 h-5 mr-2" />
                     Buat Modul Baru
@@ -146,7 +146,7 @@ export default function HebatModulesPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-4 bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
@@ -164,7 +164,7 @@ export default function HebatModulesPage() {
 
             {/* Module Grid */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {[1, 2, 3].map((i) => (
                         <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
                             <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
@@ -187,11 +187,11 @@ export default function HebatModulesPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredParentModules.map((module) => (
                         <div key={module.id} className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
                             {/* Image */}
-                            <div className="relative h-48 bg-gray-100">
+                            <div className="relative h-40 sm:h-48 bg-gray-100">
                                 {module.image_url ? (
                                     <img
                                         src={module.image_url}
@@ -203,7 +203,7 @@ export default function HebatModulesPage() {
                                         <ImageIcon className="w-12 h-12" />
                                     </div>
                                 )}
-                                <div className="absolute top-4 right-4">
+                                <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${module.is_published
                                         ? 'bg-green-100 text-green-700'
                                         : 'bg-yellow-100 text-yellow-700'
@@ -214,7 +214,7 @@ export default function HebatModulesPage() {
                             </div>
 
                             {/* Content */}
-                            <div className="p-6 flex-1 flex flex-col">
+                            <div className="p-4 sm:p-6 flex-1 flex flex-col">
                                 <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
                                     {module.title}
                                 </h3>
@@ -222,7 +222,7 @@ export default function HebatModulesPage() {
                                     {module.description || 'Tidak ada deskripsi'}
                                 </p>
 
-                                <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+                                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 sm:mb-6">
                                     <div className="flex items-center gap-1">
                                         <Clock className="w-4 h-4" />
                                         <span>{module.duration_minutes} mnt</span>
@@ -236,7 +236,7 @@ export default function HebatModulesPage() {
                                 </div>
 
                                 {/* Sub Modules List */}
-                                <div className="mb-6 flex-1">
+                                <div className="mb-4 sm:mb-6 flex-1">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="text-sm font-semibold text-gray-700">Sub Materi</h4>
                                         <Link
@@ -273,17 +273,17 @@ export default function HebatModulesPage() {
                                                             {sub.title}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                                                    <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover/sub:opacity-100 transition-opacity">
                                                         <Link
                                                             href={`/admin/hebat/modules/${sub.id}`}
-                                                            className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                                            className="p-1.5 sm:p-1 text-gray-400 hover:text-blue-600 rounded"
                                                             title="Edit Sub Materi"
                                                         >
                                                             <Edit className="w-3 h-3" />
                                                         </Link>
                                                         <button
                                                             onClick={() => handleDelete(sub.id)}
-                                                            className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                                            className="p-1.5 sm:p-1 text-gray-400 hover:text-red-600 rounded"
                                                             title="Hapus Sub Materi"
                                                         >
                                                             <Trash2 className="w-3 h-3" />
