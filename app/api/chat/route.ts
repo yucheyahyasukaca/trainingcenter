@@ -234,6 +234,17 @@ const functions: any = {
 
             console.log(`[Sales Agent] Lead processed. email=${emailOk} whatsapp=${waSent}`);
 
+            // 3) Simpan sebagai cadangan di database (tidak boleh menggagalkan alur)
+            try {
+                const { error: saveErr } = await (getSupabaseAdmin() as any).from('sales_leads').insert({
+                    pic, school, address, email, phone,
+                    source: 'ai_chat', email_sent: emailOk, whatsapp_sent: waSent,
+                });
+                if (saveErr) console.error("[Sales Agent] Save lead failed:", saveErr.message);
+            } catch (err: any) {
+                console.error("[Sales Agent] Save lead failed:", err?.message || err);
+            }
+
             if (!emailOk && waSent === 0) {
                 return {
                     success: false,
