@@ -194,23 +194,56 @@ const functions: any = {
                 <p><em>Please contact this lead immediately regarding the "Garuda-21" promo.</em></p>
             `;
 
-            const response = await fetch(`${getAppBaseUrl()}/api/email/send`, {
-                method: 'POST',
-                headers: { ...internalHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: salesEmail,
-                    subject: `HOT LEAD: ${school} - ${pic} `,
-                    html: emailHtml,
-                    useQueue: false
-                })
-            });
+            // 1) Email ke tim sales
+            let emailOk = false;
+            try {
+                const response = await fetch(`${getAppBaseUrl()}/api/email/send`, {
+                    method: 'POST',
+                    headers: { ...internalHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: salesEmail,
+                        subject: `HOT LEAD: ${school} - ${pic} `,
+                        html: emailHtml,
+                        useQueue: false
+                    }),
+                    signal: AbortSignal.timeout(20_000),
+                });
+                emailOk = response.ok;
+            } catch (err: any) {
+                console.error("[Sales Agent] Email failed:", err?.message || err);
+            }
 
-            // Log for debugging/dashboard
-            console.log(`[Sales Agent] Lead Notification Sent to ${salesEmail} `);
+            // 2) WhatsApp ke tim sales dan CEO lewat gateway Garuda-21 (backend)
+            let waSent = 0;
+            const leadKey = process.env.SALES_LEAD_KEY;
+            const leadUrl = process.env.SALES_LEAD_URL || "https://api.garuda-21.com/integrations/sales-lead";
+            if (leadKey) {
+                try {
+                    const wa = await fetch(leadUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-sales-lead-key': leadKey },
+                        body: JSON.stringify({ pic, school, address, email, phone }),
+                        signal: AbortSignal.timeout(15_000),
+                    });
+                    const waData: any = await wa.json().catch(() => ({}));
+                    waSent = wa.ok ? Number(waData?.sent || 0) : 0;
+                } catch (err: any) {
+                    console.error("[Sales Agent] WhatsApp notify failed:", err?.message || err);
+                }
+            }
+
+            console.log(`[Sales Agent] Lead processed. email=${emailOk} whatsapp=${waSent}`);
+
+            if (!emailOk && waSent === 0) {
+                return {
+                    success: false,
+                    error: "Data belum berhasil diteruskan. Minta pengguna menghubungi WhatsApp 08112666456 atau email telemarketing@garuda-21.com."
+                };
+            }
 
             return {
                 success: true,
-                message: `Data berhasil dikirim ke Tim Sales.WhatsApp notifikasi telah dikirim ke nomor 628112666456(via Email Gateway).`
+                message: `Data berhasil diteruskan ke Tim Sales${emailOk ? " lewat email" : ""}${waSent > 0 ? `${emailOk ? " dan" : ""} lewat WhatsApp` : ""}.`
             };
         } catch (e: any) {
             console.error("[Tool Error] Failed to submit lead:", e);
@@ -449,7 +482,7 @@ export async function POST(req: Request) {
       - **Training/Program Info:** Jika pengguna bertanya tentang "program pelatihan", "kursus", "training", atau "belajar apa", GUNAKAN TOOL \`getTrainingPrograms\`.
         - Anda bisa mencari berdasarkan kata kunci (misal: "excel", "guru") jika user spesifik.
         - Sajikan daftar program yang tersedia beserta link pendaftarannya.
-      - **WhatsApp Notification:** Setelah sukses memanggil tool, beritahu user: "Terima kasih! Data sudah saya kirimkan ke Tim Sales kami. Notifikasi WhatsApp juga sudah dikirim ke admin pusat."
+      - **Konfirmasi Lead:** Setelah tool sukses, sampaikan persis sesuai hasil tool: data sudah diteruskan ke Tim Sales (sebut email/WhatsApp hanya jika disebut di hasil tool) dan tim akan segera menghubungi. Jika tool gagal, minta maaf dan arahkan pengguna ke WhatsApp 08112666456. Jangan pernah mengklaim pengiriman yang tidak disebut di hasil tool.
       - **Mode Support:** Untuk pertanyaan teknis biasa (login, poin, dll), jawab sesuai Knowledge Base.
       - JANGAN PERNAH bilang Anda "hanya bisa mereset password".
       - Jika jawaban ada di Knowledge Base, sampaikan dengan bahasa Anda sendiri yang ramah dan persuasif.
